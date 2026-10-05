@@ -7,8 +7,26 @@ export const LIMITS = {
   answer: 14000,
   prompt: 100000,
   evidence: 8,
+  turns: 20,
+  context: 40000,
   timeoutMs: 180000,
 } as const;
+export const ConversationTurn = z.object({
+  question: z.string().min(1).max(LIMITS.question),
+  answer: z.string().min(1).max(LIMITS.answer),
+});
+export const ConversationContext = z
+  .object({
+    scope: z.literal('rendered'),
+    turns: z.array(ConversationTurn).min(1).max(LIMITS.turns),
+  })
+  .refine(
+    (context) =>
+      context.turns.reduce((size, turn) => size + turn.question.length + turn.answer.length, 0) <=
+      LIMITS.context,
+    '대화가 전체 길이 제한을 넘었습니다.',
+  );
+export type ConversationContext = z.infer<typeof ConversationContext>;
 export const Stage = z.enum(['collect', 'review', 'synthesize']);
 export type Stage = z.infer<typeof Stage>;
 export const stageNames: Record<Stage, string> = {
@@ -48,6 +66,7 @@ export const Run = z.object({
   jobs: z.array(Job).max(7),
   evidence: z.array(Evidence).max(LIMITS.evidence),
   main: Binding.optional(),
+  context: ConversationContext.optional(),
   attachments: z.array(Attachment).max(ATTACHMENT_LIMITS.count).default([]),
 });
 export type Run = z.infer<typeof Run>;

@@ -1100,3 +1100,35 @@ p.error {
 .run-error p {
   margin-bottom: 2px;
 }
+
+/* The label opens the native picker; selected originals are listed separately. */
+.attachment-picker {
+  position: relative;
+  cursor: pointer;
+  width: fit-content;
+}
+.attachment-picker input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.attachment-picker:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.auto-participants > label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+.source-question {
+  -webkit-line-clamp: unset;
+  max-height: none;
+}
+.source-preview pre {
+  max-height: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

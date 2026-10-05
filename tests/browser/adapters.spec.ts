@@ -706,3 +706,33 @@ test('new-conversation navigation is accepted once and subsequent conversation c
     .toBe('error');
   expect((await command(page, { type: 'poll', id: 'next' })).data.error).toContain('대화가 변경');
 });
+for (const provider of providerIds) {
+  test(`${provider} captures ordered complete multi-turn context and rejects incomplete sequence`, async ({
+    page,
+  }) => {
+    await setup(page, provider);
+    await page.evaluate(() => {
+      (window as any).user('두 번째 질문');
+      (window as any).assistant('두 번째 답변');
+    });
+    const context = (await command(page, { type: 'snapshot' })).data.context;
+    expect(context.turns).toEqual([
+      { question: '기존 질문', answer: '과거 답변 — 새 답변으로 수집하면 안 됨' },
+      { question: '두 번째 질문', answer: '두 번째 답변' },
+    ]);
+    await page.evaluate(() => (window as any).user('미완료 질문'));
+    expect((await command(page, { type: 'snapshot' })).data.context.error).toBeTruthy();
+  });
+}
+test('ChatGPT refuses detectable unloaded history by observed fallback turn index', async ({
+  page,
+}) => {
+  await setup(page, 'chatgpt', redesignedChatgptPage());
+  await page
+    .locator('[data-chatgpt-search-message-ids]')
+    .first()
+    .evaluate((element) =>
+      element.setAttribute('data-chatgpt-search-unit-key', 'fallback-turn-2:0:user'),
+    );
+  expect((await command(page, { type: 'snapshot' })).data.context.error).toContain('이전 대화');
+});

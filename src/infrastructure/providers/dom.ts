@@ -1,6 +1,6 @@
 import { LIMITS } from '../../domains/crosscheck/model';
 import { providers, type ProviderId } from '../../domains/providers/model';
-import type { Snapshot } from '../../application/provider-protocol';
+import { CapturedConversation, type Snapshot } from '../../application/provider-protocol';
 import type { AttachmentPayload } from '../../domains/attachments/model';
 import { hasAttachments, uploadAttachments, watchAttachmentEdits } from './attachments';
 import { visible, textOf, outermost, messageOrder } from './dom-utils';
@@ -103,7 +103,7 @@ export function isBusy(provider: ProviderId) {
 export function questions(provider: ProviderId) {
   return provider === 'chatgpt'
     ? chatgptMessages('user')
-    : [...document.querySelectorAll(selectors[provider].user)].filter(visible);
+    : [...document.querySelectorAll(selectors[provider].user)].filter(visible).sort(messageOrder);
 }
 export function draftText(element?: HTMLElement) {
   // ProseMirror stores inserted lines as paragraphs; innerText adds display-only blank lines.
@@ -126,7 +126,7 @@ export function replies(provider: ProviderId) {
   if (provider === 'chatgpt') return chatgptMessages('assistant');
   // Selector alternatives can select nested wrappers; count only the outer response.
   const elements = [...document.querySelectorAll(selectors[provider].assistant)].filter(visible);
-  return outermost(elements);
+  return outermost(elements).sort(messageOrder);
 }
 export function finishedMarker(provider: ProviderId, reply: HTMLElement) {
   const root =
@@ -138,6 +138,64 @@ export function finishedMarker(provider: ProviderId, reply: HTMLElement) {
         : reply.closest('[data-is-streaming]');
   if (!root) return false;
   return selectors[provider].done.some((s) => [...root.querySelectorAll(s)].some(visible));
+}
+export function pairConversation(
+  messages: { role: 'user' | 'assistant'; text: string; complete: boolean }[],
+) {
+  const turns = [];
+  if (!messages.length || messages.length % 2)
+    throw new Error('완료되지 않은 대화가 있습니다. 답변이 끝난 뒤 다시 선택해주세요.');
+  for (let index = 0; index < messages.length; index += 2) {
+    const question = messages[index]!;
+    const answer = messages[index + 1]!;
+    if (question.role !== 'user' || answer.role !== 'assistant' || !answer.complete)
+      throw new Error(
+        '질문·답변의 순서 또는 완료 상태가 불명확합니다. 대화를 확인하고 다시 선택해주세요.',
+      );
+    turns.push({ question: question.text, answer: answer.text });
+  }
+  return CapturedConversation.parse({ scope: 'rendered', turns }).turns;
+}
+function conversationContext(
+  provider: ProviderId,
+  users: HTMLElement[],
+  assistants: HTMLElement[],
+): Snapshot['context'] {
+  try {
+    if (provider === 'chatgpt') {
+      const indices = [...document.querySelectorAll('[data-chatgpt-search-unit-key]')]
+        .map((element) =>
+          element.getAttribute('data-chatgpt-search-unit-key')?.match(/^fallback-turn-(\d+):/),
+        )
+        .filter((match) => !!match)
+        .map((match) => Number(match![1]));
+      const unique = [...new Set(indices)].sort((a, b) => a - b);
+      if (unique.some((value, index) => value !== index))
+        throw new Error(
+          '이전 대화가 일부만 불러와졌습니다. 대화 맨 위까지 불러온 뒤 다시 선택해주세요.',
+        );
+    }
+    const messages = [
+      ...users.map((element) => ({ element, role: 'user' as const })),
+      ...assistants.map((element) => ({ element, role: 'assistant' as const })),
+    ]
+      .sort((a, b) => messageOrder(a.element, b.element))
+      .map(({ element, role }) => ({
+        role,
+        text: textOf(element),
+        complete: role === 'user' || finishedMarker(provider, element),
+      }));
+    return { scope: 'rendered', turns: pairConversation(messages) };
+  } catch (error) {
+    return {
+      scope: 'rendered',
+      turns: [],
+      error:
+        error instanceof Error && error.name !== 'ZodError'
+          ? error.message
+          : '대화가 길이 제한을 넘거나 비어 있습니다. 더 짧은 대화를 선택해주세요.',
+    };
+  }
 }
 export function snapshot(provider: ProviderId, documentId: string): Snapshot {
   const input = composer(provider);
@@ -161,6 +219,7 @@ export function snapshot(provider: ProviderId, documentId: string): Snapshot {
     truncated: question.length > LIMITS.question || answer.length > LIMITS.answer,
     lastQuestion: question.slice(0, LIMITS.question),
     lastAnswer: answer.slice(0, LIMITS.answer),
+    context: conversationContext(provider, userMessages, assistantMessages),
     diagnostics: {
       adapterVersion: '2026-10-06',
       layout: provider === 'chatgpt' ? chatgptLayout() : 'provider-default',

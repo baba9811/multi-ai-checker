@@ -3,7 +3,7 @@ import { test, expect, type Page } from '@playwright/test';
 async function confirmOriginals(page: Page) {
   await page
     .getByRole('checkbox', {
-      name: '원본 대화의 파일·이미지를 모두 선택했거나 첨부가 없음을 확인했습니다',
+      name: /원래 대화(에 첨부파일이 없습니다|의 파일·이미지를 모두 선택했습니다)/,
     })
     .check();
 }
@@ -15,7 +15,9 @@ test('one click imports, collects, reviews and sends final synthesis to the orig
   page.on('pageerror', (error) => errors.push(error.message));
   await page.setViewportSize({ width: 360, height: 820 });
   await page.goto('/');
-  await expect(page.getByText('물은 언제나 100°C에서 끓나요?', { exact: true })).toBeVisible();
+  await expect(
+    page.locator('.source-question').filter({ hasText: '물은 언제나 100°C에서 끓나요?' }),
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: '질문 복사' })).toHaveCount(0);
   await page.screenshot({ path: info.outputPath('workspace.png'), fullPage: true });
   expect(await page.evaluate(() => window.harness.sends)).toHaveLength(0);
@@ -109,7 +111,7 @@ test('stop and reload never re-send ambiguous requests', async ({ page }) => {
   await expect(page.getByRole('heading', { name: '검토 멈춤' })).toBeVisible();
   expect(await page.evaluate(() => window.harness.sends.length)).toBe(0);
   await page.getByRole('button', { name: '새 검토', exact: true }).click();
-  await expect(page.getByRole('heading', { name: '현재 답변 검토' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '대화 검토' })).toBeVisible();
 });
 
 test('storage failure prevents web sends', async ({ page }) => {
@@ -144,7 +146,8 @@ test('narrow side panel stays readable and settings are optional', async ({ page
   await page.goto('/');
   await expect(page.getByRole('button', { name: '자동 검토 시작' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
-  await expect(page.getByRole('button', { name: 'ChatGPT 참여' })).not.toBeVisible();
+  await expect(page.getByRole('checkbox', { name: 'ChatGPT 참여' })).toHaveCount(0);
+  await expect(page.getByRole('checkbox', { name: 'Claude 참여' })).toBeVisible();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: '검토', exact: true })).toBeFocused();
 });
@@ -159,7 +162,7 @@ test('opening another provider preserves the pinned main until explicitly select
     window.harness.activeProvider = 'claude';
     window.dispatchEvent(new Event('focus'));
   });
-  await expect(page.getByRole('button', { name: '메인 대화로 돌아가기' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '원래 대화로 돌아가기' })).toBeVisible();
   await page.getByRole('button', { name: '검토', exact: true }).click();
   await expect(page.locator('.source-label').first()).toContainText('ChatGPT');
   await confirmOriginals(page);
@@ -183,7 +186,7 @@ test('selecting a new main clears originals and requires a fresh confirmation', 
   await page.evaluate(() => {
     window.harness.activeProvider = 'claude';
   });
-  await page.getByRole('button', { name: '현재 탭에서 다시 선택' }).click();
+  await page.getByRole('button', { name: /현재 탭(에서 가져오기|으로 변경)/ }).click();
   await expect(page.locator('.source-label').first()).toContainText('Claude');
   await expect(page.locator('.attachment-list')).toHaveCount(0);
   await expect(page.getByRole('checkbox')).not.toBeChecked();
@@ -267,12 +270,27 @@ test('an unavailable source requires an explicit read before files or sending ar
     window.harness.activeProvider = 'claude';
     window.dispatchEvent(new Event('focus'));
   });
-  await expect(page.getByRole('button', { name: '메인 대화로 돌아가기' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '원래 대화로 돌아가기' })).toHaveCount(0);
   await page.getByRole('button', { name: '검토', exact: true }).click();
   await expect(page.locator('.source-label')).toHaveCount(0);
-  await page.getByRole('button', { name: '현재 탭에서 다시 선택' }).click();
+  await page.getByRole('button', { name: /현재 탭(에서 가져오기|으로 변경)/ }).click();
   await expect(page.locator('.source-label').first()).toContainText('Claude');
   await expect(page.getByLabel('원본 파일 선택')).toBeEnabled();
   await expect(page.getByRole('checkbox')).not.toBeChecked();
   expect(await page.evaluate(() => window.harness.sends)).toHaveLength(0);
+});
+
+test('loaded scope and every shared turn remain inspectable before and after review', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.getByText(/현재 화면에 불러온 질문·답변 2쌍/)).toBeVisible();
+  await page.getByText('공유할 대화 전체 보기', { exact: false }).click();
+  await expect(page.getByText('먼저 압력의 영향을 설명해주세요.', { exact: true })).toBeVisible();
+  await expect(page.getByText('압력이 끓는점에 영향을 줍니다.', { exact: true })).toBeVisible();
+  await confirmOriginals(page);
+  await page.getByRole('button', { name: '자동 검토 시작' }).click();
+  await expect(page.getByRole('heading', { name: '검토 완료' })).toBeVisible();
+  await page.getByText('공유한 대화 · 현재 화면에 불러온 2쌍').click();
+  await expect(page.getByText('먼저 압력의 영향을 설명해주세요.', { exact: true })).toBeVisible();
 });

@@ -31,6 +31,7 @@ const browser = {
         truncated: false,
         lastQuestion: '',
         lastAnswer: '',
+        context: { scope: 'rendered' as const, turns: [] },
       },
     })),
   },
@@ -126,6 +127,7 @@ it.each([
       truncated: false,
       lastQuestion: '',
       lastAnswer: '',
+      context: { scope: 'rendered' as const, turns: [] },
     },
   });
   await expect(preparePeer('chatgpt', saved)).rejects.toThrow('다시 연결');

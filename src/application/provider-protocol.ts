@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ProviderId } from '../domains/providers/model';
-import { LIMITS } from '../domains/crosscheck/model';
+import { LIMITS, ConversationTurn } from '../domains/crosscheck/model';
 import { AttachmentBatch } from '../domains/attachments/model';
 
 export const AdapterDiagnostics = z.object({
@@ -15,6 +15,21 @@ export const AdapterDiagnostics = z.object({
 });
 export type AdapterDiagnostics = z.infer<typeof AdapterDiagnostics>;
 
+// Transport must also read the extension's own bounded prompts appended after import.
+export const CapturedConversation = z
+  .object({
+    scope: z.literal('rendered'),
+    turns: z
+      .array(ConversationTurn.extend({ question: z.string().min(1).max(LIMITS.prompt) }))
+      .max(LIMITS.turns + 7),
+    error: z.string().max(500).optional(),
+  })
+  .refine(
+    (context) =>
+      context.turns.reduce((size, turn) => size + turn.question.length + turn.answer.length, 0) <=
+      LIMITS.context + 2 * (LIMITS.prompt + LIMITS.answer),
+    '불러온 대화가 전송 경계를 넘었습니다.',
+  );
 export const Snapshot = z.object({
   provider: ProviderId,
   documentId: z.string(),
@@ -25,6 +40,7 @@ export const Snapshot = z.object({
   truncated: z.boolean(),
   lastQuestion: z.string().max(LIMITS.question),
   lastAnswer: z.string().max(LIMITS.answer),
+  context: CapturedConversation,
   diagnostics: AdapterDiagnostics.optional(),
 });
 export type Snapshot = z.infer<typeof Snapshot>;

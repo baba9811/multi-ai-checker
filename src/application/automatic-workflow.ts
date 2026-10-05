@@ -1,9 +1,38 @@
-import { LIMITS, type Run } from '../domains/crosscheck/model';
+import { LIMITS, ConversationContext, type Run } from '../domains/crosscheck/model';
 import { createRun, nextStage, updateJob } from '../domains/crosscheck/workflow';
 import type { Binding, ProviderId } from '../domains/providers/model';
 import type { Conversation, Platform, Workspace } from './ports';
 import type { Attachment, AttachmentPayload } from '../domains/attachments/model';
 import { matchAttachments } from './attachments';
+
+export function assertCapturedContext(
+  context: Run['context'],
+  current: Conversation['snapshot'],
+  ownTurns: Conversation['snapshot']['context']['turns'] = [],
+) {
+  // Legacy saved runs retain their existing recovery behavior without inventing source history.
+  if (!context) return;
+  if (
+    !current.context ||
+    current.context.error ||
+    JSON.stringify(current.context.turns) !== JSON.stringify([...context.turns, ...ownTurns])
+  )
+    throw new Error(
+      '원래 대화의 질문·답변이 바뀌었거나 일부만 불러와졌습니다. 새 검토로 다시 선택해주세요.',
+    );
+}
+
+export function assertSameSource(
+  previous: Conversation['snapshot'],
+  current: Conversation['snapshot'],
+) {
+  if (
+    previous.lastQuestion !== current.lastQuestion ||
+    previous.lastAnswer !== current.lastAnswer ||
+    JSON.stringify(previous.context) !== JSON.stringify(current.context)
+  )
+    throw new Error('원래 대화의 질문·답변이 바뀌었습니다. 현재 탭에서 다시 선택해주세요.');
+}
 
 export function importedRun(
   source: Conversation,
@@ -33,7 +62,23 @@ export function importedRun(
     throw new Error(
       '현재 질문·답변을 읽지 못했습니다. 대화가 보이는데도 이 메시지가 나오면 연결 화면에서 진단을 확인해주세요.',
     );
-  const run = createRun(snapshot.lastQuestion, selected, binding.provider, mode, attachments);
+  if (!snapshot.context || snapshot.context.error)
+    throw new Error(
+      snapshot.context?.error ??
+        '대화 맥락을 읽지 못했습니다. 탭을 새로고침하고 다시 선택해주세요.',
+    );
+  const context = ConversationContext.parse(snapshot.context);
+  const latest = context.turns.at(-1)!;
+  if (latest.question !== snapshot.lastQuestion || latest.answer !== snapshot.lastAnswer)
+    throw new Error('마지막 질문·답변과 대화 맥락이 다릅니다. 다시 선택해주세요.');
+  const run = createRun(
+    snapshot.lastQuestion,
+    selected,
+    binding.provider,
+    mode,
+    attachments,
+    context,
+  );
   return {
     ...run,
     main: binding,
@@ -66,6 +111,22 @@ export async function executeAutomatic(
       throw new Error('자동 검토를 중단했습니다. 이미 보낸 요청은 해당 AI 탭에서 확인하세요.');
   };
   if (!run.main) throw new Error('최종 답변을 보낼 메인 대화가 없습니다.');
+  const ownMainTurns = () =>
+    run.jobs
+      .filter(
+        (job) =>
+          job.provider === run.chair &&
+          job.stage !== 'collect' &&
+          job.status === 'done' &&
+          job.method === 'web',
+      )
+      .map((job) => ({ question: job.prompt, answer: job.answer }));
+  if (run.context) {
+    const source = await platform.inspect(run.main);
+    if (source.url !== run.main.url || source.documentId !== run.main.documentId)
+      throw new Error('메인 대화가 바뀌었습니다.');
+    assertCapturedContext(run.context, source, ownMainTurns());
+  }
   await publish();
   checkAbort();
   // Attach only peers that still need their first request. Model choices on bound tabs persist.
@@ -102,6 +163,7 @@ export async function executeAutomatic(
                 ? '메인 대화가 바뀌었습니다. 자동 전송을 멈췄습니다.'
                 : '연결한 대화가 바뀌었습니다.',
             );
+          if (job.provider === run.chair) assertCapturedContext(run.context, snap, ownMainTurns());
           if (!snap.composer)
             throw new Error('입력란을 찾지 못했습니다. AI 탭에서 로그인 상태를 확인하세요.');
           if (snap.busy || snap.draft)

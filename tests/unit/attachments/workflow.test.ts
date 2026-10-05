@@ -26,6 +26,10 @@ const snapshot = (binding: Binding) => ({
   truncated: false,
   lastQuestion: 'Compare the synthetic document.',
   lastAnswer: 'Existing main answer.',
+  context: {
+    scope: 'rendered' as const,
+    turns: [{ question: 'Compare the synthetic document.', answer: 'Existing main answer.' }],
+  },
 });
 const source: Conversation = { binding: target('chatgpt'), snapshot: snapshot(target('chatgpt')) };
 
