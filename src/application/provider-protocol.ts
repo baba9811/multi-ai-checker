@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ProviderId } from '../domains/providers/model';
 import { LIMITS } from '../domains/crosscheck/model';
+import { AttachmentBatch } from '../domains/attachments/model';
 
 export const AdapterDiagnostics = z.object({
   adapterVersion: z.literal('2026-10-06'),
@@ -48,6 +49,7 @@ export const Command = z.discriminatedUnion('type', [
     documentId: z.string().max(100),
     url: z.string().max(3000),
     prompt: z.string().min(1).max(LIMITS.prompt),
+    attachments: AttachmentBatch.default([]),
   }),
   z.object({ type: z.literal('poll'), id: z.string().max(100) }),
   z.object({ type: z.literal('cancel'), id: z.string().max(100) }),

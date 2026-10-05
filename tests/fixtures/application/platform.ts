@@ -1,4 +1,4 @@
-import type { Platform } from '../../../src/application/ports';
+import type { ExtensionStatus, Platform } from '../../../src/application/ports';
 import {
   providerIds,
   providers,
@@ -6,11 +6,15 @@ import {
   type Binding,
 } from '../../../src/domains/providers/model';
 import type { Job } from '../../../src/domains/crosscheck/model';
+import type { AttachmentPayload } from '../../../src/domains/attachments/model';
 
 declare global {
   interface Window {
     harness: {
-      sends: { job: Job; target: Binding }[];
+      sends: { job: Job; target: Binding; attachments: AttachmentPayload[] }[];
+      activeProvider: ProviderId;
+      sourceAvailable: boolean;
+      accessRequests: ProviderId[][];
       mainMoved: boolean;
       moveMainDuringReview?: boolean;
       failProvider?: ProviderId;
@@ -18,10 +22,26 @@ declare global {
       failSave?: boolean;
       failAll?: boolean;
       models: Partial<Record<ProviderId, string>>;
+      extensionStatus: ExtensionStatus;
+      updateAvailable?: (version: string) => void;
+      managerOpens: number;
     };
   }
 }
-window.harness = { sends: [], mainMoved: false, delay: 80, models: {} };
+window.harness = {
+  sends: [],
+  activeProvider: 'chatgpt',
+  sourceAvailable: new URL(location.href).searchParams.get('source') !== 'unavailable',
+  accessRequests: [],
+  mainMoved: false,
+  delay: 80,
+  models: {},
+  extensionStatus: {
+    version: '0.3.0',
+    automaticUpdates: new URL(location.href).searchParams.get('updates') === 'automatic',
+  },
+  managerOpens: 0,
+};
 const bindings = Object.fromEntries(
   providerIds.map((provider, i) => [
     provider,
@@ -34,14 +54,37 @@ const bindings = Object.fromEntries(
   ]),
 ) as Record<ProviderId, Binding>;
 export const fixturePlatform: Platform = {
-  async currentConversation() {
-    const binding = bindings.chatgpt;
+  async extensionStatus() {
+    const pendingVersion = sessionStorage.getItem('fixture-pending-update');
+    return { ...window.harness.extensionStatus, ...(pendingVersion ? { pendingVersion } : {}) };
+  },
+  watchExtensionUpdate(available) {
+    window.harness.updateAvailable = (version) => {
+      sessionStorage.setItem('fixture-pending-update', version);
+      available(version);
+    };
+    return () => {
+      window.harness.updateAvailable = undefined;
+    };
+  },
+  async openExtensionManager() {
+    window.harness.managerOpens++;
+  },
+  async requestAccess(selected) {
+    window.harness.accessRequests.push(selected);
+  },
+  async currentConversation(requestAccess) {
+    if (requestAccess) window.harness.sourceAvailable = true;
+    if (!window.harness.sourceAvailable) return;
+    const binding = bindings[window.harness.activeProvider];
     return { binding, snapshot: await this.inspect(binding) };
   },
   async preparePeer(provider, saved) {
     return saved ?? bindings[provider];
   },
-  async reveal() {},
+  async reveal(binding) {
+    window.harness.activeProvider = binding.provider;
+  },
   async models(binding, key) {
     if (key) window.harness.models[binding.provider] = key;
     return {
@@ -72,8 +115,8 @@ export const fixturePlatform: Platform = {
       lastAnswer: '표준 대기압에서 순수한 물은 약 100°C에서 끓습니다.',
     };
   },
-  async sendAndCollect(job, target, signal) {
-    window.harness.sends.push({ job, target });
+  async sendAndCollect(job, target, signal, attachments = []) {
+    window.harness.sends.push({ job, target, attachments });
     await new Promise((resolve) => setTimeout(resolve, window.harness.delay));
     if (signal.aborted) throw new Error('수집 중단');
     if (job.stage === 'review' && window.harness.moveMainDuringReview)

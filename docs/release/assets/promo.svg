@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="280" viewBox="0 0 440 280">
+  <rect width="440" height="280" fill="#f8f8f6"/>
+  <rect x="28" y="30" width="48" height="48" rx="12" fill="#25262b"/>
+  <g transform="translate(38 40) scale(1.15)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m18 6-7 7-3-3M22 10l-7 7-3-3M2 12l5 5 3-3"/>
+  </g>
+  <text x="88" y="62" font-family="Arial,sans-serif" font-size="27" font-weight="700" fill="#25262b">crosscheck</text>
+  <text x="28" y="133" font-family="Arial,sans-serif" font-size="29" font-weight="700" fill="#25262b">Compare AI answers.</text>
+  <text x="28" y="173" font-family="Arial,sans-serif" font-size="29" font-weight="700" fill="#25262b">Keep the context.</text>
+  <path d="M28 204H412" stroke="#deded9"/>
+  <text x="28" y="239" font-family="Arial,sans-serif" font-size="16" fill="#666763">Answers · Attachments · Review</text>
+</svg>

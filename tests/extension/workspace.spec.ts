@@ -6,7 +6,9 @@ test('production panel starts without permissions or manual stage controls', asy
 }, info) => {
   const { panel } = extension;
   await expect(panel.getByRole('heading', { name: '현재 답변 검토' })).toBeVisible();
-  await expect(panel.getByRole('button', { name: '자동 검토 시작' })).toBeEnabled();
+  await expect(panel.getByRole('button', { name: '자동 검토 시작' })).toBeDisabled();
+  await expect(panel.getByRole('button', { name: '현재 탭에서 다시 선택' })).toBeEnabled();
+  await expect(panel.getByRole('checkbox')).toBeDisabled();
   await expect(panel.getByRole('button', { name: '질문 복사' })).toHaveCount(0);
   await expect(panel.getByRole('dialog')).toHaveCount(0);
   const stored = await panel.evaluate(() => chrome.storage.session.get(null));
@@ -50,7 +52,7 @@ test('production session recovery never resumes ambiguous sends or renders model
   expect(
     await panel.evaluate(() => (window as unknown as { pwned?: boolean }).pwned),
   ).toBeUndefined();
-  await panel.getByRole('button', { name: '기록 지우고 새 검토' }).click();
+  await panel.getByRole('button', { name: '새 검토', exact: true }).click();
   await expect(panel.getByRole('heading', { name: '현재 답변 검토' })).toBeVisible();
   await expect
     .poll(

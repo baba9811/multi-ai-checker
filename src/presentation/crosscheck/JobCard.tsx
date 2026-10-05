@@ -55,6 +55,12 @@ export function JobCard({
       ) : (
         <>
           {job.error && <p className="error">{job.error}</p>}
+          {(job.status === 'interrupted' || job.status === 'error') && (
+            <p className="hint">
+              먼저 AI 탭에서 기존 답변을 확인하세요. 이미 보낸 요청은 다시 보내지 말고 완성된 답변을
+              가져오세요.
+            </p>
+          )}
           <div className="button-row">
             <button
               className="text-button"
@@ -63,7 +69,9 @@ export function JobCard({
                 void navigator.clipboard
                   .writeText(job.prompt)
                   .then(() =>
-                    onNotice('프롬프트를 복사했습니다. 해당 AI의 웹 입력란에 붙여넣어 보내세요.'),
+                    onNotice(
+                      '프롬프트를 복사했습니다. 먼저 AI 탭에 이미 보낸 요청이나 완성된 답변이 있는지 확인하세요. 직접 새로 보내야 한다면 원본 파일·이미지도 함께 첨부해주세요.',
+                    ),
                   )
                   .catch(() =>
                     onNotice(

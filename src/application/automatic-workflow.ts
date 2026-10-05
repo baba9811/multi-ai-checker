@@ -2,8 +2,15 @@ import { LIMITS, type Run } from '../domains/crosscheck/model';
 import { createRun, nextStage, updateJob } from '../domains/crosscheck/workflow';
 import type { Binding, ProviderId } from '../domains/providers/model';
 import type { Conversation, Platform, Workspace } from './ports';
+import type { Attachment, AttachmentPayload } from '../domains/attachments/model';
+import { matchAttachments } from './attachments';
 
-export function importedRun(source: Conversation, selected: ProviderId[], mode: Run['mode']): Run {
+export function importedRun(
+  source: Conversation,
+  selected: ProviderId[],
+  mode: Run['mode'],
+  attachments: Attachment[] = [],
+): Run {
   const { binding, snapshot } = source;
   if (
     snapshot.url !== binding.url ||
@@ -26,7 +33,7 @@ export function importedRun(source: Conversation, selected: ProviderId[], mode: 
     throw new Error(
       '현재 질문·답변을 읽지 못했습니다. 대화가 보이는데도 이 메시지가 나오면 연결 화면에서 진단을 확인해주세요.',
     );
-  const run = createRun(snapshot.lastQuestion, selected, binding.provider, mode);
+  const run = createRun(snapshot.lastQuestion, selected, binding.provider, mode, attachments);
   return {
     ...run,
     main: binding,
@@ -45,7 +52,12 @@ export async function executeAutomatic(
   platform: Platform,
   signal: AbortSignal,
   checkpoint: (workspace: Workspace) => Promise<void>,
+  attachments: AttachmentPayload[] = [],
 ): Promise<Run> {
+  if (!matchAttachments(initial.attachments, attachments))
+    throw new Error(
+      '원본 첨부파일을 모두 다시 선택해주세요. 파일 이름과 내용이 이전 선택과 같아야 합니다.',
+    );
   let run = initial;
   const bindings = { ...saved, [run.chair]: run.main };
   const publish = () => checkpoint({ run, bindings: { ...bindings } });
@@ -108,11 +120,31 @@ export async function executeAutomatic(
         await publish();
         try {
           checkAbort();
-          const result = await platform.sendAndCollect(job, target!, signal);
+          const delivered = run.jobs.some((previous) => {
+            const receipt = previous.attachmentTarget;
+            return (
+              previous.provider === job.provider &&
+              previous.status === 'done' &&
+              receipt &&
+              receipt.tabId === target!.tabId &&
+              receipt.documentId === target!.documentId &&
+              receipt.url === target!.url
+            );
+          });
+          const result = await platform.sendAndCollect(
+            job,
+            target!,
+            signal,
+            delivered ? [] : attachments,
+          );
           if (job.provider === run.chair && result.binding.url !== run.main!.url)
             throw new Error('메인 대화가 바뀌었습니다. 답변을 해당 탭에서 확인하세요.');
           bindings[job.provider] = result.binding;
-          run = updateJob(run, job.id, { status: 'done', answer: result.answer });
+          run = updateJob(run, job.id, {
+            status: 'done',
+            answer: result.answer,
+            attachmentTarget: delivered || attachments.length > 0 ? result.binding : undefined,
+          });
         } catch (error) {
           run = updateJob(run, job.id, {
             status: signal.aborted ? 'interrupted' : 'error',
