@@ -18,11 +18,14 @@ import { Binding, providerIds, providers, type ProviderId } from '../../domains/
 import { stageNames, type Run } from '../../domains/crosscheck/model';
 import { budget, markdown, recoverRun, updateJob } from '../../domains/crosscheck/workflow';
 import { executeAutomatic, importedRun } from '../../application/automatic-workflow';
+import { matchAttachments, prepareAttachments } from '../../application/attachments';
+import { attachmentMetadata, type AttachmentPayload } from '../../domains/attachments/model';
 import type { Conversation, Platform, Workspace } from '../../application/ports';
 import { ProviderLogo } from '../providers/ProviderLogo';
 import { ConnectionSettings } from '../providers/ConnectionSettings';
 import { JobCard } from '../crosscheck/JobCard';
 import { Guide } from '../privacy/Guide';
+import { UpdateNotice } from './UpdateNotice';
 
 const message = (error: unknown) =>
   error instanceof Error ? error.message : '작업을 완료하지 못했습니다.';
@@ -38,6 +41,10 @@ export function App({ platform }: { platform: Platform }) {
   const [mode, setMode] = useState<Run['mode']>('economy');
   const [busy, setBusy] = useState(false);
   const [configuring, setConfiguring] = useState(false);
+  const [files, setFiles] = useState<AttachmentPayload[]>([]);
+  const [readingFiles, setReadingFiles] = useState(false);
+  const [readingSource, setReadingSource] = useState(false);
+  const [originalsConfirmed, setOriginalsConfirmed] = useState(false);
   const [refresh, setRefresh] = useState(0);
   const abort = useRef<AbortController | undefined>(undefined);
   const alive = useRef(true);
@@ -88,7 +95,7 @@ export function App({ platform }: { platform: Platform }) {
   }, []);
 
   useEffect(() => {
-    if (!ready || !owner || busy || run) return;
+    if (!ready || !owner || busy || run || source || readingSource || tab !== 'work') return;
     let cancelled = false;
     let sequence = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -97,11 +104,19 @@ export function App({ platform }: { platform: Platform }) {
       try {
         const value = await platform.currentConversation();
         if (!cancelled && current === sequence) {
-          setSource(value);
-          if (value)
+          if (
+            value?.snapshot.composer &&
+            value.snapshot.lastQuestion &&
+            value.snapshot.lastAnswer &&
+            !value.snapshot.busy &&
+            !value.snapshot.draft &&
+            !value.snapshot.truncated
+          ) {
+            setSource(value);
             setSelected((old) =>
               old.includes(value.binding.provider) ? old : [...old, value.binding.provider],
             );
+          }
         }
       } catch {
         if (!cancelled && current === sequence) setSource(undefined);
@@ -123,7 +138,7 @@ export function App({ platform }: { platform: Platform }) {
       stop?.();
       window.removeEventListener('focus', changed);
     };
-  }, [ready, owner, busy, run, refresh]);
+  }, [ready, owner, busy, run, source, readingSource, tab, refresh]);
 
   function checkpoint(value: Workspace) {
     if (!alive.current) return Promise.reject(new Error('패널이 닫혀 작업을 중단했습니다.'));
@@ -134,7 +149,15 @@ export function App({ platform }: { platform: Platform }) {
     return writer.current;
   }
   async function start(resume = false) {
-    if (!owner || operation.current || configuring) return;
+    if (
+      !owner ||
+      operation.current ||
+      configuring ||
+      readingFiles ||
+      readingSource ||
+      (!resume && (!originalsConfirmed || !source))
+    )
+      return;
     operation.current = true;
     setBusy(true);
     setNotice('');
@@ -142,19 +165,36 @@ export function App({ platform }: { platform: Platform }) {
     abort.current = controller;
     writer.current = writer.current.catch(() => {});
     try {
+      // Keep the permission request in the initiating click before any other asynchronous work.
+      const access = platform.requestAccess?.(resume ? workspace.current.run!.selected : selected);
+      await access;
       let initial = resume ? workspace.current.run : undefined;
       if (!initial) {
-        const active = await platform.currentConversation(selected);
-        if (!active) throw new Error('ChatGPT, Claude 또는 Gemini 대화를 열고 시작해주세요.');
-        initial = importedRun(active, selected, mode);
+        if (!source) throw new Error('메인 대화를 먼저 선택해주세요.');
+        const active = {
+          binding: source.binding,
+          snapshot: await platform.inspect(source.binding),
+        };
+        if (
+          source &&
+          (active.snapshot.lastQuestion !== source.snapshot.lastQuestion ||
+            active.snapshot.lastAnswer !== source.snapshot.lastAnswer)
+        )
+          throw new Error('메인 대화의 질문·답변이 바뀌었습니다. 현재 탭에서 다시 선택해주세요.');
+        initial = importedRun(active, selected, mode, files.map(attachmentMetadata));
         setSource(active);
       }
+      if (!matchAttachments(initial.attachments, files))
+        throw new Error(
+          '저장된 원본 파일과 일치하지 않습니다. 이름과 내용을 바꾸지 않은 원본을 다시 선택해주세요.',
+        );
       await executeAutomatic(
         initial,
         workspace.current.bindings,
         platform,
         controller.signal,
         checkpoint,
+        files,
       );
     } catch (error) {
       if (alive.current) setNotice(message(error));
@@ -172,13 +212,60 @@ export function App({ platform }: { platform: Platform }) {
     );
   }
   function reset() {
-    if (busy) return;
+    if (busy || readingFiles) return;
     setNotice('');
     setSource(undefined);
+    setFiles([]);
+    setOriginalsConfirmed(false);
     void checkpoint({ bindings: workspace.current.bindings }).catch((error) =>
       setNotice(message(error)),
     );
     setRefresh((old) => old + 1);
+  }
+  async function reselectSource() {
+    if (busy || configuring || readingFiles || readingSource) return;
+    setSource(undefined);
+    setFiles([]);
+    setOriginalsConfirmed(false);
+    setNotice('');
+    setReadingSource(true);
+    try {
+      const active = await platform.currentConversation(selected);
+      if (!active)
+        throw new Error('검토할 ChatGPT, Claude 또는 Gemini 대화를 열고 다시 선택해주세요.');
+      const participants = selected.includes(active.binding.provider)
+        ? selected
+        : [...selected, active.binding.provider];
+      // Validate a readable source before enabling file selection or review.
+      importedRun(active, participants, mode);
+      if (alive.current) {
+        setSource(active);
+        setSelected(participants);
+      }
+    } catch (error) {
+      if (alive.current) setNotice(message(error));
+    } finally {
+      if (alive.current) setReadingSource(false);
+    }
+  }
+  async function selectFiles(input: HTMLInputElement) {
+    const selectedFiles = [...(input.files ?? [])];
+    if (!selectedFiles.length) return;
+    setReadingFiles(true);
+    setFiles([]);
+    if (!run) setOriginalsConfirmed(false);
+    setNotice('');
+    try {
+      const payloads = await prepareAttachments(selectedFiles);
+      if (alive.current) {
+        setFiles(payloads);
+      }
+    } catch (error) {
+      if (alive.current) setNotice(message(error));
+    } finally {
+      input.value = '';
+      if (alive.current) setReadingFiles(false);
+    }
   }
   function exportRun() {
     if (!run) return;
@@ -194,7 +281,83 @@ export function App({ platform }: { platform: Platform }) {
   const final = run?.jobs.find((job) => job.stage === 'synthesize' && job.status === 'done');
   const failed =
     run?.jobs.filter((job) => job.status === 'error' || job.status === 'interrupted') ?? [];
-  const locked = !ready || !owner || busy || configuring;
+  const locked = !ready || !owner || busy || configuring || readingFiles || readingSource;
+  const matchingFiles = !run || matchAttachments(run.attachments, files);
+  const mainBinding = run?.main ?? source?.binding;
+  const included =
+    run?.jobs
+      .filter((job) => job.stage === 'collect' && job.status === 'done')
+      .map((job) => job.provider) ?? [];
+  const excluded = run?.selected.filter((id) => !included.includes(id)) ?? [];
+  const fileSelection = (
+    <section className="attachments" aria-label="원본 첨부파일">
+      <h2>{run ? '검토에 사용한 원본 파일' : '함께 검토할 파일'}</h2>
+      <p className="hint">
+        대화에 올린 파일·이미지를 자동으로 가져올 수 없습니다. 원본을 한 번에 선택하면 선택한 AI마다
+        업로드를 확인한 뒤 전송합니다.
+      </p>
+      <label className="attachment-picker">
+        {readingFiles ? '파일 읽는 중…' : run ? '같은 원본 파일 다시 선택' : '원본 파일 선택'}
+        <input
+          type="file"
+          multiple
+          aria-label="원본 파일 선택"
+          disabled={locked || (!source && !run)}
+          onChange={(event) => void selectFiles(event.currentTarget)}
+        />
+      </label>
+      <p className="hint">
+        최대 10개 · 합계 20 MB. 파일 내용은 패널이 열려 있는 동안만 보관합니다.
+      </p>
+      {run && run.attachments.length > 0 && (
+        <p className="hint">필요한 원본: {run.attachments.map((file) => file.name).join(', ')}</p>
+      )}
+      {files.length > 0 && (
+        <ul className="attachment-list">
+          {files.map((file) => (
+            <li key={file.name}>
+              <span>
+                {file.name}
+                <small>
+                  {(file.size / 1024).toLocaleString('ko-KR', { maximumFractionDigits: 1 })} KB
+                </small>
+              </span>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label={`${file.name} 선택 해제`}
+                disabled={locked}
+                onClick={() => {
+                  setFiles((old) => old.filter((item) => item !== file));
+                  setOriginalsConfirmed(false);
+                }}
+              >
+                <X size={14} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {run && !matchingFiles && (
+        <p className="error" role="status">
+          {files.length
+            ? '저장된 원본 파일과 일치하지 않습니다. 이름과 내용을 바꾸지 않은 원본을 다시 선택해주세요.'
+            : '계속하려면 위에 표시된 원본 파일을 다시 선택해주세요. 이미 전송된 요청은 재전송하지 않습니다.'}
+        </p>
+      )}
+      {!run && (
+        <label className="originals-confirmation">
+          <input
+            type="checkbox"
+            checked={originalsConfirmed}
+            disabled={locked || !source}
+            onChange={(event) => setOriginalsConfirmed(event.target.checked)}
+          />
+          원본 대화의 파일·이미지를 모두 선택했거나 첨부가 없음을 확인했습니다
+        </label>
+      )}
+    </section>
+  );
   return (
     <div className="app">
       <header className="header">
@@ -235,14 +398,26 @@ export function App({ platform }: { platform: Platform }) {
         {!ready ? (
           <p className="loading">불러오는 중…</p>
         ) : tab === 'connections' ? (
-          <ConnectionSettings
-            platform={platform}
-            bindings={bindings}
-            locked={locked}
-            onBinding={onBinding}
-            onError={(error) => setNotice(message(error))}
-            onWorking={setConfiguring}
-          />
+          <>
+            {mainBinding && (
+              <button
+                className="secondary main-return"
+                onClick={() =>
+                  void platform.reveal(mainBinding).catch((error) => setNotice(message(error)))
+                }
+              >
+                <ExternalLink size={14} /> 메인 대화로 돌아가기
+              </button>
+            )}
+            <ConnectionSettings
+              platform={platform}
+              bindings={bindings}
+              locked={locked}
+              onBinding={onBinding}
+              onError={(error) => setNotice(message(error))}
+              onWorking={setConfiguring}
+            />
+          </>
         ) : tab === 'guide' ? (
           <Guide />
         ) : !run ? (
@@ -250,12 +425,12 @@ export function App({ platform }: { platform: Platform }) {
             <div className="workspace-heading">
               <h1>현재 답변 검토</h1>
               <button
-                className="icon-button"
-                aria-label="현재 대화 새로 읽기"
+                className="text-button"
                 disabled={locked}
-                onClick={() => setRefresh((old) => old + 1)}
+                onClick={() => void reselectSource()}
               >
                 <RotateCcw size={15} />
+                {readingSource ? '대화 읽는 중…' : '현재 탭에서 다시 선택'}
               </button>
             </div>
             <section className="auto-source">
@@ -263,7 +438,7 @@ export function App({ platform }: { platform: Platform }) {
                 <>
                   <div className="source-label">
                     <ProviderLogo provider={source.binding.provider} />
-                    <span>{providers[source.binding.provider].name} · 현재 대화</span>
+                    <span>{providers[source.binding.provider].name} · 메인 대화 고정</span>
                   </div>
                   <p className="source-question">{source.snapshot.lastQuestion}</p>
                   {source.snapshot.lastAnswer && (
@@ -277,12 +452,13 @@ export function App({ platform }: { platform: Platform }) {
                 </>
               ) : (
                 <p className="empty-source">
-                  검토할 AI 대화를 열어주세요.
+                  검토할 AI 대화를 열고 현재 탭에서 다시 선택을 눌러주세요.
                   <br />
-                  질문과 답변은 자동으로 가져옵니다.
+                  처음에는 대화를 읽을 사이트 권한이 필요합니다.
                 </p>
               )}
             </section>
+            {fileSelection}
             <p className="auto-explanation">다른 AI 검토부터 메인 대화의 최종 답변까지.</p>
             <div className="auto-participants">
               {selected.map((id) => (
@@ -294,14 +470,14 @@ export function App({ platform }: { platform: Platform }) {
             </div>
             <button
               className="primary full"
-              disabled={locked || selected.length < 2}
+              disabled={locked || selected.length < 2 || !source || !originalsConfirmed}
               onClick={() => void start()}
             >
               {busy ? '대화 연결 중…' : '자동 검토 시작'}
               <ArrowRight size={16} />
             </button>
             <p className="action-note">
-              시작하면 선택한 AI에 질문·답변을 공유하고
+              시작하면 선택한 AI에 질문·답변·선택한 파일을 공유하고
               <br />
               현재 대화에 최종 프롬프트를 보냅니다.
             </p>
@@ -353,15 +529,18 @@ export function App({ platform }: { platform: Platform }) {
           <>
             <div className="run-top">
               <h1>{final ? '검토 완료' : busy ? '검토 중' : '검토 멈춤'}</h1>
-              <button
-                className="icon-button"
-                aria-label="기록 지우고 새 검토"
-                disabled={locked}
-                onClick={reset}
-              >
-                <RotateCcw size={16} />
+              <button className="text-button" disabled={locked} onClick={reset}>
+                <RotateCcw size={16} />새 검토
               </button>
             </div>
+            {final && (
+              <p className="participation-summary">
+                {included.length}개 AI 참여: {included.map((id) => providers[id].name).join(' · ')}
+                {excluded.length > 0 && (
+                  <span> · 제외: {excluded.map((id) => providers[id].name).join(' · ')}</span>
+                )}
+              </p>
+            )}
             <p className="source-question run-question">{run.question}</p>
             {!final && (
               <>
@@ -431,9 +610,24 @@ export function App({ platform }: { platform: Platform }) {
             {failed.length > 0 && (
               <div className="run-errors">
                 {failed.map((job) => (
-                  <p key={job.id}>
-                    <strong>{providers[job.provider].name}</strong> · {job.error}
-                  </p>
+                  <div className="run-error" key={job.id}>
+                    <p>
+                      <strong>{providers[job.provider].name}</strong> · {job.error}
+                    </p>
+                    {bindings[job.provider] && (
+                      <button
+                        className="text-button"
+                        onClick={() =>
+                          void platform
+                            .reveal(bindings[job.provider]!)
+                            .catch((error) => setNotice(message(error)))
+                        }
+                        aria-label={`${providers[job.provider].name} AI에서 확인`}
+                      >
+                        <ExternalLink size={13} /> AI에서 확인
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
@@ -458,7 +652,7 @@ export function App({ platform }: { platform: Platform }) {
               </button>
             </details>
             {!busy && !final && (
-              <details className="recovery">
+              <details className="recovery" open>
                 <summary>
                   중단된 검토 복구 <ChevronDown size={14} />
                 </summary>
@@ -466,6 +660,7 @@ export function App({ platform }: { platform: Platform }) {
                   이미 전송된 요청은 다시 보내지 않습니다. 해당 탭의 답변을 가져온 뒤 계속할 수
                   있습니다.
                 </p>
+                {run.attachments.length > 0 && fileSelection}
                 {run.jobs
                   .filter((job) => job.stage === run.stage && job.status !== 'done')
                   .map((job) => (
@@ -489,7 +684,7 @@ export function App({ platform }: { platform: Platform }) {
                   ))}
                 <button
                   className="secondary full"
-                  disabled={locked}
+                  disabled={locked || !matchingFiles}
                   onClick={() => void start(true)}
                 >
                   남은 검토 계속
@@ -499,6 +694,7 @@ export function App({ platform }: { platform: Platform }) {
           </>
         )}
       </main>
+      <UpdateNotice platform={platform} busy={locked} />
     </div>
   );
 }

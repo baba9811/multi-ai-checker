@@ -1,6 +1,8 @@
 import { LIMITS } from '../../domains/crosscheck/model';
 import { providers, type ProviderId } from '../../domains/providers/model';
 import type { Snapshot } from '../../application/provider-protocol';
+import type { AttachmentPayload } from '../../domains/attachments/model';
+import { hasAttachments, uploadAttachments, watchAttachmentEdits } from './attachments';
 import { visible, textOf, outermost, messageOrder } from './dom-utils';
 import {
   chatgptComposer,
@@ -22,6 +24,7 @@ export const selectors = {
       'button[aria-label="Send prompt"]',
       'button[aria-label="프롬프트 보내기"]',
       'button[aria-label="Send message"]',
+      'button[type="submit"][aria-label="Send"]',
       'button[aria-label="메시지 보내기"]',
       'button[aria-label="보내기"]',
     ],
@@ -29,6 +32,7 @@ export const selectors = {
       'button[data-testid="stop-button"]',
       'button[aria-label="Stop generating"]',
       'button[aria-label="Stop streaming"]',
+      'button[aria-label="Stop"]',
       'button[aria-label="생성 중지"]',
       'button[aria-label="응답 중지"]',
     ],
@@ -85,12 +89,10 @@ export const selectors = {
 } as const;
 
 function first(selectors: readonly string[], root: ParentNode = document): HTMLElement | undefined {
-  for (const selector of selectors) {
-    const found = [...root.querySelectorAll(selector)].filter(visible);
-    if (found.length > 1)
-      throw new Error('입력 또는 전송 요소가 여러 개입니다. 수동 모드를 사용하세요.');
-    if (found[0]) return found[0];
-  }
+  const found = outermost([...root.querySelectorAll(selectors.join(','))].filter(visible));
+  if (found.length > 1)
+    throw new Error('입력 또는 전송 요소가 여러 개입니다. 수동 모드를 사용하세요.');
+  return found[0];
 }
 export function composer(provider: ProviderId) {
   return provider === 'chatgpt' ? chatgptComposer() : first(selectors[provider].composer);
@@ -104,6 +106,20 @@ export function questions(provider: ProviderId) {
     : [...document.querySelectorAll(selectors[provider].user)].filter(visible);
 }
 export function draftText(element?: HTMLElement) {
+  // ProseMirror stores inserted lines as paragraphs; innerText adds display-only blank lines.
+  if (
+    element?.matches('.ProseMirror') &&
+    [...element.childNodes].every((node) => node instanceof HTMLParagraphElement)
+  )
+    return [...element.children]
+      .map((paragraph) => {
+        const clone = paragraph.cloneNode(true) as HTMLElement;
+        clone.querySelectorAll('br.ProseMirror-trailingBreak').forEach((node) => node.remove());
+        clone.querySelectorAll('br').forEach((node) => node.replaceWith('\n'));
+        return clone.textContent ?? '';
+      })
+      .join('\n')
+      .trim();
   return element instanceof HTMLTextAreaElement ? element.value.trim() : textOf(element);
 }
 export function replies(provider: ProviderId) {
@@ -131,13 +147,16 @@ export function snapshot(provider: ProviderId, documentId: string): Snapshot {
   const assistant = assistantMessages.at(-1);
   const question = textOf(user);
   // A new unanswered question must never be paired with the previous turn's answer.
-  const answer = user && assistant && messageOrder(user, assistant) < 0 ? textOf(assistant) : '';
+  const answer =
+    user && assistant && messageOrder(user, assistant) < 0 && finishedMarker(provider, assistant)
+      ? textOf(assistant)
+      : '';
   return {
     provider,
     documentId,
     url: location.href,
     composer: !!input,
-    draft: !!draftText(input),
+    draft: !!draftText(input) || (!!input && hasAttachments(provider, input)),
     busy: isBusy(provider),
     truncated: question.length > LIMITS.question || answer.length > LIMITS.answer,
     lastQuestion: question.slice(0, LIMITS.question),
@@ -180,44 +199,70 @@ export function assertTarget(provider: ProviderId, url: string) {
   if (new URL(location.href).origin !== providers[provider].origin || location.href !== url)
     throw new Error('대화 주소가 변경되었습니다. 다시 연결하고 전송 내용을 확인하세요.');
 }
-export async function submit(provider: ProviderId, prompt: string, valid: () => boolean) {
+export async function submit(
+  provider: ProviderId,
+  prompt: string,
+  valid: () => boolean,
+  attachments: AttachmentPayload[] = [],
+) {
   if (isBusy(provider)) throw new Error('AI가 응답 중입니다. 끝난 후 다시 연결하세요.');
   const input = composer(provider);
   if (!input)
     throw new Error(
       '로그인된 채팅 입력란을 찾지 못했습니다. 탭을 확인하거나 수동 모드를 사용하세요.',
     );
-  if (draftText(input))
+  if (draftText(input) || hasAttachments(provider, input))
     throw new Error('작성 중인 입력이 있어 덮어쓰지 않았습니다. 탭에서 먼저 처리하세요.');
-  if (!valid()) throw new Error('작업이 중단되었습니다.');
-  input.focus();
-  if (input instanceof HTMLTextAreaElement) {
-    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
-      input,
-      prompt,
-    );
-    input.dispatchEvent(
-      new InputEvent('input', { bubbles: true, inputType: 'insertText', data: prompt }),
-    );
-  } else {
-    // Native editing preserves the site's editor state; never insert HTML.
-    if (!document.execCommand('insertText', false, prompt))
-      throw new Error('편집기가 자동 입력을 지원하지 않습니다. 프롬프트를 복사해 직접 보내세요.');
+  const guard = watchAttachmentEdits(provider, input);
+  const check = () => valid() && guard.valid();
+  let filesReady = () => !hasAttachments(provider, input);
+  try {
+    if (!check()) throw new Error('작업이 중단되었습니다.');
+    if (attachments.length) {
+      filesReady = await uploadAttachments(
+        provider,
+        input,
+        attachments,
+        () => check() && composer(provider) === input && !isBusy(provider) && !draftText(input),
+        guard,
+      );
+      if (!check() || composer(provider) !== input || isBusy(provider) || draftText(input))
+        throw new Error('업로드 중 입력란이 바뀌어 전송을 중단했습니다.');
+    }
+    input.focus();
+    if (input instanceof HTMLTextAreaElement) {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+        input,
+        prompt,
+      );
+      input.dispatchEvent(
+        new InputEvent('input', { bubbles: true, inputType: 'insertText', data: prompt }),
+      );
+    } else {
+      // Native editing preserves the site's editor state; never insert HTML.
+      if (!document.execCommand('insertText', false, prompt))
+        throw new Error('편집기가 자동 입력을 지원하지 않습니다. 프롬프트를 복사해 직접 보내세요.');
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    if (!check())
+      throw new Error('작업이 중단되었습니다. 입력란에 프롬프트가 남아 있을 수 있습니다.');
+    if (!input.isConnected || composer(provider) !== input || isBusy(provider))
+      throw new Error('입력란 또는 생성 상태가 바뀌어 전송을 중단했습니다.');
+    if (!filesReady()) throw new Error('첨부파일 상태가 바뀌어 전송을 중단했습니다.');
+    const button = first(selectors[provider].send);
+    if (
+      !button ||
+      (button as HTMLButtonElement).disabled ||
+      button.getAttribute('aria-disabled') === 'true'
+    )
+      throw new Error(
+        '프롬프트만 입력했습니다. 전송 버튼을 찾지 못해 클릭하지 않았습니다. 탭에서 직접 보내고 답변을 가져오세요.',
+      );
+    // Recheck input to avoid sending a concurrent user edit.
+    if (draftText(input).replace(/\r\n/g, '\n') !== prompt.trim().replace(/\r\n/g, '\n'))
+      throw new Error('입력 내용이 달라져 전송을 중단했습니다.');
+    button.click();
+  } finally {
+    guard.close();
   }
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  if (!valid())
-    throw new Error('작업이 중단되었습니다. 입력란에 프롬프트가 남아 있을 수 있습니다.');
-  const button = first(selectors[provider].send);
-  if (
-    !button ||
-    (button as HTMLButtonElement).disabled ||
-    button.getAttribute('aria-disabled') === 'true'
-  )
-    throw new Error(
-      '프롬프트만 입력했습니다. 전송 버튼을 찾지 못해 클릭하지 않았습니다. 탭에서 직접 보내고 답변을 가져오세요.',
-    );
-  // Recheck input to avoid sending a concurrent user edit.
-  if (draftText(input).replace(/\r\n/g, '\n') !== prompt.trim().replace(/\r\n/g, '\n'))
-    throw new Error('입력 내용이 달라져 전송을 중단했습니다.');
-  button.click();
 }

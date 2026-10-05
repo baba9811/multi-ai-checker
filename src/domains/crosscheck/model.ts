@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { Binding, ProviderId } from '../providers/model';
+import { Attachment, ATTACHMENT_LIMITS } from '../attachments/model';
 
 export const LIMITS = {
   question: 8000,
@@ -24,6 +25,7 @@ export const Job = z.object({
   answer: z.string().max(LIMITS.answer),
   error: z.string().max(2000).optional(),
   method: z.enum(['manual', 'web']).optional(),
+  attachmentTarget: Binding.optional(),
 });
 export type Job = z.infer<typeof Job>;
 export const Evidence = z.object({
@@ -46,5 +48,6 @@ export const Run = z.object({
   jobs: z.array(Job).max(7),
   evidence: z.array(Evidence).max(LIMITS.evidence),
   main: Binding.optional(),
+  attachments: z.array(Attachment).max(ATTACHMENT_LIMITS.count).default([]),
 });
 export type Run = z.infer<typeof Run>;

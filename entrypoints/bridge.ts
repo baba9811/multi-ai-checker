@@ -121,6 +121,7 @@ export default defineUnlistedScript(() => {
         provider,
         command.prompt,
         () => active === job && job.status === 'pending' && location.href === command.url,
+        command.attachments,
       )
         .then(() => {
           job.submitted = true;

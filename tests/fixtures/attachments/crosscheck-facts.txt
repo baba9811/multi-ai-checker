@@ -1,0 +1,1 @@
+CrossCheck synthetic attachment. Verification token: CC-4729. The expected icon shows two white check marks on a dark background.

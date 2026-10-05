@@ -1,6 +1,7 @@
 import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/browser',
+  outputDir: 'test-results/browser',
   timeout: 45000,
   expect: { timeout: 7000 },
   fullyParallel: false,
@@ -14,7 +15,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://127.0.0.1:4173',
     launchOptions: {
-      executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+      executablePath: process.env.CHROMIUM_PATH || undefined,
       args: ['--no-sandbox'],
     },
     trace: 'retain-on-failure',

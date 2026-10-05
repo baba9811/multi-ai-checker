@@ -1,8 +1,10 @@
 import { z } from 'zod';
 import type { Platform } from '../../application/ports';
 import { providers } from '../../domains/providers/model';
+import { extensionStatus, watchExtensionUpdate, openExtensionManager } from './updates';
 import {
   connect,
+  refreshConnection,
   currentConversation,
   preparePeer,
   models,
@@ -16,7 +18,17 @@ const Stored = z.object({
   bindings: z.record(z.string(), z.unknown()).optional(),
 });
 export const chromePlatform: Platform = {
+  extensionStatus,
+  watchExtensionUpdate,
+  openExtensionManager,
+  async requestAccess(ids) {
+    if (
+      !(await chrome.permissions.request({ origins: ids.map((id) => `${providers[id].origin}/*`) }))
+    )
+      throw new Error('선택한 AI 사이트에 연결 권한이 필요합니다.');
+  },
   connect,
+  refreshConnection,
   currentConversation,
   preparePeer,
   models,
