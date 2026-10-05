@@ -129,13 +129,22 @@ export function replies(provider: ProviderId) {
   return outermost(elements).sort(messageOrder);
 }
 export function finishedMarker(provider: ProviderId, reply: HTMLElement) {
+  const stream = provider === 'claude' ? reply.closest('[data-is-streaming]') : undefined;
+  if (provider === 'claude' && stream?.getAttribute('data-is-streaming') !== 'false') return false;
   const root =
     provider === 'chatgpt'
       ? (reply.closest('[data-turn-key], article, [data-testid^="conversation-turn"]') ??
         reply.closest('[data-chatgpt-search-message-ids]'))
       : provider === 'gemini'
         ? reply.closest('model-response')
-        : reply.closest('[data-is-streaming]');
+        : (reply.closest('[role="article"], [data-testid="transcript-row"]') ?? stream);
+  if (
+    provider === 'claude' &&
+    root &&
+    (root.querySelector(selectors.claude.user) ||
+      outermost([...root.querySelectorAll<HTMLElement>(selectors.claude.assistant)]).length !== 1)
+  )
+    return false;
   if (!root) return false;
   return selectors[provider].done.some((s) => [...root.querySelectorAll(s)].some(visible));
 }

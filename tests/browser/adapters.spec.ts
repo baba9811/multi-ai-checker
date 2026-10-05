@@ -757,3 +757,69 @@ for (const omitted of ['hidden', 'inert', 'aria-hidden']) {
     expect((await command(page, { type: 'snapshot' })).data.context.error).toContain('이전 대화');
   });
 }
+
+async function claudeSiblingToolbar(page: Page) {
+  const target = await setup(page, 'claude');
+  await page.evaluate(() => {
+    const state = window as any;
+    const move = () => {
+      const stream = document.querySelector('[data-is-streaming]:last-child')!;
+      const turn = document.createElement('div');
+      turn.setAttribute('role', 'article');
+      turn.dataset.testid = 'transcript-row';
+      stream.replaceWith(turn);
+      turn.append(stream);
+      const copy = stream.querySelector('button')!;
+      copy.dataset.testid = 'action-bar-copy';
+      turn.append(copy);
+    };
+    move();
+    const assistant = state.assistant;
+    state.assistant = (text: string, complete = true) => {
+      assistant(text, complete);
+      if (complete) move();
+    };
+  });
+  return target;
+}
+test('Claude collects completion from its sibling toolbar inside an isolated article turn', async ({
+  page,
+}) => {
+  const target = await claudeSiblingToolbar(page);
+  expect((await command(page, { type: 'snapshot' })).data.lastAnswer).toContain('과거 답변');
+  await command(page, {
+    type: 'send',
+    id: 'sibling-toolbar',
+    ...target,
+    prompt: 'New synthetic question',
+  });
+  await expect
+    .poll(async () => (await command(page, { type: 'poll', id: 'sibling-toolbar' })).data.status)
+    .toBe('done');
+  expect((await command(page, { type: 'poll', id: 'sibling-toolbar' })).data.answer).toBe(
+    '새로운 claude 검증 답변',
+  );
+});
+for (const unsafe of ['previous-turn', 'multiple-replies', 'hidden-replies', 'streaming']) {
+  test(`Claude sibling toolbar rejects ${unsafe} completion`, async ({ page }) => {
+    await claudeSiblingToolbar(page);
+    await page.evaluate((unsafe) => {
+      const turn = document.querySelector('[role="article"]')!;
+      const stream = turn.querySelector('[data-is-streaming]')!;
+      if (unsafe === 'streaming') stream.setAttribute('data-is-streaming', 'true');
+      if (unsafe === 'multiple-replies' || unsafe === 'hidden-replies') {
+        const additional = stream
+          .querySelector('.font-claude-response')!
+          .cloneNode(true) as HTMLElement;
+        additional.hidden = unsafe === 'hidden-replies';
+        stream.append(additional);
+      }
+      if (unsafe === 'previous-turn') {
+        const later = turn.cloneNode(true) as HTMLElement;
+        later.querySelector('button')!.remove();
+        document.getElementById('messages')!.append(later);
+      }
+    }, unsafe);
+    expect((await command(page, { type: 'snapshot' })).data.lastAnswer).toBe('');
+  });
+}
