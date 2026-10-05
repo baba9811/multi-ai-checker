@@ -88,6 +88,12 @@ These are dated observations, not permanent product guarantees. Durable working 
 - Observation: the delegated DOM-only draft attempt could not operate the OS picker. A later native-control attempt opened the actual store picker. Paste did not change the path; both fresh accessibility text and screenshot confirmed that failure. Setting the observed path field directly did change it; Return resolved the exact ZIP, and Open started upload.
 - Verification: a fresh store DOM showed the resulting item in draft status, and its Package page confirmed version 0.3.0 and the expected permissions. Native control was reset immediately afterwards. This success does not prove that earlier live-review control discrepancies are resolved.
 
+### Verification links can carry secrets in their path
+
+- Observation: an email verification link rendered its token in the URL path and link label, so query-string-only redaction did not remove it from the observed output. No token is retained in repository files.
+- Correction: inspect authentication/verification surfaces with allowlisted status and element-reference metadata. Do not print raw link labels or full URLs; sensitive values are not confined to query strings. Validate the destination origin without logging the complete URL.
+- Verification: the intended official confirmation completed and the dashboard reported a verified contact. This does not make raw verification-link logging acceptable; the existing repository privacy rule already forbids it.
+
 ## Recording further lessons
 
 For a new incident, record the observed failure, evidence, confirmed cause (or explicitly labeled hypothesis), correction, and verification result. Remove private data and machine-specific account details. Promote only reusable rules into `AGENTS.md`; keep dates and evolving results here or in `docs/testing/validation.md`.

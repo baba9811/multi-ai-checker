@@ -38,11 +38,11 @@ CrossCheck는 Chrome 사이드패널에서 선택한 ChatGPT·Claude·Gemini 웹
 
 AI 간 합의는 사실 검증이 아닙니다. 실제 검색 실행·출처 정확성·서비스 화면 호환성을 보장하지 않습니다. OpenAI·Anthropic·Google의 공식 제품이 아닙니다.
 
-## Listing fields still pending
+## Listing fields and saved draft
 
 - Privacy policy URL: https://baba9811.github.io/multi-ai-checker/ (verify public reachability before submission).
-- Public support contact: **bany981111@gmail.com** (owner selected for public display).
-- Support/project homepage: https://github.com/baba9811/multi-ai-checker.
-- Category and default listing language: choose from the current dashboard; Korean and English drafts are above.
+- Public support contact: **bany981111@gmail.com** (owner selected for public display). Verified through the official confirmation email; Publisher Settings confirms it is a verified public contact.
+- Saved project homepage: https://github.com/baba9811/multi-ai-checker. Saved support URL: https://github.com/baba9811/multi-ai-checker/issues.
+- Saved draft: Korean description above, category **Productivity → Tools**, default language **Korean**. English copy remains preparation material.
 - Store images: actual final UI with synthetic content only; no private conversations or account identifiers. Specifications and rights review are in the checklist.
 - Provider names/logos: verify rights before use; an independence statement alone does not resolve trademark permission. [Store impersonation/IP policy](https://developer.chrome.com/docs/webstore/program-policies/impersonation-and-intellectual-property).

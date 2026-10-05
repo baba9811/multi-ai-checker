@@ -61,3 +61,13 @@ macOS / Node 25.2.1 / npm 11.6.2. `codex/live-extension-validation`, 기준 커�
 당시 결과만으로 실제 `chrome.runtime`, 선택적 권한 프롬프트, side panel 컨테이너 및 실계정 모델 메뉴까지 검증됐다고 주장하지 않습니다. 당시 서비스 접속 확인도 `Tunnel connection failed: 403 Forbidden`이었습니다. 네트워크 초안 저장은 실제 접속 성공을 의미하지 않습니다.
 
 관리 정책이 허용된 Chrome에서 [로그인 E2E](live-login.md)를 수행해야 합니다. 사용자 비밀번호/쿠키를 요구하지 않고 본인 Chrome에서 로그인합니다. 서비스별 선택자·계정의 모델 선택지·실제 검색 실행·원래 대화 재전송과 수집을 확인한 뒤에만 해당 연결을 실계정 검증 완료로 표시합니다.
+
+## GitHub release preparation — 2026-10-06
+
+Remote GitHub Actions runs `37358139057` (push) and `37358258500` (PR) passed for source `96b18606d1b076938fa34610e25c428e6b11a8f1`: type/build, 55 unit tests, 53 synthetic browser tests, 3 unpacked-extension tests, and 7 simulated release-uploader checks. All three workflow files also passed local actionlint. Independent release review's trust-boundary and OIDC-subject findings were corrected and re-reviewed with no remaining blocking code findings. PR #1 merged as `0745d42dca1e7f58054753dece1d02c1700a080f`; the release and trusted-upload workflows are active in GitHub.
+
+Merged-main run `37358897139` also completed successfully for that merge commit. Real Google publishing access is still unconnected; this successful validation is not an end-to-end deployment test.
+
+The push-run ZIP artifact was downloaded and inspected: 159,352 bytes, SHA-256 `5dfc25872e7f168e0c672831999c2381911b0b3f4b15c36b5725edbe0a50e911`. All 12 uncompressed files exactly match the locally audited ZIP uploaded to the store. ZIP container bytes differ; do not substitute the CI hash for the uploaded local package's hash.
+
+The first actual store upload is confirmed as a **draft**, version 0.3.0, item `jkffbjajcmbcobmgbcilenbpjfemapki`. The Package page confirms expected permissions and no published item. This does not establish API authentication/upload, store review/approval, or the still-unverified live provider pipeline. Current deployment connections belong in [release automation](../release/automation.md).
