@@ -1,4 +1,4 @@
-# Reviewer instructions draft — intended 0.3.0
+# Reviewer instructions draft — intended 0.3.1
 
 Do not submit until the [release blockers](release-checklist.md) are resolved and the final build is verified. These instructions are expected behavior, not a report of completed live tests.
 

@@ -1,6 +1,6 @@
-# Release checklist — 0.3.0 candidate
+# Release checklist — 0.3.1 candidate
 
-Updated 2026-10-06 from the reviewed working source and official public pages. The inspected ZIP and manifest are 0.3.0. Package preparation and automated validation are complete; the final logged-in multi-provider pipeline and store release gates below remain unresolved. Recheck changing requirements before submission.
+Updated 2026-10-06 from the reviewed working source and official public pages. The current inspected CI ZIP and manifest are 0.3.1; its product files differ from the audited 0.3.0 package only in the manifest version. Package preparation and automated validation are complete; the final logged-in multi-provider pipeline and store release gates below remain unresolved. Recheck changing requirements before submission.
 
 ## Concrete blockers
 
@@ -18,7 +18,7 @@ These are release gates, not instructions to bypass protections or silently remo
 
 ## Package and validation
 
-- [x] Confirm target version 0.3.0 in package/lock/manifest and build from the reviewed source. Preserve existing changes; record source revision and ZIP checksum.
+- [x] Confirm target version 0.3.1 in package/lock/manifest and build from the reviewed source. Preserve existing changes; record source revision and ZIP checksum.
 - [x] Run the repository's required checks sequentially when outputs/profiles are shared. Preserve failure logs; distinguish unit, synthetic browser, installed-extension, and permitted live-service results.
 - [ ] Install the exact packaged production build, confirm name/ID/version/path, open its native side panel, and refresh provider tabs after replacing injected code.
 - [ ] Verify no-preopened-tab connection/login preparation, exact main-question/answer reading, account model menus, one-start flow, final synthesis collection in the original conversation, and chosen-file upload readiness at each provider. Keep absent permissions/quotas as honest blockers.
@@ -39,13 +39,13 @@ These are release gates, not instructions to bypass protections or silently remo
 
 Record each observed state with its actual package version/checksum and evidence: **package prepared → draft uploaded → submitted for review → approved/staged → publicly published**. An uploaded draft is not a submitted review; submission is not approval; approval/staging is not a confirmed public listing. The dashboard supports deferred publication after review. [Official publication workflow](https://developer.chrome.com/docs/webstore/publish).
 
-The initial extension draft upload is confirmed. No legal declaration, review submission, or public extension publication has occurred. The privacy notice is published separately from the extension; its deployment evidence is recorded below.
+The initial manual draft upload and subsequent 0.3.1 CI draft upload are confirmed. No legal declaration, review submission, or public extension publication has occurred. The privacy notice is published separately from the extension; its deployment evidence is recorded below.
 
 ## Package evidence
 
-- Package: `.output/multi-ai-checker-0.3.0-chrome.zip`, 159,027 bytes.
-- SHA-256: `30c17d9894e7d21e6f025b511640523f07effc739135cee22dce3499962bf3c0`.
-- Source: `codex/live-extension-validation`, base `802149b` plus reviewed working changes; generated files remain ignored.
+- Current package: `multi-ai-checker-0.3.1-chrome.zip`, 159,353 bytes, from release run `37380170468`.
+- SHA-256: `44958d77faa5fb50c76892d191f6031a927db9888087833e4e67e22e7a051457`.
+- Source: `b0622ca401fa12e22f7512f54b35b994e7085009`, tag `v0.3.1`, already on main; generated files remain ignored.
 - All 12 ZIP entries matched `.output/chrome-mv3` byte for byte. Root manifest is MV3, minimum Chrome 120, four narrow permissions and three optional provider origins, local scripts and strict CSP. Included four icon sizes, source SVG, and license texts for eight packages. No fixtures, source maps, raw originals, private screenshots, or environment files are packaged.
 - Final automated evidence: [validation record](../testing/validation.md). Native reload was observed; uninstall/reinstall and final logged-in synthesis are still unchecked.
 
@@ -63,6 +63,6 @@ The signed-in developer dashboard showed no items (0/2) and no existing CrossChe
 
 The native file picker accepted the exact audited ZIP after each path/selection state was observed. A fresh dashboard read confirmed **draft** item `jkffbjajcmbcobmgbcilenbpjfemapki`; the Package page showed **0.3.0**, the expected four permissions, and no published item. [Developer draft](https://chrome.google.com/webstore/devconsole/41438c07-114f-46b3-926c-11976610bb05/jkffbjajcmbcobmgbcilenbpjfemapki/edit). This supersedes the earlier upload-control blocker, not the live validation or provider release gates.
 
-[GitHub release automation](automation.md) now prepares a trusted-main uploader with OIDC/service-account authentication. Its environment allows only `v*` tags; store/publisher IDs are registered and `CWS_SUBMIT=false`. The authorized Google federation and publisher bindings are saved and the owner enabled the API; actual CI authentication/upload remain unverified. Seven simulated uploader tests, workflow lint, and a fresh type/unit/build check pass; these do not establish API deployment.
+[GitHub release automation](automation.md) now prepares a trusted-main uploader with OIDC/service-account authentication. Its environment allows only `v*` tags; store/publisher IDs are registered and `CWS_SUBMIT=false`. The authorized federation and publisher bindings are saved, the owner enabled the API, and actual CI authentication/draft upload passed in run `37380170468`. A fresh Package page confirmed 0.3.1 draft and no published item. Seven simulated uploader tests, workflow lint, and a fresh type/unit/build check pass; the simulated checks alone do not establish API deployment; the separate real run does.
 
 Publisher Settings independently confirmed the publisher ID, the owner-selected **nontrader** state, and, after the owner authorized connection, the dedicated service-account binding. The selected public contact was added and its official email confirmation completed; the dashboard now shows a verified contact address. Korean description, Tools category, Korean language, homepage and support links were saved in the item draft. Store images, privacy/data-use declarations and reviewer fields still need completion before submission; no review request was sent.

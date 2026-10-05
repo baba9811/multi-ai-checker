@@ -1,4 +1,4 @@
-# Store listing draft — intended 0.3.0
+# Store listing draft — intended 0.3.1
 
 Preparation only. Do not submit this copy until the [release checklist](release-checklist.md) is complete. It describes intended behavior, not verified compatibility or publication. Reconcile it with the final package and allowed providers before upload.
 

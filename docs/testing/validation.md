@@ -71,3 +71,13 @@ Merged-main run `37358897139` also completed successfully for that merge commit.
 The push-run ZIP artifact was downloaded and inspected: 159,352 bytes, SHA-256 `5dfc25872e7f168e0c672831999c2381911b0b3f4b15c36b5725edbe0a50e911`. All 12 uncompressed files exactly match the locally audited ZIP uploaded to the store. ZIP container bytes differ; do not substitute the CI hash for the uploaded local package's hash.
 
 The first actual store upload is confirmed as a **draft**, version 0.3.0, item `jkffbjajcmbcobmgbcilenbpjfemapki`. The Package page confirms expected permissions and no published item. This does not establish API authentication/upload, store review/approval, or the still-unverified live provider pipeline. Current deployment connections belong in [release automation](../release/automation.md).
+
+## First real CI draft deployment — 0.3.1, 2026-10-06 KST
+
+Source `b0622ca401fa12e22f7512f54b35b994e7085009` changes only package/lock version metadata and release documentation. Local type/build and 55 unit checks passed. Comparing all 12 built files with the audited 0.3.0 ZIP found only `manifest.json`'s version changed to 0.3.1; production code, permissions and other manifest fields are unchanged. This does not count as a fresh native/live-provider test.
+
+[Release run 37380170468](https://github.com/baba9811/multi-ai-checker/actions/runs/37380170468) passed all validation: 55 unit tests, 53 synthetic browser tests, 3 unpacked-extension tests, 7 simulated uploader tests, type/build and packaging. Push/tag CI runs `37380108677` and `37380168916` also passed. The subsequent trusted-main upload job passed tag/commit ancestry and artifact checks, exchanged GitHub OIDC for a short-lived service-account token, and uploaded through Chrome Web Store API v2. No long-lived key or personal refresh token was used.
+
+The exact CI ZIP is 159,353 bytes, SHA-256 `44958d77faa5fb50c76892d191f6031a927db9888087833e4e67e22e7a051457`. The downloaded artifact's 12 uncompressed files exactly match the locally built 0.3.1 files. The uploader logged that same checksum and **Draft uploaded; not submitted for review.** A freshly reloaded store Package page independently showed draft version 0.3.1, the four expected permissions, and no published item. `CWS_SUBMIT=false` remains configured.
+
+This is the first confirmed real authenticated CI upload. Review submission/approval, public extension availability, store-installed automatic update and the full logged-in provider pipeline remain unverified. The temporary Cloud console tabs and Aside REPL were closed; native computer control was not started during this connection work.
