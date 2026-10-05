@@ -163,7 +163,11 @@ function conversationContext(
 ): Snapshot['context'] {
   try {
     if (provider === 'chatgpt') {
+      const captured = [...users, ...assistants];
       const indices = [...document.querySelectorAll('[data-chatgpt-search-unit-key]')]
+        .filter((element) =>
+          captured.some((message) => element.contains(message) || message.contains(element)),
+        )
         .map((element) =>
           element.getAttribute('data-chatgpt-search-unit-key')?.match(/^fallback-turn-(\d+):/),
         )

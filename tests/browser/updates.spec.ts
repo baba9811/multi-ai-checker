@@ -39,7 +39,7 @@ test('a downloaded update notice preserves an active review and reappears on pan
   });
   await page
     .getByRole('checkbox', {
-      name: '원본 대화의 파일·이미지를 모두 선택했거나 첨부가 없음을 확인했습니다',
+      name: '원래 대화에 첨부파일이 없습니다',
     })
     .check();
   await page.getByRole('button', { name: '자동 검토 시작', exact: true }).click();

@@ -63,7 +63,7 @@ it('rejects fresh sources missing context, with partial history, or oversized co
       ['chatgpt', 'claude'],
       'economy',
     ),
-  ).toThrow();
+  ).toThrow('최대 20쌍 · 합계 40000자');
 });
 it('recovers legacy records without inventing earlier context', () => {
   const run = importedRun({ binding, snapshot }, ['chatgpt', 'claude'], 'economy');
@@ -208,4 +208,26 @@ it('finishes thorough synthesis after its actual long main review prompt is appe
   expect(
     result.jobs.find((job) => job.provider === 'chatgpt' && job.stage === 'review')!.prompt.length,
   ).toBeGreaterThan(40000);
+});
+
+it('explains total import bounds in Korean without schema diagnostics', () => {
+  const long = [
+    { question: 'q'.repeat(8000), answer: 'a'.repeat(14000) },
+    { question: 'q'.repeat(8000), answer: 'a'.repeat(14000) },
+  ];
+  expect(() =>
+    importedRun(
+      {
+        binding,
+        snapshot: {
+          ...snapshot,
+          lastQuestion: long[1]!.question,
+          lastAnswer: long[1]!.answer,
+          context: { scope: 'rendered', turns: long },
+        },
+      },
+      ['chatgpt', 'claude'],
+      'economy',
+    ),
+  ).toThrow('더 짧은 대화를 선택해주세요.');
 });

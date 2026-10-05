@@ -1132,3 +1132,18 @@ p.error {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.attachment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.attachment-header h2,
+.attachment-header .attachment-picker {
+  margin: 0;
+}
+.file-guide {
+  font-size: 11px;
+  margin: 6px 0;
+}

@@ -67,7 +67,12 @@ export function importedRun(
       snapshot.context?.error ??
         '대화 맥락을 읽지 못했습니다. 탭을 새로고침하고 다시 선택해주세요.',
     );
-  const context = ConversationContext.parse(snapshot.context);
+  const parsedContext = ConversationContext.safeParse(snapshot.context);
+  if (!parsedContext.success)
+    throw new Error(
+      `대화 가져오기는 최대 ${LIMITS.turns}쌍 · 합계 ${LIMITS.context}자(질문 ${LIMITS.question}자, 답변 ${LIMITS.answer}자)까지 가능합니다. 더 짧은 대화를 선택해주세요.`,
+    );
+  const context = parsedContext.data;
   const latest = context.turns.at(-1)!;
   if (latest.question !== snapshot.lastQuestion || latest.answer !== snapshot.lastAnswer)
     throw new Error('마지막 질문·답변과 대화 맥락이 다릅니다. 다시 선택해주세요.');

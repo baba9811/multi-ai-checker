@@ -292,24 +292,28 @@ export function App({ platform }: { platform: Platform }) {
   const excluded = run?.selected.filter((id) => !included.includes(id)) ?? [];
   const fileSelection = (
     <section className="attachments" aria-label="원본 첨부파일">
-      <h2>{run ? '검토에 사용한 원본 파일' : '함께 검토할 파일'}</h2>
-      <p className="hint">
-        대화에 올린 파일·이미지를 자동으로 가져올 수 없습니다. 원본을 한 번에 선택하면 선택한 AI마다
-        업로드를 확인한 뒤 전송합니다.
-      </p>
-      <label className="attachment-picker">
-        {readingFiles ? '파일 읽는 중…' : files.length || run ? '파일 다시 선택' : '파일 선택'}
-        <input
-          type="file"
-          multiple
-          aria-label="원본 파일 선택"
-          disabled={locked || (!source && !run)}
-          onChange={(event) => void selectFiles(event.currentTarget)}
-        />
-      </label>
-      <p className="hint">
-        최대 10개 · 합계 20 MB. 파일 내용은 패널이 열려 있는 동안만 보관합니다.
-      </p>
+      <div className="attachment-header">
+        <h2>{run ? '검토에 사용한 원본 파일' : '함께 검토할 파일'}</h2>
+        <label className="attachment-picker">
+          {readingFiles ? '파일 읽는 중…' : files.length || run ? '파일 다시 선택' : '파일 선택'}
+          <input
+            type="file"
+            multiple
+            aria-label="원본 파일 선택"
+            disabled={locked || (!source && !run)}
+            onChange={(event) => void selectFiles(event.currentTarget)}
+          />
+        </label>
+      </div>
+      <p className="hint">첨부가 있으면 원본을 모두 선택하세요.</p>
+      <details className="file-guide">
+        <summary>파일 안내</summary>
+        <p className="hint">
+          대화에 올린 파일·이미지를 자동으로 가져올 수 없습니다. 원본을 선택하면 각 AI의 업로드를
+          확인한 뒤 전송합니다. 최대 10개 · 합계 20 MB. 파일 내용은 패널이 열려 있는 동안만
+          보관합니다.
+        </p>
+      </details>
       {run && run.attachments.length > 0 && (
         <p className="hint">필요한 원본: {run.attachments.map((file) => file.name).join(', ')}</p>
       )}
@@ -487,7 +491,6 @@ export function App({ platform }: { platform: Platform }) {
               )}
             </section>
             {fileSelection}
-            <p className="auto-explanation">다른 AI 검토부터 원래 대화의 최종 답변까지.</p>
             <p className="hint">검토할 다른 AI</p>
             <div className="auto-participants" role="group" aria-label="검토할 다른 AI">
               {providerIds

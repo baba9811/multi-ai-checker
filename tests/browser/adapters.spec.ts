@@ -736,3 +736,24 @@ test('ChatGPT refuses detectable unloaded history by observed fallback turn inde
     );
   expect((await command(page, { type: 'snapshot' })).data.context.error).toContain('이전 대화');
 });
+for (const omitted of ['hidden', 'inert', 'aria-hidden']) {
+  test(`ChatGPT rejects ${omitted} earlier keyed history retained in the DOM`, async ({ page }) => {
+    await setup(page, 'chatgpt', redesignedChatgptPage());
+    await page.evaluate((omitted) => {
+      const thread = document.querySelector('section')!;
+      const old = [...thread.children];
+      const later = old.map((element) => element.cloneNode(true) as HTMLElement);
+      later.forEach((element) => thread.append(element));
+      [...thread.querySelectorAll('[data-chatgpt-search-message-ids]')].forEach((element, index) =>
+        element.setAttribute(
+          'data-chatgpt-search-unit-key',
+          `fallback-turn-${Math.floor(index / 2)}:${index % 2 ? 2 : 0}:${index % 2 ? 'assistant' : 'user'}`,
+        ),
+      );
+      old.forEach((element) =>
+        element.setAttribute(omitted, omitted === 'aria-hidden' ? 'true' : ''),
+      );
+    }, omitted);
+    expect((await command(page, { type: 'snapshot' })).data.context.error).toContain('이전 대화');
+  });
+}

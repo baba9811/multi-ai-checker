@@ -189,7 +189,11 @@ test('selecting a new main clears originals and requires a fresh confirmation', 
   await page.getByRole('button', { name: /현재 탭(에서 가져오기|으로 변경)/ }).click();
   await expect(page.locator('.source-label').first()).toContainText('Claude');
   await expect(page.locator('.attachment-list')).toHaveCount(0);
-  await expect(page.getByRole('checkbox')).not.toBeChecked();
+  await expect(
+    page.getByRole('checkbox', {
+      name: /원래 대화(에 첨부파일이 없습니다|의 파일·이미지를 모두 선택했습니다)/,
+    }),
+  ).not.toBeChecked();
   await expect(page.getByRole('button', { name: '자동 검토 시작' })).toBeDisabled();
 });
 
@@ -264,7 +268,11 @@ test('an unavailable source requires an explicit read before files or sending ar
   await page.goto('/?source=unavailable');
   await expect(page.getByRole('button', { name: '자동 검토 시작' })).toBeDisabled();
   await expect(page.getByLabel('원본 파일 선택')).toBeDisabled();
-  await expect(page.getByRole('checkbox')).toBeDisabled();
+  await expect(
+    page.getByRole('checkbox', {
+      name: /원래 대화(에 첨부파일이 없습니다|의 파일·이미지를 모두 선택했습니다)/,
+    }),
+  ).toBeDisabled();
   await page.getByRole('button', { name: '연결', exact: true }).click();
   await page.evaluate(() => {
     window.harness.activeProvider = 'claude';
@@ -276,7 +284,11 @@ test('an unavailable source requires an explicit read before files or sending ar
   await page.getByRole('button', { name: /현재 탭(에서 가져오기|으로 변경)/ }).click();
   await expect(page.locator('.source-label').first()).toContainText('Claude');
   await expect(page.getByLabel('원본 파일 선택')).toBeEnabled();
-  await expect(page.getByRole('checkbox')).not.toBeChecked();
+  await expect(
+    page.getByRole('checkbox', {
+      name: /원래 대화(에 첨부파일이 없습니다|의 파일·이미지를 모두 선택했습니다)/,
+    }),
+  ).not.toBeChecked();
   expect(await page.evaluate(() => window.harness.sends)).toHaveLength(0);
 });
 
