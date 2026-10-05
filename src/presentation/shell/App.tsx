@@ -177,6 +177,8 @@ export function App({ platform }: { platform: Platform }) {
       let initial = resume ? workspace.current.run : undefined;
       if (!initial) {
         if (!source) throw new Error('메인 대화를 먼저 선택해주세요.');
+        await platform.reveal(source.binding);
+        if (controller.signal.aborted) throw new Error('자동 검토를 중단했습니다.');
         const active = {
           binding: source.binding,
           snapshot: await platform.inspect(source.binding),
@@ -522,7 +524,8 @@ export function App({ platform }: { platform: Platform }) {
               <ArrowRight size={16} />
             </button>
             <p className="action-note">
-              시작하면 선택한 AI에 불러온 대화·선택한 파일을 공유하고
+              AI 탭을 하나씩 방문합니다. 패널을 열어두세요. 시작하면 선택한 AI에 불러온 대화·선택한
+              파일을 공유하고
               <br />
               {source ? providers[source.binding.provider].name : '원래 AI'} 원래 대화에 최종
               프롬프트를 보냅니다.

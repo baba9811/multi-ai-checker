@@ -164,6 +164,7 @@ it('finishes thorough synthesis after its actual long main review prompt is appe
   const run = importedRun({ binding, snapshot: current }, ['chatgpt', 'claude'], 'thorough');
   const sends: string[] = [];
   const platform = {
+    async reveal() {},
     async preparePeer() {
       return {
         ...binding,

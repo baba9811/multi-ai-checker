@@ -205,3 +205,16 @@ it('does not select or open tabs if the click permission request is denied', asy
   expect(browser.tabs.query).not.toHaveBeenCalled();
   expect(browser.tabs.create).not.toHaveBeenCalled();
 });
+
+it.each([false, true])(
+  'activates a %s existing blank peer before bridge attachment',
+  async (existing) => {
+    if (existing) candidates = [tab(2, home)];
+    const binding = await preparePeer('chatgpt');
+    expect(browser.tabs.update).toHaveBeenCalledWith(binding.tabId, { active: true });
+    expect(browser.windows.update).toHaveBeenCalledWith(4, { focused: true });
+    expect(browser.tabs.update.mock.invocationCallOrder[0]).toBeLessThan(
+      browser.scripting.executeScript.mock.invocationCallOrder[0]!,
+    );
+  },
+);

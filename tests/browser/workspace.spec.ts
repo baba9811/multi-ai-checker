@@ -103,10 +103,10 @@ test('stop and reload never re-send ambiguous requests', async ({ page }) => {
   });
   await confirmOriginals(page);
   await page.getByRole('button', { name: '자동 검토 시작' }).click();
-  await expect.poll(() => page.evaluate(() => window.harness.sends.length)).toBe(2);
+  await expect.poll(() => page.evaluate(() => window.harness.sends.length)).toBe(1);
   await page.getByRole('button', { name: '검토 중단', exact: true }).click();
   await expect(page.getByRole('heading', { name: '검토 멈춤' })).toBeVisible();
-  expect(await page.evaluate(() => window.harness.sends.length)).toBe(2);
+  expect(await page.evaluate(() => window.harness.sends.length)).toBe(1);
   await page.reload();
   await expect(page.getByRole('heading', { name: '검토 멈춤' })).toBeVisible();
   expect(await page.evaluate(() => window.harness.sends.length)).toBe(0);
@@ -241,7 +241,7 @@ test('restored reviews require matching original bytes before continuing', async
     window.harness.delay = 2000;
   });
   await page.getByRole('button', { name: '자동 검토 시작' }).click();
-  await expect.poll(() => page.evaluate(() => window.harness.sends.length)).toBe(2);
+  await expect.poll(() => page.evaluate(() => window.harness.sends.length)).toBe(1);
   await page.getByRole('button', { name: '검토 중단', exact: true }).click();
   await expect(page.getByRole('heading', { name: '검토 멈춤' })).toBeVisible();
   await page.reload();

@@ -12,6 +12,11 @@ export async function rpc(tabId: number, command: unknown): Promise<unknown> {
   if (!response.ok) throw new Error(response.error ?? '탭 작업에 실패했습니다.');
   return response.data;
 }
+export async function reveal(binding: Pick<Binding, 'tabId'>): Promise<void> {
+  const tab = await chrome.tabs.get(binding.tabId);
+  await chrome.windows.update(tab.windowId, { focused: true });
+  await chrome.tabs.update(binding.tabId, { active: true });
+}
 export async function connect(provider: ProviderId): Promise<Binding> {
   // Called directly in a click handler to preserve the user gesture.
   const allowed = await chrome.permissions.request({
@@ -30,8 +35,7 @@ export async function connect(provider: ProviderId): Promise<Binding> {
       (await chrome.tabs.create({ url: providers[provider].home, active: true }));
   }
   if (!tab?.id) throw new Error('AI 탭을 열지 못했습니다. 다시 연결해주세요.');
-  await chrome.windows.update(tab.windowId, { focused: true });
-  await chrome.tabs.update(tab.id, { active: true });
+  await reveal({ tabId: tab.id });
   await readyConnectionTab(provider, tab.id);
   return attach(provider, tab.id);
 }
@@ -98,6 +102,7 @@ export async function preparePeer(provider: ProviderId, saved?: Binding): Promis
     try {
       // Resume preserves the exact document and conversation; reconnect is an explicit action.
       if (saved.provider === provider) {
+        await reveal(saved);
         await inspect(saved);
         return saved;
       }
@@ -113,8 +118,9 @@ export async function preparePeer(provider: ProviderId, saved?: Binding): Promis
     url: `${providers[provider].origin}/*`,
   });
   const blank = tabs.find((tab) => tab.url === providers[provider].home);
-  const tab = blank ?? (await chrome.tabs.create({ url: providers[provider].home, active: false }));
+  const tab = blank ?? (await chrome.tabs.create({ url: providers[provider].home, active: true }));
   if (!tab.id) throw new Error('AI 탭을 열지 못했습니다.');
+  await reveal({ tabId: tab.id });
   const deadline = Date.now() + 20000;
   while (Date.now() < deadline) {
     const state = await chrome.tabs.get(tab.id);

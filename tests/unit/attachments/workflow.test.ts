@@ -41,7 +41,8 @@ function harness(failure?: string) {
     files: AttachmentPayload[];
     checkpointStatus?: string;
   }[] = [];
-  const port: Pick<Platform, 'preparePeer' | 'inspect' | 'sendAndCollect'> = {
+  const port: Pick<Platform, 'preparePeer' | 'inspect' | 'sendAndCollect' | 'reveal'> = {
+    async reveal() {},
     async preparePeer(provider) {
       return target(provider);
     },
@@ -242,3 +243,104 @@ it.each(['upload failed', 'send outcome uncertain'])(
     ).toBe(true);
   },
 );
+
+it('visits exact targets sequentially and keeps each active through collection', async () => {
+  const test = harness();
+  let active: Binding | undefined;
+  let collecting = false;
+  const visits: Binding[] = [];
+  test.platform.reveal = async (binding) => {
+    expect(collecting).toBe(false);
+    active = binding;
+    visits.push(binding);
+  };
+  test.platform.inspect = async (binding) => {
+    expect(active).toEqual(binding);
+    return snapshot(binding);
+  };
+  const collect = test.platform.sendAndCollect;
+  test.platform.sendAndCollect = async (...args) => {
+    expect(active).toEqual(args[1]);
+    expect(collecting).toBe(false);
+    collecting = true;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    expect(active).toEqual(args[1]);
+    const result = await collect(...args);
+    collecting = false;
+    return result;
+  };
+  const result = await executeAutomatic(
+    importedRun(source, [...providerIds], 'economy'),
+    {},
+    test.platform,
+    new AbortController().signal,
+    test.checkpoint,
+  );
+  expect(result.jobs.every((job) => job.status === 'done')).toBe(true);
+  expect(visits.at(-1)).toEqual(source.binding);
+});
+
+it.each(['cancel', 'save'])(
+  'stops later provider requests after %s during the first collection',
+  async (failure) => {
+    const test = harness();
+    const controller = new AbortController();
+    const collect = test.platform.sendAndCollect;
+    test.platform.sendAndCollect = async (...args) => {
+      const result = await collect(...args);
+      if (failure === 'cancel') controller.abort();
+      return result;
+    };
+    const checkpoint = async (workspace: Workspace) => {
+      await test.checkpoint(workspace);
+      if (failure === 'save' && test.sends.length) throw new Error('save failed');
+    };
+    await expect(
+      executeAutomatic(
+        importedRun(source, [...providerIds], 'economy'),
+        {},
+        test.platform,
+        controller.signal,
+        checkpoint,
+      ),
+    ).rejects.toThrow(failure === 'save' ? 'save failed' : '중단');
+    expect(test.sends).toHaveLength(1);
+    expect(test.sends[0]!.job.provider).toBe('claude');
+  },
+);
+
+it('keeps the next unsent provider ready after cancellation and sends it once on explicit resume', async () => {
+  const test = harness();
+  const controller = new AbortController();
+  const collect = test.platform.sendAndCollect;
+  test.platform.sendAndCollect = async (...args) => {
+    const result = await collect(...args);
+    controller.abort();
+    return result;
+  };
+  await expect(
+    executeAutomatic(
+      importedRun(source, [...providerIds], 'economy'),
+      {},
+      test.platform,
+      controller.signal,
+      test.checkpoint,
+    ),
+  ).rejects.toThrow('중단');
+  const saved = test.checkpoints.at(-1)!;
+  expect(saved.run!.jobs.find((job) => job.provider === 'gemini')!.status).toBe('ready');
+  const resumed = harness();
+  await executeAutomatic(
+    saved.run!,
+    saved.bindings,
+    resumed.platform,
+    new AbortController().signal,
+    resumed.checkpoint,
+  );
+  expect(
+    resumed.sends.filter((send) => send.job.provider === 'gemini' && send.job.stage === 'collect'),
+  ).toHaveLength(1);
+  expect(
+    resumed.sends.some((send) => send.job.provider === 'claude' && send.job.stage === 'collect'),
+  ).toBe(false);
+});

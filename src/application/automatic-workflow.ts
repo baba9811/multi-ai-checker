@@ -126,7 +126,10 @@ export async function executeAutomatic(
           job.method === 'web',
       )
       .map((job) => ({ question: job.prompt, answer: job.answer }));
+  checkAbort();
   if (run.context) {
+    await platform.reveal(run.main);
+    checkAbort();
     const source = await platform.inspect(run.main);
     if (source.url !== run.main.url || source.documentId !== run.main.documentId)
       throw new Error('메인 대화가 바뀌었습니다.');
@@ -154,75 +157,73 @@ export async function executeAutomatic(
   while (true) {
     checkAbort();
     const pending = run.jobs.filter((job) => job.stage === run.stage && job.status === 'ready');
-    const results = await Promise.allSettled(
-      pending.map(async (job) => {
-        const target: Binding | undefined =
-          job.provider === run.chair ? run.main : bindings[job.provider];
-        try {
-          checkAbort();
-          if (!target) throw new Error('연결할 AI 탭을 찾지 못했습니다.');
-          const snap = await platform.inspect(target);
-          if (snap.url !== target.url || snap.documentId !== target.documentId)
-            throw new Error(
-              job.provider === run.chair
-                ? '메인 대화가 바뀌었습니다. 자동 전송을 멈췄습니다.'
-                : '연결한 대화가 바뀌었습니다.',
-            );
-          if (job.provider === run.chair) assertCapturedContext(run.context, snap, ownMainTurns());
-          if (!snap.composer)
-            throw new Error('입력란을 찾지 못했습니다. AI 탭에서 로그인 상태를 확인하세요.');
-          if (snap.busy || snap.draft)
-            throw new Error('AI 탭에 작성 중인 메시지 또는 생성 중인 답변이 있습니다.');
-          checkAbort();
-        } catch (error) {
-          run = updateJob(run, job.id, {
-            status: signal.aborted ? 'interrupted' : 'error',
-            error: error instanceof Error ? error.message : '연결 검사 실패',
-          });
-          await publish();
-          return;
-        }
-        run = updateJob(run, job.id, { status: 'sending', method: 'web' });
-        // A failed save must stop the operation before it can click Send.
-        await publish();
-        try {
-          checkAbort();
-          const delivered = run.jobs.some((previous) => {
-            const receipt = previous.attachmentTarget;
-            return (
-              previous.provider === job.provider &&
-              previous.status === 'done' &&
-              receipt &&
-              receipt.tabId === target!.tabId &&
-              receipt.documentId === target!.documentId &&
-              receipt.url === target!.url
-            );
-          });
-          const result = await platform.sendAndCollect(
-            job,
-            target!,
-            signal,
-            delivered ? [] : attachments,
+    for (const job of pending) {
+      checkAbort();
+      const target: Binding | undefined =
+        job.provider === run.chair ? run.main : bindings[job.provider];
+      try {
+        if (!target) throw new Error('연결할 AI 탭을 찾지 못했습니다.');
+        await platform.reveal(target);
+        checkAbort();
+        const snap = await platform.inspect(target);
+        if (snap.url !== target.url || snap.documentId !== target.documentId)
+          throw new Error(
+            job.provider === run.chair
+              ? '메인 대화가 바뀌었습니다. 자동 전송을 멈췄습니다.'
+              : '연결한 대화가 바뀌었습니다.',
           );
-          if (job.provider === run.chair && result.binding.url !== run.main!.url)
-            throw new Error('메인 대화가 바뀌었습니다. 답변을 해당 탭에서 확인하세요.');
-          bindings[job.provider] = result.binding;
-          run = updateJob(run, job.id, {
-            status: 'done',
-            answer: result.answer,
-            attachmentTarget: delivered || attachments.length > 0 ? result.binding : undefined,
-          });
-        } catch (error) {
-          run = updateJob(run, job.id, {
-            status: signal.aborted ? 'interrupted' : 'error',
-            error: error instanceof Error ? error.message : '답변 수집 실패',
-          });
-        }
+        if (job.provider === run.chair) assertCapturedContext(run.context, snap, ownMainTurns());
+        if (!snap.composer)
+          throw new Error('입력란을 찾지 못했습니다. AI 탭에서 로그인 상태를 확인하세요.');
+        if (snap.busy || snap.draft)
+          throw new Error('AI 탭에 작성 중인 메시지 또는 생성 중인 답변이 있습니다.');
+        checkAbort();
+      } catch (error) {
+        run = updateJob(run, job.id, {
+          status: signal.aborted ? 'interrupted' : 'error',
+          error: error instanceof Error ? error.message : '연결 검사 실패',
+        });
         await publish();
-      }),
-    );
-    const failed = results.find((result) => result.status === 'rejected');
-    if (failed?.status === 'rejected') throw failed.reason;
+        continue;
+      }
+      run = updateJob(run, job.id, { status: 'sending', method: 'web' });
+      // A failed save must stop the operation before it can click Send.
+      await publish();
+      try {
+        checkAbort();
+        const delivered = run.jobs.some((previous) => {
+          const receipt = previous.attachmentTarget;
+          return (
+            previous.provider === job.provider &&
+            previous.status === 'done' &&
+            receipt &&
+            receipt.tabId === target!.tabId &&
+            receipt.documentId === target!.documentId &&
+            receipt.url === target!.url
+          );
+        });
+        const result = await platform.sendAndCollect(
+          job,
+          target!,
+          signal,
+          delivered ? [] : attachments,
+        );
+        if (job.provider === run.chair && result.binding.url !== run.main!.url)
+          throw new Error('메인 대화가 바뀌었습니다. 답변을 해당 탭에서 확인하세요.');
+        bindings[job.provider] = result.binding;
+        run = updateJob(run, job.id, {
+          status: 'done',
+          answer: result.answer,
+          attachmentTarget: delivered || attachments.length > 0 ? result.binding : undefined,
+        });
+      } catch (error) {
+        run = updateJob(run, job.id, {
+          status: signal.aborted ? 'interrupted' : 'error',
+          error: error instanceof Error ? error.message : '답변 수집 실패',
+        });
+      }
+      await publish();
+    }
     checkAbort();
     if (run.stage === 'synthesize') {
       if (!run.jobs.some((job) => job.stage === 'synthesize' && job.status === 'done'))

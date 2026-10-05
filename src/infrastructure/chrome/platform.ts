@@ -4,6 +4,7 @@ import { providers } from '../../domains/providers/model';
 import { extensionStatus, watchExtensionUpdate, openExtensionManager } from './updates';
 import {
   connect,
+  reveal,
   refreshConnection,
   currentConversation,
   preparePeer,
@@ -43,11 +44,7 @@ export const chromePlatform: Platform = {
       chrome.tabs.onUpdated.removeListener(updated);
     };
   },
-  async reveal(binding) {
-    const tab = await chrome.tabs.get(binding.tabId);
-    await chrome.windows.update(tab.windowId, { focused: true });
-    await chrome.tabs.update(binding.tabId, { active: true });
-  },
+  reveal,
   inspect,
   sendAndCollect,
   async openProvider(provider) {
