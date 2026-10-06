@@ -9,10 +9,10 @@
 
 ## Preserve the product contract
 
-- Keep the existing one-start, bounded review workflow unless the user requests a change. Reuse the main answer and send the final synthesis only to the original bound conversation.
+- Keep the existing one-start, bounded review workflow unless the user requests a change. Preserve the full approved sharing scope through every stage, reuse the main answer, and send the final synthesis only to the original bound conversation.
 - Keep provider DOM behavior in provider adapters, Chrome APIs in infrastructure, orchestration in application, and business rules in domains. Presentation uses the injected platform port.
-- Fail closed on ambiguous editors, changed conversations, existing drafts, incomplete answers, or uncertain sends. Never overwrite a draft or automatically retry a request that may already have been sent.
-- Persist send intent before sending. Interrupted work must not silently resume after panel closure, reload, extension replacement, or browser restart.
+- Fail closed on ambiguous editors, changed captured context, existing drafts, incomplete answers, or uncertain sends. Validate completeness against the messages actually captured; hidden or omitted messages must not make a partial transcript appear complete. Never overwrite a draft or automatically retry a request that may already have been sent.
+- Persist send intent before sending. Interrupted work must not silently resume after panel closure, reload, extension replacement, or browser restart. Distinguish uncertain attempts from work that never began so cancellation preserves safe explicit continuation.
 - Read model choices from the actual account's UI. Do not invent available models, subscription entitlements, quotas, search execution, or source verification.
 - Model agreement is not factual verification. Preserve uncertainty and distinguish verified sources from model claims.
 
@@ -34,7 +34,7 @@
 - Keep installation steps sequential: build, select the directory containing `manifest.json`, confirm the installed version, open the production panel, and refresh provider tabs when replacing injected code.
 - For native file pickers, verify each state transition: picker opened, path field opened, path resolved, intended directory selected, installation accepted. Do not chain dependent keystrokes across unobserved dialogs.
 - Treat UI actions as attempts until a fresh observation confirms the result. Reacquire element references after state changes. If accessibility text and visible state disagree, inspect a screenshot and a fresh snapshot before repeating an action.
-- Prefer DOM tools for web content and native UI tools only for browser chrome or native dialogs. Avoid competing controllers manipulating the same surface.
+- Prefer DOM tools for web content and native UI tools only for browser chrome or native dialogs. Avoid competing controllers manipulating the same surface. Serialize operations that require the same foreground surface, and verify readiness after activation.
 - Keep native computer control active only while it is needed for a UI action. Release the control session when returning to code or tests; do not leave unnecessary capture or control running in the background.
 - Forward attachments only after the user selects the original files and each destination confirms upload readiness. Never silently omit a file, infer binary content from a thumbnail, or persist raw attachment bytes in workspace history. After losing in-memory files, require matching originals before resuming.
 - Use a new, non-sensitive test conversation for live sends. Verify the installed production path through final answer collection; manual DOM injection or a panel in a regular tab is not proof that the native side panel works.

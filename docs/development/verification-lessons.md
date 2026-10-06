@@ -81,7 +81,7 @@ These are dated observations, not permanent product guarantees. Durable working 
 
 - Observation: independent review of the initial release workflow found that a tag-defined ancestry check could be removed in the same untrusted tag that requested publishing credentials. A tag/environment name alone did not enforce main-branch provenance. A hardcoded legacy GitHub OIDC subject also mismatched this repository's newer immutable subject format.
 - Correction: put authentication and provenance checks in a reusable workflow loaded from the trusted main branch; enforce that reusable workflow identity, immutable repository/owner claims and environment in the Google trust policy. Use the exact same-run validated ZIP artifact, not a rebuild after authentication.
-- Verification: the independent re-review found both issues resolved; actionlint and seven simulated uploader-boundary tests passed. Real Google authentication is still unverified. The maintained setup and state belong in [release automation](../release/automation.md).
+- Verification: the independent re-review found both issues resolved; actionlint and seven simulated uploader-boundary tests passed. Those review checks did not verify Google authentication; the subsequent real deployment evidence and maintained setup belong in [release automation](../release/automation.md).
 
 ### Observe native picker state before declaring it blocked
 
@@ -94,6 +94,44 @@ These are dated observations, not permanent product guarantees. Durable working 
 - Correction: inspect authentication/verification surfaces with allowlisted status and element-reference metadata. Do not print raw link labels or full URLs; sensitive values are not confined to query strings. Validate the destination origin without logging the complete URL.
 - Verification: the intended official confirmation completed and the dashboard reported a verified contact. This does not make raw verification-link logging acceptable; the existing repository privacy rule already forbids it.
 
+## Multi-turn source review — 2026-10-06 KST
+
+### Shared context must match the imported scope
+
+- Observation: the earlier snapshot/import contract retained only the latest question and answer; earlier turns never reached peer collection. A visible turn count alone would have misrepresented what was shared.
+- Correction: carry ordered completed pairs through import, every prompt stage, stored review metadata, and export. Show the loaded scope and complete preview. Verify the entire captured transcript before starting and before sending back to the main; only completed extension-owned exchanges may be appended.
+- Verification: regressions preserve earlier context, reject preceding-turn changes and unrelated additions, and finish a thorough review whose own appended prompt exceeds the source-import limit. Transport inspection and user-import limits serve different purposes and must not be conflated.
+
+### Partial-history checks must inspect the captured population
+
+- Observation: independent review found that all DOM turn indices were checked while extraction filtered hidden messages. Hidden, inert, or aria-hidden earlier units could fill numerical gaps although their text was omitted.
+- Confirmed cause: index completeness and text extraction operated on different message populations. Three built-bridge fixtures reproduced the missing rejection before correction.
+- Correction: associate observed history markers with the messages actually captured. Reject detectable missing history without inventing unobserved provider selectors or claiming unloaded history is complete. The focused built-bridge regressions passed after correction; live virtualization remains a separate verification scope.
+
+### UI copy changes affect every control caller
+
+- Observation: full browser verification failed in three existing cases after visible peer checkboxes and new originals-confirmation copy were introduced. Two assertions used an unscoped checkbox locator; the update-lifecycle check still requested the removed label.
+- Correction: keep assertions scoped to their semantic control and inspect all callers when changing shared UI copy. Preserve the first failure artifacts before rerunning. The targeted source-reset, unavailable-source and update-lifecycle checks passed after correction.
+- Related user-facing issue: an over-limit source passed transport validation but failed the stricter import schema with raw Zod issue JSON. Translate that expected boundary failure into concise Korean limit and recovery guidance; keep validation strict.
+
 ## Recording further lessons
 
 For a new incident, record the observed failure, evidence, confirmed cause (or explicitly labeled hypothesis), correction, and verification result. Remove private data and machine-specific account details. Promote only reusable rules into `AGENTS.md`; keep dates and evolving results here or in `docs/testing/validation.md`.
+
+## Live provider readiness and completion — 2026-10-06
+
+- The first installed multi-turn run uploaded the selected synthetic TXT/PNG and sent Claude's prompt successfully. Its completed answer remained pending because the Copy toolbar was a sibling of the streaming wrapper. The nearest observed article isolates one assistant and its toolbar; a broad transcript ancestor also includes other messages and must not be accepted. The regression suite covers sibling tools, streaming state, previous-turn tools, and additional visible/hidden responses.
+- A second installed run exposed background readiness differences: Gemini's document upload input remained absent during a bounded poll (guard valid), while activating the same tab revealed its file menu. A separately observed active menu mounted the input in about 0.4 seconds. Claude's new background tab similarly preserved a filled draft after its send button was not ready; activation showed the button. Treat foreground readiness as a workflow concern before extending deadlines. High host CPU was observed; no unrelated processes were terminated and no builds/tests overlapped live sends.
+- A diagnostic error briefly reported only provider, MIME type, candidate count, validity and elapsed time to isolate that failure. Remove diagnostic probes from the shipped source and installed build; do not serialize conversations, credentials, account identifiers or attachment bytes for debugging.
+
+### Cancellation must preserve work that never began
+
+- Observation: independent review found that the sequential job loop caught an already-aborted signal inside the next job's validation handler. It marked that untouched job interrupted, so explicit continuation skipped it despite no send attempt.
+- Correction: check cancellation before entering the next job's validation handler; retain its ready state. Keep interrupted status for work whose outcome may be uncertain.
+- Verification: the regression failed with interrupted instead of ready, then passed while checking that explicit continuation sends the untouched peer once and never repeats the previous peer's collection.
+
+### A new tab may restore a site's existing draft
+
+- Observation: closing the synthetic Claude draft tab did not discard its site-persisted prompt and attachments. A newly opened home tab restored them, and the extension correctly refused to overwrite the draft.
+- Correction: inspect the new tab before assuming it is empty. Clean only explicitly owned test drafts through the site's UI, verify after reload, and explicitly reconnect changed documents. Never add automatic draft deletion to the product.
+- Verification: the fresh empty editor and reconnection were observed; the next attempt sent and collected Claude's first response. Subsequent review-send readiness and Gemini paragraph handling are separate failures, recorded in validation.
