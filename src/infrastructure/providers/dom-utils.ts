@@ -38,7 +38,7 @@ export function textOf(element?: HTMLElement | null): string {
   if (!element) return '';
   // Turn-level fallbacks can contain copy/read-aloud controls and screen-reader labels.
   const controls =
-    'button, [role="toolbar"], .turn-action-controls, .sr-only, [aria-hidden="true"], [hidden]';
+    'button, [role="toolbar"], .turn-action-controls, .sr-only, .cdk-visually-hidden, [aria-hidden="true"], [hidden]';
   if (!element.querySelector(controls)) return element.innerText?.trim() ?? '';
   const clone = element.cloneNode(true) as HTMLElement;
   clone.querySelectorAll(controls).forEach((node) => node.remove());

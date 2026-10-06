@@ -90,6 +90,72 @@ async function quillParagraphs(page: Page, inlineBreak = false) {
   return target;
 }
 const paragraphPrompt = '한국어 질문\n\n코드:\n    const  value = 1;\n\n끝';
+
+for (const question of ['matching', 'mismatched', 'duplicate']) {
+  test(`Gemini question labels preserve the ${question} actual question boundary`, async ({
+    page,
+  }) => {
+    const target = await quillParagraphs(page);
+    await page.evaluate((question) => {
+      const state = window as any;
+      const decorate = (query: Element, text: string) => {
+        const label = document.createElement('h5');
+        label.className = 'cdk-visually-hidden screen-reader-user-query-label';
+        label.style.cssText = 'position:absolute;width:1px;height:1px;clip-path:inset(50%)';
+        label.textContent = `말씀하신 내용 ${text.slice(0, 20)}`;
+        query.replaceChildren(
+          label,
+          ...text.split('\n').map((line) => {
+            const paragraph = document.createElement('p');
+            paragraph.className = 'query-text-line';
+            paragraph.textContent = line;
+            return paragraph;
+          }),
+        );
+      };
+      document
+        .querySelectorAll('.query-text')
+        .forEach((query) => decorate(query, query.textContent!));
+      const user = state.user;
+      state.user = (text: string) => {
+        user(text);
+        const query = [...document.querySelectorAll('.query-text')].at(-1)!;
+        decorate(query, question === 'mismatched' ? `${text} changed` : text);
+        if (question === 'duplicate') user(text);
+      };
+      const assistant = state.assistant;
+      state.assistant = (text: string) => {
+        assistant(text);
+        const heading = document.createElement('h5');
+        heading.textContent = text;
+        [...document.querySelectorAll('.model-response-text')].at(-1)!.replaceChildren(heading);
+      };
+    }, question);
+    await command(page, { type: 'send', id: 'query-label', ...target, prompt: paragraphPrompt });
+    await expect
+      .poll(async () => {
+        const result = (await command(page, { type: 'poll', id: 'query-label' })).data;
+        return result.status === 'error' && question === 'matching' ? result.error : result.status;
+      })
+      .toBe(question === 'matching' ? 'done' : 'error');
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([paragraphPrompt]);
+    if (question === 'matching') {
+      expect((await command(page, { type: 'poll', id: 'query-label' })).data.answer).toBe(
+        '새로운 gemini 검증 답변',
+      );
+      const snapshot = (await command(page, { type: 'snapshot' })).data;
+      expect(snapshot.lastQuestion).toBe(paragraphPrompt);
+      expect(snapshot.context.turns.map((turn: { question: string }) => turn.question)).toEqual([
+        '기존 질문',
+        paragraphPrompt,
+      ]);
+    } else
+      expect((await command(page, { type: 'poll', id: 'query-label' })).data.error).toContain(
+        '대화 내용이 바뀌어',
+      );
+  });
+}
+
 for (const inlineBreak of [false, true]) {
   test(`Gemini Quill paragraphs preserve blank lines, Korean and code spacing through collection (inline BR: ${inlineBreak})`, async ({
     page,

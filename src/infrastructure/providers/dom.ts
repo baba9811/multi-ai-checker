@@ -330,8 +330,12 @@ export async function submit(
       if (!input.isConnected || composer(provider) !== input || isBusy(provider))
         throw new Error('입력란 또는 생성 상태가 바뀌어 전송을 중단했습니다.');
       if (!filesReady()) throw new Error('첨부파일 상태가 바뀌어 전송을 중단했습니다.');
-      // Recheck exact input throughout readiness settling, including immediately before click.
-      if (draftText(input).replace(/\r\n/g, '\n') !== prompt.trim().replace(/\r\n/g, '\n'))
+      // Let the editor normalize native input before exact comparisons; never click before this.
+      const settled = Date.now() - started >= 300;
+      if (
+        settled &&
+        draftText(input).replace(/\r\n/g, '\n') !== prompt.trim().replace(/\r\n/g, '\n')
+      )
         throw new Error('입력 내용이 달라져 전송을 중단했습니다.');
       if (Date.now() >= deadline)
         throw new Error(
@@ -342,7 +346,7 @@ export async function submit(
         button &&
         !(button as HTMLButtonElement).disabled &&
         button.getAttribute('aria-disabled') !== 'true' &&
-        Date.now() - started >= 300
+        settled
       ) {
         button.click();
         break;

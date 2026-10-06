@@ -16,12 +16,17 @@ async function command(page: Page, message: object) {
   );
 }
 
-async function setupEditor(page: Page, edit?: 'text' | 'blank-line' | 'space') {
+async function setupEditor(
+  page: Page,
+  edit?: 'text' | 'blank-line' | 'space',
+  asyncNormalization = false,
+) {
   await page.route('https://claude.ai/**', (route) =>
     route.fulfill({ contentType: 'text/html', body: providerPage('claude') }),
   );
   await page.goto('https://claude.ai/new');
-  await page.evaluate((edit) => {
+  const options = { edit, asyncNormalization };
+  await page.evaluate(({ edit, asyncNormalization }) => {
     const state = window as any;
     const editor = document.querySelector<HTMLElement>('.ProseMirror')!;
     editor.dataset.testid = 'chat-input';
@@ -48,12 +53,28 @@ async function setupEditor(page: Page, edit?: 'text' | 'blank-line' | 'space') {
               return paragraph;
             }),
         );
+        if (asyncNormalization) {
+          const paragraphs = [...editor.childNodes];
+          const transient = document.createElement('div');
+          transient.append(...paragraphs);
+          editor.replaceChildren(transient);
+          setTimeout(() => editor.replaceChildren(...paragraphs), 150);
+          // Keep send pending so a real edit after settling must still be rejected.
+          if (edit) {
+            const send = document.querySelector<HTMLButtonElement>('#send')!;
+            send.disabled = true;
+            setTimeout(() => (send.disabled = false), 700);
+          }
+        }
         if (edit)
-          setTimeout(() => {
-            if (edit === 'text') editor.children[1]!.textContent = 'User changed this line';
-            if (edit === 'blank-line') editor.children[2]!.remove();
-            if (edit === 'space') editor.children[1]!.textContent = 'second line';
-          }, 100);
+          setTimeout(
+            () => {
+              if (edit === 'text') editor.children[1]!.textContent = 'User changed this line';
+              if (edit === 'blank-line') editor.children[2]!.remove();
+              if (edit === 'space') editor.children[1]!.textContent = 'second line';
+            },
+            asyncNormalization ? 500 : 100,
+          );
       }
       return inserted;
     };
@@ -77,13 +98,43 @@ async function setupEditor(page: Page, edit?: 'text' | 'blank-line' | 'space') {
         onMessage: { addListener: (handler: unknown) => (state.__bridgeHandler = handler) },
       },
     };
-  }, edit);
+  }, options);
   await page.addScriptTag({ path: path.resolve('.output/chrome-mv3/bridge.js') });
   const snapshot = await command(page, { type: 'snapshot' });
   return snapshot.data as { documentId: string; url: string };
 }
 
 const prompt = 'first line\nsecond  line\n\n  {"literal": "<b>not HTML</b>"}\nlast line';
+
+test('Claude waits for asynchronous paragraph normalization before exact comparison', async ({
+  page,
+}) => {
+  const target = await setupEditor(page, undefined, true);
+  await command(page, { type: 'send', id: 'async-paragraphs', ...target, prompt });
+  await expect
+    .poll(async () => {
+      const result = (await command(page, { type: 'poll', id: 'async-paragraphs' })).data;
+      return result.status === 'error' ? result.error : result.status;
+    })
+    .toBe('done');
+  expect(await page.evaluate(() => (window as any).fixtureSubmittedLines)).toEqual(
+    prompt.split('\n'),
+  );
+  expect(await page.evaluate(() => (window as any).fixtureCommands)).toEqual(['insertText']);
+});
+
+for (const edit of ['text', 'blank-line', 'space'] as const) {
+  test(`Claude refuses a postsettling ${edit} edit after asynchronous normalization`, async ({
+    page,
+  }) => {
+    const target = await setupEditor(page, edit, true);
+    await command(page, { type: 'send', id: 'async-edited', ...target, prompt });
+    await expect
+      .poll(async () => (await command(page, { type: 'poll', id: 'async-edited' })).data?.error)
+      .toContain('입력 내용이 달라져');
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  });
+}
 
 test('Claude paragraph editor preserves exact prompt lines and collects the matching answer', async ({
   page,
