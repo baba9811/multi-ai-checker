@@ -975,26 +975,59 @@ test('ChatGPT refuses detectable unloaded history by observed fallback turn inde
     );
   expect((await command(page, { type: 'snapshot' })).data.context.error).toContain('이전 대화');
 });
-for (const omitted of ['hidden', 'inert', 'aria-hidden']) {
-  test(`ChatGPT rejects ${omitted} earlier keyed history retained in the DOM`, async ({ page }) => {
-    await setup(page, 'chatgpt', redesignedChatgptPage());
-    await page.evaluate((omitted) => {
-      const thread = document.querySelector('section')!;
-      const old = [...thread.children];
-      const later = old.map((element) => element.cloneNode(true) as HTMLElement);
-      later.forEach((element) => thread.append(element));
-      [...thread.querySelectorAll('[data-chatgpt-search-message-ids]')].forEach((element, index) =>
+test('ChatGPT captures fully represented keyed history without inventing unrelated turns', async ({
+  page,
+}) => {
+  await setup(page, 'chatgpt', redesignedChatgptPage());
+  await page.evaluate(() => {
+    document
+      .querySelectorAll('[data-chatgpt-search-message-ids]')
+      .forEach((element, index) =>
         element.setAttribute(
           'data-chatgpt-search-unit-key',
-          `fallback-turn-${Math.floor(index / 2)}:${index % 2 ? 2 : 0}:${index % 2 ? 'assistant' : 'user'}`,
+          `fallback-turn-0:${index ? 2 : 0}:${index ? 'assistant' : 'user'}`,
         ),
       );
-      old.forEach((element) =>
-        element.setAttribute(omitted, omitted === 'aria-hidden' ? 'true' : ''),
-      );
-    }, omitted);
-    expect((await command(page, { type: 'snapshot' })).data.context.error).toContain('이전 대화');
+    const unrelated = document.createElement('aside');
+    unrelated.setAttribute('data-chatgpt-search-unit-key', 'fallback-turn-99:0:user');
+    document.body.append(unrelated);
+    const tool = document.createElement('div');
+    tool.setAttribute('data-chatgpt-search-unit-key', 'fallback-turn-0:1:tool');
+    document.querySelector('section')!.append(tool);
   });
+  const context = (await command(page, { type: 'snapshot' })).data.context;
+  expect(context.error).toBeUndefined();
+  expect(context.turns).toEqual([{ question: '안녕', answer: '안녕하세요. 무엇을 도와드릴까요?' }]);
+});
+
+for (const omitted of ['hidden', 'inert', 'aria-hidden']) {
+  for (const position of ['earlier', 'later']) {
+    test(`ChatGPT rejects ${omitted} ${position} keyed history retained in the DOM`, async ({
+      page,
+    }) => {
+      await setup(page, 'chatgpt', redesignedChatgptPage());
+      await page.evaluate(
+        ({ omitted, position }) => {
+          const thread = document.querySelector('section')!;
+          const old = [...thread.children];
+          const later = old.map((element) => element.cloneNode(true) as HTMLElement);
+          later.forEach((element) => thread.append(element));
+          [...thread.querySelectorAll('[data-chatgpt-search-message-ids]')].forEach(
+            (element, index) =>
+              element.setAttribute(
+                'data-chatgpt-search-unit-key',
+                `fallback-turn-${Math.floor(index / 2)}:${index % 2 ? 2 : 0}:${index % 2 ? 'assistant' : 'user'}`,
+              ),
+          );
+          (position === 'earlier' ? old : later).forEach((element) =>
+            element.setAttribute(omitted, omitted === 'aria-hidden' ? 'true' : ''),
+          );
+        },
+        { omitted, position },
+      );
+      expect((await command(page, { type: 'snapshot' })).data.context.error).toContain('이전 대화');
+    });
+  }
 }
 
 async function claudeSiblingToolbar(page: Page) {

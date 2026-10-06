@@ -147,6 +147,7 @@ export async function executeAutomatic(
     try {
       bindings[provider] = await platform.preparePeer(provider, bindings[provider]);
     } catch (error) {
+      checkAbort();
       run = updateJob(run, pending.id, {
         status: 'error',
         error: error instanceof Error ? error.message : '탭 연결 실패',
@@ -179,8 +180,9 @@ export async function executeAutomatic(
           throw new Error('AI 탭에 작성 중인 메시지 또는 생성 중인 답변이 있습니다.');
         checkAbort();
       } catch (error) {
+        checkAbort();
         run = updateJob(run, job.id, {
-          status: signal.aborted ? 'interrupted' : 'error',
+          status: 'error',
           error: error instanceof Error ? error.message : '연결 검사 실패',
         });
         await publish();

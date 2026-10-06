@@ -344,3 +344,65 @@ it('keeps the next unsent provider ready after cancellation and sends it once on
     resumed.sends.some((send) => send.job.provider === 'claude' && send.job.stage === 'collect'),
   ).toBe(false);
 });
+
+it.each(
+  ['preparePeer', 'reveal', 'inspect'].flatMap((boundary) =>
+    [false, true].map((reject) => ({ boundary, reject })),
+  ),
+)(
+  'preserves a known-unsent request cancelled during $boundary (reject=$reject)',
+  async ({ boundary, reject }) => {
+    const test = harness();
+    const controller = new AbortController();
+    if (boundary === 'preparePeer') {
+      test.platform.preparePeer = async (provider) => {
+        controller.abort();
+        if (reject) throw new Error('cancelled preparation');
+        return target(provider);
+      };
+    } else if (boundary === 'reveal') {
+      test.platform.reveal = async (binding) => {
+        if (binding.provider !== 'claude') return;
+        controller.abort();
+        if (reject) throw new Error('cancelled activation');
+      };
+    } else {
+      test.platform.inspect = async (binding) => {
+        if (binding.provider === 'claude') {
+          controller.abort();
+          if (reject) throw new Error('cancelled inspection');
+        }
+        return snapshot(binding);
+      };
+    }
+    await expect(
+      executeAutomatic(
+        importedRun(source, [...providerIds], 'economy'),
+        {},
+        test.platform,
+        controller.signal,
+        test.checkpoint,
+      ),
+    ).rejects.toThrow('중단');
+    expect(test.sends).toHaveLength(0);
+    const saved = test.checkpoints.at(-1)!;
+    expect(
+      saved
+        .run!.jobs.filter((job) => job.provider !== 'chatgpt')
+        .every((job) => job.status === 'ready'),
+    ).toBe(true);
+    const resumed = harness();
+    await executeAutomatic(
+      saved.run!,
+      saved.bindings,
+      resumed.platform,
+      new AbortController().signal,
+      resumed.checkpoint,
+    );
+    expect(
+      resumed.sends.filter(
+        (send) => send.job.provider === 'claude' && send.job.stage === 'collect',
+      ),
+    ).toHaveLength(1);
+  },
+);

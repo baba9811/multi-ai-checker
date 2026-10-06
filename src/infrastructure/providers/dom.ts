@@ -179,17 +179,28 @@ function conversationContext(
   try {
     if (provider === 'chatgpt') {
       const captured = [...users, ...assistants];
-      const indices = [...document.querySelectorAll('[data-chatgpt-search-unit-key]')]
-        .filter((element) =>
-          captured.some((message) => element.contains(message) || message.contains(element)),
-        )
+      const keyed = [...document.querySelectorAll('[data-chatgpt-search-unit-key]')];
+      const represented = (element: Element) =>
+        captured.some((message) => element.contains(message) || message.contains(element));
+      const indices = keyed
+        .filter(represented)
         .map((element) =>
           element.getAttribute('data-chatgpt-search-unit-key')?.match(/^fallback-turn-(\d+):/),
         )
         .filter((match) => !!match)
         .map((match) => Number(match![1]));
       const unique = [...new Set(indices)].sort((a, b) => a - b);
-      if (unique.some((value, index) => value !== index))
+      const omitted = keyed.some(
+        (element) =>
+          /^fallback-turn-\d+:\d+:(user|assistant)$/.test(
+            element.getAttribute('data-chatgpt-search-unit-key') ?? '',
+          ) &&
+          !represented(element) &&
+          captured.some((message) =>
+            message.closest('[data-chatgpt-conversation-selection-target]')?.contains(element),
+          ),
+      );
+      if (omitted || unique.some((value, index) => value !== index))
         throw new Error(
           '이전 대화가 일부만 불러와졌습니다. 대화 맨 위까지 불러온 뒤 다시 선택해주세요.',
         );
