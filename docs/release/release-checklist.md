@@ -1,6 +1,6 @@
 # Release checklist — 0.4.0 candidate
 
-Updated 2026-10-06. The working candidate is 0.4.0 with loaded multi-turn context and sequential foreground provider operations. The latest confirmed store draft remains 0.3.1. The previous package evidence below is historical and does not verify the new candidate. The latest three-provider native flow completed; provider release gates remain unresolved; recheck requirements before submission.
+Updated 2026-10-06. The working candidate is 0.4.0 with loaded multi-turn context and sequential foreground provider operations. The latest confirmed store draft is 0.4.0, uploaded by release CI and confirmed after dashboard reload; no review submission or public listing exists. The previous package evidence below is historical and does not verify the new candidate. The latest three-provider native flow completed; provider release gates remain unresolved; recheck requirements before submission.
 
 ## Concrete blockers
 
@@ -39,11 +39,11 @@ These are release gates, not instructions to bypass protections or silently remo
 
 Record each observed state with its actual package version/checksum and evidence: **package prepared → draft uploaded → submitted for review → approved/staged → publicly published**. An uploaded draft is not a submitted review; submission is not approval; approval/staging is not a confirmed public listing. The dashboard supports deferred publication after review. [Official publication workflow](https://developer.chrome.com/docs/webstore/publish).
 
-The initial manual draft upload and subsequent 0.3.1 CI draft upload are confirmed. The audited data-use certifications are saved; no review submission or public extension publication has occurred. The privacy notice is published separately from the extension; its deployment evidence is recorded below.
+The initial manual draft upload and subsequent 0.3.1 and 0.4.0 CI draft uploads are confirmed. The audited data-use certifications are saved; no review submission or public extension publication has occurred. The privacy notice is published separately from the extension; its deployment evidence is recorded below.
 
 ## Current candidate package evidence — 0.4.0
 
-Reviewed and natively tested product source: `90e7f84`. The original two-turn main conversation and selected TXT/PNG completed all three services through final synthesis collection without another send action; [validation](../testing/validation.md) owns the exact scope and remaining unverified cases. Local ZIP: 161,051 bytes, SHA-256 `1c97a9e85d0b2bd4a6a01009003273234314066a26fdf0806e5320713f6217be`. All 12 internal files match the installed build; bridge SHA-256 `1113f690b5e1a0d27f647c5133a71dd52bc58c5641b2f6a47d3e1791e30e921b`. The actual manifest, four permissions, three optional HTTPS origins, CSP, icons, bundled licenses and package exclusions were inspected. Offline uploader validation passed. The CI-generated upload artifact is recorded separately when deployment completes.
+Reviewed and natively tested product source: `90e7f84`. The original two-turn main conversation and selected TXT/PNG completed all three services through final synthesis collection without another send action; [validation](../testing/validation.md) owns the exact scope and remaining unverified cases. Local ZIP: 161,051 bytes, SHA-256 `1c97a9e85d0b2bd4a6a01009003273234314066a26fdf0806e5320713f6217be`. All 12 internal files match the installed build; bridge SHA-256 `1113f690b5e1a0d27f647c5133a71dd52bc58c5641b2f6a47d3e1791e30e921b`. The actual manifest, four permissions, three optional HTTPS origins, CSP, icons, bundled licenses and package exclusions were inspected. Offline uploader validation passed. Release `v0.4.0` at merged source `f46bde6` completed authenticated draft upload in [run 37449257291](https://github.com/baba9811/multi-ai-checker/actions/runs/37449257291). Uploaded CI ZIP: 161,378 bytes, SHA-256 `4550f77dbd8aacf07663bdcf9a14d8b8c2a2830c8b2beb3f5b259c00ed769f7a`; all 12 internal files match the native-tested build. A reloaded Package page confirms draft 0.4.0 and no published item. Public/all-regions settings and saved listing materials persist. Review submission stays disabled in CI; the provider release gates above remain.
 
 ## Previous candidate package evidence — 0.4.0
 
