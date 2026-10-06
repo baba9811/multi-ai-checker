@@ -17,7 +17,11 @@ import {
 import { Binding, providerIds, providers, type ProviderId } from '../../domains/providers/model';
 import { stageNames, type Run } from '../../domains/crosscheck/model';
 import { budget, markdown, recoverRun, updateJob } from '../../domains/crosscheck/workflow';
-import { executeAutomatic, importedRun } from '../../application/automatic-workflow';
+import {
+  executeAutomatic,
+  importedRun,
+  assertSameSource,
+} from '../../application/automatic-workflow';
 import { matchAttachments, prepareAttachments } from '../../application/attachments';
 import { attachmentMetadata, type AttachmentPayload } from '../../domains/attachments/model';
 import type { Conversation, Platform, Workspace } from '../../application/ports';
@@ -110,7 +114,9 @@ export function App({ platform }: { platform: Platform }) {
             value.snapshot.lastAnswer &&
             !value.snapshot.busy &&
             !value.snapshot.draft &&
-            !value.snapshot.truncated
+            !value.snapshot.truncated &&
+            value.snapshot.context?.turns.length &&
+            !value.snapshot.context.error
           ) {
             setSource(value);
             setSelected((old) =>
@@ -171,16 +177,13 @@ export function App({ platform }: { platform: Platform }) {
       let initial = resume ? workspace.current.run : undefined;
       if (!initial) {
         if (!source) throw new Error('메인 대화를 먼저 선택해주세요.');
+        await platform.reveal(source.binding);
+        if (controller.signal.aborted) throw new Error('자동 검토를 중단했습니다.');
         const active = {
           binding: source.binding,
           snapshot: await platform.inspect(source.binding),
         };
-        if (
-          source &&
-          (active.snapshot.lastQuestion !== source.snapshot.lastQuestion ||
-            active.snapshot.lastAnswer !== source.snapshot.lastAnswer)
-        )
-          throw new Error('메인 대화의 질문·답변이 바뀌었습니다. 현재 탭에서 다시 선택해주세요.');
+        assertSameSource(source.snapshot, active.snapshot);
         initial = importedRun(active, selected, mode, files.map(attachmentMetadata));
         setSource(active);
       }
@@ -291,24 +294,28 @@ export function App({ platform }: { platform: Platform }) {
   const excluded = run?.selected.filter((id) => !included.includes(id)) ?? [];
   const fileSelection = (
     <section className="attachments" aria-label="원본 첨부파일">
-      <h2>{run ? '검토에 사용한 원본 파일' : '함께 검토할 파일'}</h2>
-      <p className="hint">
-        대화에 올린 파일·이미지를 자동으로 가져올 수 없습니다. 원본을 한 번에 선택하면 선택한 AI마다
-        업로드를 확인한 뒤 전송합니다.
-      </p>
-      <label className="attachment-picker">
-        {readingFiles ? '파일 읽는 중…' : run ? '같은 원본 파일 다시 선택' : '원본 파일 선택'}
-        <input
-          type="file"
-          multiple
-          aria-label="원본 파일 선택"
-          disabled={locked || (!source && !run)}
-          onChange={(event) => void selectFiles(event.currentTarget)}
-        />
-      </label>
-      <p className="hint">
-        최대 10개 · 합계 20 MB. 파일 내용은 패널이 열려 있는 동안만 보관합니다.
-      </p>
+      <div className="attachment-header">
+        <h2>{run ? '검토에 사용한 원본 파일' : '함께 검토할 파일'}</h2>
+        <label className="attachment-picker">
+          {readingFiles ? '파일 읽는 중…' : files.length || run ? '파일 다시 선택' : '파일 선택'}
+          <input
+            type="file"
+            multiple
+            aria-label="원본 파일 선택"
+            disabled={locked || (!source && !run)}
+            onChange={(event) => void selectFiles(event.currentTarget)}
+          />
+        </label>
+      </div>
+      <p className="hint">첨부가 있으면 원본을 모두 선택하세요.</p>
+      <details className="file-guide">
+        <summary>파일 안내</summary>
+        <p className="hint">
+          대화에 올린 파일·이미지를 자동으로 가져올 수 없습니다. 원본을 선택하면 각 AI의 업로드를
+          확인한 뒤 전송합니다. 최대 10개 · 합계 20 MB. 파일 내용은 패널이 열려 있는 동안만
+          보관합니다.
+        </p>
+      </details>
       {run && run.attachments.length > 0 && (
         <p className="hint">필요한 원본: {run.attachments.map((file) => file.name).join(', ')}</p>
       )}
@@ -353,7 +360,9 @@ export function App({ platform }: { platform: Platform }) {
             disabled={locked || !source}
             onChange={(event) => setOriginalsConfirmed(event.target.checked)}
           />
-          원본 대화의 파일·이미지를 모두 선택했거나 첨부가 없음을 확인했습니다
+          {files.length
+            ? '원래 대화의 파일·이미지를 모두 선택했습니다'
+            : '원래 대화에 첨부파일이 없습니다'}
         </label>
       )}
     </section>
@@ -406,7 +415,7 @@ export function App({ platform }: { platform: Platform }) {
                   void platform.reveal(mainBinding).catch((error) => setNotice(message(error)))
                 }
               >
-                <ExternalLink size={14} /> 메인 대화로 돌아가기
+                <ExternalLink size={14} /> 원래 대화로 돌아가기
               </button>
             )}
             <ConnectionSettings
@@ -423,14 +432,18 @@ export function App({ platform }: { platform: Platform }) {
         ) : !run ? (
           <>
             <div className="workspace-heading">
-              <h1>현재 답변 검토</h1>
+              <h1>대화 검토</h1>
               <button
                 className="text-button"
                 disabled={locked}
                 onClick={() => void reselectSource()}
               >
                 <RotateCcw size={15} />
-                {readingSource ? '대화 읽는 중…' : '현재 탭에서 다시 선택'}
+                {readingSource
+                  ? '대화 읽는 중…'
+                  : source
+                    ? '현재 탭으로 변경'
+                    : '현재 탭에서 가져오기'}
               </button>
             </div>
             <section className="auto-source">
@@ -438,72 +451,89 @@ export function App({ platform }: { platform: Platform }) {
                 <>
                   <div className="source-label">
                     <ProviderLogo provider={source.binding.provider} />
-                    <span>{providers[source.binding.provider].name} · 메인 대화 고정</span>
+                    <span>{providers[source.binding.provider].name} · 원래 대화</span>
                   </div>
+                  <p className="hint">
+                    현재 화면에 불러온 질문·답변 {source.snapshot.context.turns.length}쌍 · 불러오지
+                    않은 이전 대화는 포함하지 않습니다.
+                  </p>
+                  <button
+                    className="text-button"
+                    onClick={() =>
+                      void platform
+                        .reveal(source.binding)
+                        .catch((error) => setNotice(message(error)))
+                    }
+                  >
+                    <ExternalLink size={14} /> 원래 대화로 돌아가기
+                  </button>
                   <p className="source-question">{source.snapshot.lastQuestion}</p>
                   {source.snapshot.lastAnswer && (
                     <details className="source-preview">
                       <summary>
-                        가져온 답변 <ChevronDown size={13} />
+                        공유할 대화 전체 보기 <ChevronDown size={13} />
                       </summary>
-                      <pre>{source.snapshot.lastAnswer}</pre>
+                      {source.snapshot.context.turns.map((turn, index) => (
+                        <div key={index}>
+                          <h3>{index + 1}번째 질문</h3>
+                          <pre>{turn.question}</pre>
+                          <h3>{index + 1}번째 답변</h3>
+                          <pre>{turn.answer}</pre>
+                        </div>
+                      ))}
                     </details>
                   )}
                 </>
               ) : (
                 <p className="empty-source">
-                  검토할 AI 대화를 열고 현재 탭에서 다시 선택을 눌러주세요.
+                  검토할 AI 대화를 열고 현재 탭에서 가져오기를 눌러주세요.
                   <br />
                   처음에는 대화를 읽을 사이트 권한이 필요합니다.
                 </p>
               )}
             </section>
             {fileSelection}
-            <p className="auto-explanation">다른 AI 검토부터 메인 대화의 최종 답변까지.</p>
-            <div className="auto-participants">
-              {selected.map((id) => (
-                <span key={id}>
-                  <ProviderLogo provider={id} />
-                  {providers[id].name}
-                </span>
-              ))}
+            <p className="hint">검토할 다른 AI</p>
+            <div className="auto-participants" role="group" aria-label="검토할 다른 AI">
+              {providerIds
+                .filter((id) => id !== source?.binding.provider)
+                .map((id) => (
+                  <label key={id}>
+                    <input
+                      type="checkbox"
+                      aria-label={`${providers[id].name} 참여`}
+                      checked={selected.includes(id)}
+                      disabled={locked || id === source?.binding.provider}
+                      onChange={() =>
+                        setSelected((old) =>
+                          old.includes(id) ? old.filter((value) => value !== id) : [...old, id],
+                        )
+                      }
+                    />
+                    <ProviderLogo provider={id} />
+                    {providers[id].name}
+                  </label>
+                ))}
             </div>
             <button
               className="primary full"
               disabled={locked || selected.length < 2 || !source || !originalsConfirmed}
               onClick={() => void start()}
             >
-              {busy ? '대화 연결 중…' : '자동 검토 시작'}
+              {busy ? '전송·답변 확인 중' : '자동 검토 시작'}
               <ArrowRight size={16} />
             </button>
             <p className="action-note">
-              시작하면 선택한 AI에 질문·답변·선택한 파일을 공유하고
+              AI 탭을 하나씩 방문합니다. 패널을 열어두세요. 시작하면 선택한 AI에 불러온 대화·선택한
+              파일을 공유하고
               <br />
-              현재 대화에 최종 프롬프트를 보냅니다.
+              {source ? providers[source.binding.provider].name : '원래 AI'} 원래 대화에 최종
+              프롬프트를 보냅니다.
             </p>
             <details className="auto-options">
               <summary>
                 검토 설정 <ChevronDown size={14} />
               </summary>
-              <div className="providers">
-                {providerIds.map((id) => (
-                  <button
-                    key={id}
-                    className={`provider ${selected.includes(id) ? 'selected' : ''}`}
-                    aria-label={`${providers[id].name} 참여`}
-                    aria-pressed={selected.includes(id)}
-                    disabled={locked || id === source?.binding.provider}
-                    onClick={() =>
-                      setSelected((old) =>
-                        old.includes(id) ? old.filter((value) => value !== id) : [...old, id],
-                      )
-                    }
-                  >
-                    <ProviderLogo provider={id} />
-                    {providers[id].name}
-                  </button>
-                ))}
-              </div>
               <div className="review-options">
                 <div className="segmented" aria-label="검토 깊이">
                   {(['economy', 'thorough'] as const).map((value) => (
@@ -542,6 +572,19 @@ export function App({ platform }: { platform: Platform }) {
               </p>
             )}
             <p className="source-question run-question">{run.question}</p>
+            {run.context && (
+              <details className="source-preview">
+                <summary>공유한 대화 · 현재 화면에 불러온 {run.context.turns.length}쌍</summary>
+                {run.context.turns.map((turn, index) => (
+                  <div key={index}>
+                    <h3>{index + 1}번째 질문</h3>
+                    <pre>{turn.question}</pre>
+                    <h3>{index + 1}번째 답변</h3>
+                    <pre>{turn.answer}</pre>
+                  </div>
+                ))}
+              </details>
+            )}
             {!final && (
               <>
                 <div className="auto-progress" role="status" aria-live="polite">
@@ -570,7 +613,7 @@ export function App({ platform }: { platform: Platform }) {
                           {
                             {
                               ready: '대기',
-                              sending: '답변 생성 중',
+                              sending: '전송·답변 확인 중',
                               done: '완료',
                               error: '확인 필요',
                               interrupted: '중단됨',
@@ -589,6 +632,14 @@ export function App({ platform }: { platform: Platform }) {
             )}
             {final && (
               <>
+                <button
+                  className="primary full"
+                  onClick={() =>
+                    void platform.reveal(run.main!).catch((error) => setNotice(message(error)))
+                  }
+                >
+                  원래 대화에서 보기 <ExternalLink size={14} />
+                </button>
                 <div className="final-answer">
                   <div className="source-label">
                     <ProviderLogo provider={run.chair} />
@@ -596,14 +647,6 @@ export function App({ platform }: { platform: Platform }) {
                   </div>
                   <pre className="answer">{final.answer}</pre>
                 </div>
-                <button
-                  className="primary full"
-                  onClick={() =>
-                    void platform.reveal(run.main!).catch((error) => setNotice(message(error)))
-                  }
-                >
-                  메인 대화에서 보기 <ExternalLink size={14} />
-                </button>
                 <p className="action-note">출처와 미확인 내용도 함께 확인해주세요.</p>
               </>
             )}

@@ -113,6 +113,19 @@ export const fixturePlatform: Platform = {
       truncated: false,
       lastQuestion: '물은 언제나 100°C에서 끓나요?',
       lastAnswer: '표준 대기압에서 순수한 물은 약 100°C에서 끓습니다.',
+      context: {
+        scope: 'rendered' as const,
+        turns: [
+          {
+            question: '먼저 압력의 영향을 설명해주세요.',
+            answer: '압력이 끓는점에 영향을 줍니다.',
+          },
+          {
+            question: '물은 언제나 100°C에서 끓나요?',
+            answer: '표준 대기압에서 순수한 물은 약 100°C에서 끓습니다.',
+          },
+        ],
+      },
     };
   },
   async sendAndCollect(job, target, signal, attachments = []) {

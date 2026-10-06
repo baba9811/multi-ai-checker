@@ -53,11 +53,12 @@
     <main>
       <h2>What the extension handles</h2>
       <p>
-        CrossCheck reads the selected question and completed answer from the AI conversation you
-        choose. A review shares the chosen question, answers, review prompts, evidence you enter,
-        and original files you select with the participating services: OpenAI/ChatGPT,
-        Anthropic/Claude, and Google/Gemini, according to your selection. The final synthesis
-        request returns to your original main conversation.
+        CrossCheck reads the completed question-and-answer turns loaded in the AI conversation you
+        choose. The panel shows the loaded scope and lets you inspect every shared turn before
+        starting. A review shares those conversation turns, review prompts, evidence you enter, and
+        original files you select with the participating services: OpenAI/ChatGPT, Anthropic/Claude,
+        and Google/Gemini, according to your selection. The final synthesis request returns to your
+        original main conversation.
       </p>
       <p>
         It also handles the selected provider page's composer state and model menu, and keeps tab,
@@ -67,12 +68,12 @@
       </p>
       <h2>Where data is stored</h2>
       <p>
-        Chrome session storage holds review text, entered evidence, job status, provider bindings,
-        and file metadata: name, MIME type, size, and a SHA-256 value used to match originals. Raw
-        file bytes are not stored in review history. They are processed temporarily in the open
-        panel's memory and in the destination website's upload flow. Closing or reloading the panel
-        loses the selected originals from panel memory; continuing requires reselecting matching
-        originals.
+        Chrome session storage holds the imported conversation turns, review text, entered evidence,
+        job status, provider bindings, and file metadata: name, MIME type, size, and a SHA-256 value
+        used to match originals. Raw file bytes are not stored in review history. They are processed
+        temporarily in the open panel's memory and in the destination website's upload flow. Closing
+        or reloading the panel loses the selected originals from panel memory; continuing requires
+        reselecting matching originals.
       </p>
       <p>
         Disabling, reloading, or updating the extension, or restarting the browser, clears its
@@ -85,6 +86,13 @@
         analytics endpoint, advertising tracker, or telemetry service. The extension does not sell
         your data or use it for advertising, unrelated profiling, creditworthiness, or lending
         decisions.
+      </p>
+      <p>
+        CrossCheck's use and transfer of user data adhere to the
+        <a href="https://developer.chrome.com/docs/webstore/program-policies/limited-use"
+          >Chrome Web Store User Data Policy</a
+        >, including its Limited Use requirements. Transfers to the AI services you select are
+        limited to providing the review workflow disclosed here and in the extension.
       </p>
       <p>
         Uploading a selected file already shares it with that AI service, even if a later message
@@ -123,8 +131,9 @@
         <p>지원·개인정보 문의: <a href="mailto:bany981111@gmail.com">bany981111@gmail.com</a></p>
         <h2>처리하는 정보와 공유 대상</h2>
         <p>
-          CrossCheck는 사용자가 선택한 AI 대화의 질문과 완료된 답변을 읽습니다. 사용자가 검토를
-          시작하면 선택한 질문·답변·검토 프롬프트·직접 입력한 근거·선택한 원본 파일을 참여
+          CrossCheck는 사용자가 선택한 AI 대화 페이지에 불러온 여러 턴의 질문과 완료된 답변을
+          읽습니다. 패널에서 불러온 범위와 각 질문·답변을 확인할 수 있습니다. 사용자가 검토를
+          시작하면 이 대화 맥락·검토 프롬프트·직접 입력한 근거·선택한 원본 파일을 참여
           서비스(OpenAI/ChatGPT, Anthropic/Claude, Google/Gemini)에 보냅니다. 최종 종합 요청은 원래
           메인 대화로 돌아갑니다. 정확한 전송을 위해 입력란·모델 메뉴 상태와 탭·문서·대화 참조도
           처리합니다.
@@ -134,12 +143,19 @@
           일반 로그인 세션을 사용합니다. 개발자 서버·분석·광고·텔레메트리 전송은 없으며 데이터를
           판매하거나 광고·관련 없는 프로파일링·신용 평가·대출 판단에 사용하지 않습니다.
         </p>
+        <p>
+          CrossCheck의 사용자 데이터 사용 및 전송은 제한적 사용(Limited Use) 요건을 포함한
+          <a href="https://developer.chrome.com/docs/webstore/program-policies/limited-use"
+            >Chrome 웹 스토어 사용자 데이터 정책</a
+          >을 준수합니다. 선택한 AI 서비스로의 전송은 이 방침과 확장 화면에 고지한 검토 기능을
+          제공하는 데 한정됩니다.
+        </p>
         <h2>저장·보관·삭제</h2>
         <p>
-          Chrome 세션 저장소에 검토 문장·근거·작업 상태·연결 참조와 파일 이름·형식·크기·원본 일치
-          확인용 SHA-256 값을 저장합니다. 파일 원본은 검토 기록에 저장하지 않고 열린 패널의 메모리와
-          대상 사이트의 업로드 과정에서 일시적으로 처리합니다. 패널을 다시 열어 계속하려면 같은
-          원본을 다시 선택해야 합니다.
+          Chrome 세션 저장소에 불러온 대화 맥락·검토 문장·근거·작업 상태·연결 참조와 파일
+          이름·형식·크기·원본 일치 확인용 SHA-256 값을 저장합니다. 파일 원본은 검토 기록에 저장하지
+          않고 열린 패널의 메모리와 대상 사이트의 업로드 과정에서 일시적으로 처리합니다. 패널을 다시
+          열어 계속하려면 같은 원본을 다시 선택해야 합니다.
         </p>
         <p>
           확장 비활성화·새로고침·업데이트·브라우저 재시작 시 세션 기록과 연결이 지워집니다. 필요한

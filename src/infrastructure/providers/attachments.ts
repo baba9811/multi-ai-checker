@@ -42,6 +42,18 @@ function expectedName(provider: ProviderId, file: AttachmentPayload) {
     ? file.name.replace(/\.[^.]+$/, '')
     : file.name;
 }
+function chatgptNameMatches(original: string, displayed: string) {
+  if (original === displayed) return true;
+  const dot = original.lastIndexOf('.');
+  const stem = dot > 0 ? original.slice(0, dot) : original;
+  const extension = dot > 0 ? original.slice(dot) : '';
+  // ChatGPT adds a duplicate counter before the extension; retain the entire original stem.
+  return (
+    displayed.startsWith(stem) &&
+    displayed.endsWith(extension) &&
+    /^\([1-9]\d*\)$/.test(displayed.slice(stem.length, displayed.length - extension.length))
+  );
+}
 function uploadFailed(root: Element) {
   if (
     [
@@ -74,7 +86,11 @@ export function attachmentsReady(
         : tile.getAttribute('aria-label')
       )?.replace(/^(Remove |close )/, ''),
     )
-    .filter(Boolean);
+    .filter((name): name is string => !!name);
+  const nameMatches =
+    provider === 'chatgpt'
+      ? names.map((name) => files.filter((file) => chatgptNameMatches(file.name, name)))
+      : [];
   const imageCount =
     provider === 'gemini'
       ? current.filter((tile) => {
@@ -89,9 +105,13 @@ export function attachmentsReady(
     current.length === files.length &&
     (provider !== 'gemini' ||
       imageCount === files.filter((file) => file.type.startsWith('image/')).length) &&
-    files
-      .filter((file) => provider !== 'gemini' || !file.type.startsWith('image/'))
-      .every((file) => names.includes(expectedName(provider, file))) &&
+    (provider === 'chatgpt'
+      ? nameMatches.length === files.length &&
+        nameMatches.every((matches) => matches.length === 1) &&
+        new Set(nameMatches.map(([file]) => file)).size === files.length
+      : files
+          .filter((file) => provider !== 'gemini' || !file.type.startsWith('image/'))
+          .every((file) => names.includes(expectedName(provider, file)))) &&
     ![
       ...root.querySelectorAll('[role="progressbar"], progress, [aria-busy="true"], .animate-spin'),
     ].some(visible)
@@ -156,7 +176,13 @@ function supported(input: HTMLInputElement, file: File) {
     )
   );
 }
-async function inputFor(provider: ProviderId, files: File[], valid: () => boolean) {
+async function inputFor(
+  provider: ProviderId,
+  editor: HTMLElement,
+  files: File[],
+  valid: () => boolean,
+) {
+  const root = provider === 'chatgpt' ? region(provider, editor) : document;
   const selector =
     provider === 'chatgpt'
       ? 'input[type="file"][aria-label="Attach files"]'
@@ -176,9 +202,9 @@ async function inputFor(provider: ProviderId, files: File[], valid: () => boolea
     buttons[0]!.click();
   }
   const deadline = Date.now() + 5000;
-  while (!document.querySelector(selector) && valid() && Date.now() < deadline)
+  while (!root?.querySelector(selector) && valid() && Date.now() < deadline)
     await new Promise((resolve) => setTimeout(resolve, 100));
-  const inputs = [...document.querySelectorAll<HTMLInputElement>(selector)];
+  const inputs = [...(root?.querySelectorAll<HTMLInputElement>(selector) ?? [])];
   if (inputs.length !== 1 || inputs[0]!.disabled)
     throw new Error('파일 업로드 입력란을 찾지 못했습니다. AI 탭에서 확인해주세요.');
   if (files.some((file) => !supported(inputs[0]!, file)))
@@ -221,7 +247,7 @@ export async function uploadAttachments(
       : [files];
   const uploaded: AttachmentPayload[] = [];
   for (const group of groups) {
-    const input = await inputFor(provider, group, valid);
+    const input = await inputFor(provider, editor, group, valid);
     if (!valid()) throw new Error('첨부파일 업로드를 중단했습니다.');
     const transfer = new DataTransfer();
     group.forEach((file) => transfer.items.add(file));
@@ -253,9 +279,10 @@ export async function uploadAttachments(
         '첨부파일 업로드 완료를 확인하지 못했습니다. 질문은 보내지 않았습니다. AI 탭의 파일 상태를 확인해주세요.',
       );
   }
-  // Gemini images have no filename label. Keep the exact confirmed chips and image sources.
+  // Preserve the confirmed display labels as well as exact chips and Gemini image sources.
   const receipt = tiles(provider, editor).map((tile) => ({
     tile,
+    label: tile.getAttribute('aria-label'),
     image: tile.closest('mat-basic-chip')?.querySelector('img')?.getAttribute('src'),
   }));
   return () =>
@@ -263,6 +290,7 @@ export async function uploadAttachments(
     tiles(provider, editor).every(
       (tile, index) =>
         tile === receipt[index]?.tile &&
+        tile.getAttribute('aria-label') === receipt[index]?.label &&
         tile.closest('mat-basic-chip')?.querySelector('img')?.getAttribute('src') ===
           receipt[index]?.image,
     );

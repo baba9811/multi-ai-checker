@@ -43,6 +43,242 @@ async function setup(page: Page, provider: ProviderId, html = providerPage(provi
   expect(response.ok).toBe(true);
   return response.data as { documentId: string; url: string };
 }
+
+async function quillParagraphs(page: Page, inlineBreak = false) {
+  const target = await setup(page, 'gemini');
+  await page.evaluate((inlineBreak) => {
+    const editor = document.querySelector<HTMLElement>('.ql-editor')!;
+    const edit = document.execCommand.bind(document);
+    document.execCommand = (command, showUI, value) => {
+      const result = edit(command, showUI, value);
+      if (command !== 'insertText') return result;
+      // Native multi-line insertion emits one input event per line; model the site's final value.
+      const lines = value!.split('\n');
+      editor.replaceChildren(
+        ...lines.map((line) => {
+          const paragraph = document.createElement('p');
+          if (line) paragraph.textContent = line;
+          else paragraph.append(document.createElement('br'));
+          return paragraph;
+        }),
+      );
+      if (inlineBreak) {
+        const code = editor.children[2]!;
+        const line = editor.children[3]!;
+        code.append(document.createElement('br'), ...line.childNodes);
+        line.remove();
+      }
+      return result;
+    };
+    document.getElementById('send')!.onclick = () => {
+      // The synthetic service consumes Quill's paragraph value, not its display spacing.
+      const text = [...editor.children]
+        .map((paragraph) =>
+          paragraph.childNodes.length === 1 && paragraph.firstChild instanceof HTMLBRElement
+            ? ''
+            : [...paragraph.childNodes]
+                .map((node) => (node instanceof HTMLBRElement ? '\n' : node.textContent))
+                .join(''),
+        )
+        .join('\n');
+      (window as any).fixtureSent.push(text);
+      (window as any).user(text);
+      editor.replaceChildren();
+      (window as any).assistant('새로운 gemini 검증 답변');
+    };
+  }, inlineBreak);
+  return target;
+}
+const paragraphPrompt = '한국어 질문\n\n코드:\n    const  value = 1;\n\n끝';
+
+for (const question of ['matching', 'mismatched', 'duplicate']) {
+  test(`Gemini question labels preserve the ${question} actual question boundary`, async ({
+    page,
+  }) => {
+    const target = await quillParagraphs(page);
+    await page.evaluate((question) => {
+      const state = window as any;
+      const decorate = (query: Element, text: string) => {
+        const label = document.createElement('h5');
+        label.className = 'cdk-visually-hidden screen-reader-user-query-label';
+        label.style.cssText = 'position:absolute;width:1px;height:1px;clip-path:inset(50%)';
+        label.textContent = `말씀하신 내용 ${text.slice(0, 20)}`;
+        query.replaceChildren(
+          label,
+          ...text.split('\n').map((line) => {
+            const paragraph = document.createElement('p');
+            paragraph.className = 'query-text-line';
+            paragraph.textContent = line;
+            return paragraph;
+          }),
+        );
+      };
+      document
+        .querySelectorAll('.query-text')
+        .forEach((query) => decorate(query, query.textContent!));
+      const user = state.user;
+      state.user = (text: string) => {
+        user(text);
+        const query = [...document.querySelectorAll('.query-text')].at(-1)!;
+        decorate(query, question === 'mismatched' ? `${text} changed` : text);
+        if (question === 'duplicate') user(text);
+      };
+      const assistant = state.assistant;
+      state.assistant = (text: string) => {
+        assistant(text);
+        const heading = document.createElement('h5');
+        heading.textContent = text;
+        [...document.querySelectorAll('.model-response-text')].at(-1)!.replaceChildren(heading);
+      };
+    }, question);
+    await command(page, { type: 'send', id: 'query-label', ...target, prompt: paragraphPrompt });
+    await expect
+      .poll(async () => {
+        const result = (await command(page, { type: 'poll', id: 'query-label' })).data;
+        return result.status === 'error' && question === 'matching' ? result.error : result.status;
+      })
+      .toBe(question === 'matching' ? 'done' : 'error');
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([paragraphPrompt]);
+    if (question === 'matching') {
+      expect((await command(page, { type: 'poll', id: 'query-label' })).data.answer).toBe(
+        '새로운 gemini 검증 답변',
+      );
+      const snapshot = (await command(page, { type: 'snapshot' })).data;
+      expect(snapshot.lastQuestion).toBe(paragraphPrompt);
+      expect(snapshot.context.turns.map((turn: { question: string }) => turn.question)).toEqual([
+        '기존 질문',
+        paragraphPrompt,
+      ]);
+    } else
+      expect((await command(page, { type: 'poll', id: 'query-label' })).data.error).toContain(
+        '대화 내용이 바뀌어',
+      );
+  });
+}
+
+for (const inlineBreak of [false, true]) {
+  test(`Gemini Quill paragraphs preserve blank lines, Korean and code spacing through collection (inline BR: ${inlineBreak})`, async ({
+    page,
+  }) => {
+    const target = await quillParagraphs(page, inlineBreak);
+    await command(page, { type: 'send', id: 'quill', ...target, prompt: paragraphPrompt });
+    await expect
+      .poll(async () => {
+        const result = (await command(page, { type: 'poll', id: 'quill' })).data;
+        return result.status === 'error' ? result.error : result.status;
+      })
+      .toBe('done');
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([paragraphPrompt]);
+  });
+}
+
+test('Claude waits for a delayed enabled send control, sends once and collects completion', async ({
+  page,
+}) => {
+  const target = await setup(page, 'claude');
+  await page.evaluate(() => {
+    const button = document.querySelector<HTMLButtonElement>('#send')!;
+    button.disabled = true;
+    document.querySelector('[contenteditable]')!.addEventListener('input', () => {
+      setTimeout(() => (button.disabled = false), 700);
+    });
+  });
+  await command(page, {
+    type: 'send',
+    id: 'delayed-ready',
+    ...target,
+    prompt: 'Delayed readiness',
+  });
+  await expect
+    .poll(async () => {
+      const result = (await command(page, { type: 'poll', id: 'delayed-ready' })).data;
+      return result.status === 'error' ? result.error : result.status;
+    })
+    .toBe('done');
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual(['Delayed readiness']);
+});
+
+for (const edit of ['text', 'newline', 'spacing']) {
+  test(`Gemini Quill refuses a concurrent ${edit} edit while waiting for send readiness`, async ({
+    page,
+  }) => {
+    const target = await quillParagraphs(page);
+    await page.clock.install({ time: 0 });
+    await page.clock.pauseAt(1000);
+    await page.evaluate((edit) => {
+      const editor = document.querySelector<HTMLElement>('.ql-editor')!;
+      const button = document.querySelector<HTMLButtonElement>('#send')!;
+      button.disabled = true;
+      editor.addEventListener(
+        'input',
+        () => {
+          setTimeout(() => {
+            if (edit === 'newline') editor.children[1]!.remove();
+            else if (edit === 'spacing') editor.children[3]!.textContent = '    const value = 1;';
+            else editor.children[0]!.textContent = '사용자 변경';
+            button.disabled = false;
+          }, 700);
+        },
+        { once: true },
+      );
+    }, edit);
+    await command(page, { type: 'send', id: 'edited-quill', ...target, prompt: paragraphPrompt });
+    await page.clock.runFor(3000);
+    const result = (await command(page, { type: 'poll', id: 'edited-quill' })).data;
+    expect(result.status).toBe('error');
+    expect(result.error).toContain('입력 내용이 달라져');
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  });
+}
+
+for (const unsafe of [
+  'missing',
+  'disabled',
+  'aria-disabled',
+  'duplicate-button',
+  'duplicate-editor',
+  'changed-editor',
+  'busy',
+  'files',
+  'cancel',
+  'changed-url',
+]) {
+  test(`send readiness refuses ${unsafe} without clicking`, async ({ page }) => {
+    const target = await setupUpload(page, 'claude');
+    await page.clock.install({ time: 0 });
+    await page.clock.pauseAt(1000);
+    await page.evaluate((unsafe) => {
+      const editor = document.querySelector<HTMLElement>('[contenteditable]')!;
+      const button = document.querySelector<HTMLButtonElement>('#send')!;
+      button.disabled = true;
+      editor.addEventListener('input', () => {
+        setTimeout(() => {
+          button.disabled = unsafe === 'disabled';
+          if (unsafe === 'missing') button.remove();
+          if (unsafe === 'aria-disabled') button.setAttribute('aria-disabled', 'true');
+          if (unsafe === 'duplicate-button') button.after(button.cloneNode(true));
+          if (unsafe === 'duplicate-editor') editor.after(editor.cloneNode(true));
+          if (unsafe === 'changed-editor') editor.replaceWith(editor.cloneNode(true));
+          if (unsafe === 'busy') {
+            const stop = document.createElement('button');
+            stop.setAttribute('aria-label', 'Stop response');
+            stop.textContent = 'Stop';
+            document.body.append(stop);
+          }
+          if (unsafe === 'files') (window as any).fixtureExistingFile();
+          if (unsafe === 'changed-url') history.pushState({}, '', '/chat/changed');
+        }, 700);
+      });
+    }, unsafe);
+    await command(page, { type: 'send', id: 'unsafe-ready', ...target, prompt: 'Readiness guard' });
+    await page.clock.runFor(450);
+    if (unsafe === 'cancel') await command(page, { type: 'cancel', id: 'unsafe-ready' });
+    await page.clock.runFor(3000);
+    expect((await command(page, { type: 'poll', id: 'unsafe-ready' })).data.status).toBe('error');
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  });
+}
+
 for (const provider of providerIds) {
   test(`${provider} DOM contract: actual built bridge edits, sends once and collects a new completed response`, async ({
     page,
@@ -176,7 +412,10 @@ async function setupUpload(
             remove.setAttribute('aria-label', `close ${stem}`);
           }
         } else {
-          remove.setAttribute('aria-label', `Remove ${file.name}`);
+          remove.setAttribute(
+            'aria-label',
+            `Remove ${state.fixtureDisplayNames?.[file.name] ?? file.name}`,
+          );
           if (provider === 'claude') remove.setAttribute('data-cds-attachment-remove', '');
         }
         content.append(remove);
@@ -269,6 +508,47 @@ async function setupUpload(
     { provider, mode, imageBase64: uploadImage.toString('base64') },
   );
   return target;
+}
+
+for (const inputs of ['own-and-other', 'ambiguous-own', 'only-other'] as const) {
+  test(`ChatGPT file input lookup stays in the composer form (${inputs})`, async ({ page }) => {
+    const target = await setupUpload(page, 'chatgpt');
+    await page.evaluate((inputs) => {
+      const own = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+      const active = own.closest('form')!;
+      const other = document.createElement('form');
+      active.before(other);
+      const extra = own.cloneNode() as HTMLInputElement;
+      own.hidden = extra.hidden = true; // File inputs need not be visually exposed.
+      extra.onchange = () => {
+        (window as any).fixtureOtherUploaderUsed = true;
+      };
+      if (inputs === 'ambiguous-own') active.append(extra);
+      else if (inputs === 'only-other') {
+        other.append(own);
+        own.addEventListener('change', extra.onchange);
+      } else other.append(extra);
+    }, inputs);
+    await command(page, {
+      type: 'send',
+      id: 'form-input',
+      ...target,
+      prompt: 'Review originals in this form',
+      attachments: uploadOriginals,
+    });
+    await expect
+      .poll(async () => (await command(page, { type: 'poll', id: 'form-input' })).data?.status, {
+        timeout: 10000,
+      })
+      .toBe(inputs === 'own-and-other' ? 'done' : 'error');
+    expect(await page.evaluate(() => (window as any).fixtureOtherUploaderUsed)).toBeUndefined();
+    expect(await page.evaluate(() => (window as any).fixtureUploads.flat())).toEqual(
+      inputs === 'own-and-other' ? uploadOriginals.map(({ sha256: _, ...file }) => file) : [],
+    );
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual(
+      inputs === 'own-and-other' ? ['Review originals in this form'] : [],
+    );
+  });
 }
 
 test('Gemini selects the direct document input and ignores its nested legacy file chooser', async ({
@@ -706,3 +986,327 @@ test('new-conversation navigation is accepted once and subsequent conversation c
     .toBe('error');
   expect((await command(page, { type: 'poll', id: 'next' })).data.error).toContain('대화가 변경');
 });
+for (const provider of providerIds) {
+  test(`${provider} captures ordered complete multi-turn context and rejects incomplete sequence`, async ({
+    page,
+  }) => {
+    await setup(page, provider);
+    await page.evaluate(() => {
+      (window as any).user('두 번째 질문');
+      (window as any).assistant('두 번째 답변');
+    });
+    const context = (await command(page, { type: 'snapshot' })).data.context;
+    expect(context.turns).toEqual([
+      { question: '기존 질문', answer: '과거 답변 — 새 답변으로 수집하면 안 됨' },
+      { question: '두 번째 질문', answer: '두 번째 답변' },
+    ]);
+    await page.evaluate(() => (window as any).user('미완료 질문'));
+    expect((await command(page, { type: 'snapshot' })).data.context.error).toBeTruthy();
+  });
+}
+test('ChatGPT refuses detectable unloaded history by observed fallback turn index', async ({
+  page,
+}) => {
+  await setup(page, 'chatgpt', redesignedChatgptPage());
+  await page
+    .locator('[data-chatgpt-search-message-ids]')
+    .first()
+    .evaluate((element) =>
+      element.setAttribute('data-chatgpt-search-unit-key', 'fallback-turn-2:0:user'),
+    );
+  expect((await command(page, { type: 'snapshot' })).data.context.error).toContain('이전 대화');
+});
+test('ChatGPT captures fully represented keyed history without inventing unrelated turns', async ({
+  page,
+}) => {
+  await setup(page, 'chatgpt', redesignedChatgptPage());
+  await page.evaluate(() => {
+    document
+      .querySelectorAll('[data-chatgpt-search-message-ids]')
+      .forEach((element, index) =>
+        element.setAttribute(
+          'data-chatgpt-search-unit-key',
+          `fallback-turn-0:${index ? 2 : 0}:${index ? 'assistant' : 'user'}`,
+        ),
+      );
+    const unrelated = document.createElement('aside');
+    unrelated.setAttribute('data-chatgpt-search-unit-key', 'fallback-turn-99:0:user');
+    document.body.append(unrelated);
+    const tool = document.createElement('div');
+    tool.setAttribute('data-chatgpt-search-unit-key', 'fallback-turn-0:1:tool');
+    document.querySelector('section')!.append(tool);
+  });
+  const context = (await command(page, { type: 'snapshot' })).data.context;
+  expect(context.error).toBeUndefined();
+  expect(context.turns).toEqual([{ question: '안녕', answer: '안녕하세요. 무엇을 도와드릴까요?' }]);
+});
+
+for (const omitted of ['hidden', 'inert', 'aria-hidden']) {
+  for (const position of ['earlier', 'later']) {
+    test(`ChatGPT rejects ${omitted} ${position} keyed history retained in the DOM`, async ({
+      page,
+    }) => {
+      await setup(page, 'chatgpt', redesignedChatgptPage());
+      await page.evaluate(
+        ({ omitted, position }) => {
+          const thread = document.querySelector('section')!;
+          const old = [...thread.children];
+          const later = old.map((element) => element.cloneNode(true) as HTMLElement);
+          later.forEach((element) => thread.append(element));
+          [...thread.querySelectorAll('[data-chatgpt-search-message-ids]')].forEach(
+            (element, index) =>
+              element.setAttribute(
+                'data-chatgpt-search-unit-key',
+                `fallback-turn-${Math.floor(index / 2)}:${index % 2 ? 2 : 0}:${index % 2 ? 'assistant' : 'user'}`,
+              ),
+          );
+          (position === 'earlier' ? old : later).forEach((element) =>
+            element.setAttribute(omitted, omitted === 'aria-hidden' ? 'true' : ''),
+          );
+        },
+        { omitted, position },
+      );
+      expect((await command(page, { type: 'snapshot' })).data.context.error).toContain('이전 대화');
+    });
+  }
+}
+
+async function claudeSiblingToolbar(page: Page) {
+  const target = await setup(page, 'claude');
+  await page.evaluate(() => {
+    const state = window as any;
+    const move = () => {
+      const stream = document.querySelector('[data-is-streaming]:last-child')!;
+      const turn = document.createElement('div');
+      turn.setAttribute('role', 'article');
+      turn.dataset.testid = 'transcript-row';
+      stream.replaceWith(turn);
+      turn.append(stream);
+      const copy = stream.querySelector('button')!;
+      copy.dataset.testid = 'action-bar-copy';
+      turn.append(copy);
+    };
+    move();
+    const assistant = state.assistant;
+    state.assistant = (text: string, complete = true) => {
+      assistant(text, complete);
+      if (complete) move();
+    };
+  });
+  return target;
+}
+test('Claude collects completion from its sibling toolbar inside an isolated article turn', async ({
+  page,
+}) => {
+  const target = await claudeSiblingToolbar(page);
+  expect((await command(page, { type: 'snapshot' })).data.lastAnswer).toContain('과거 답변');
+  await command(page, {
+    type: 'send',
+    id: 'sibling-toolbar',
+    ...target,
+    prompt: 'New synthetic question',
+  });
+  await expect
+    .poll(async () => (await command(page, { type: 'poll', id: 'sibling-toolbar' })).data.status)
+    .toBe('done');
+  expect((await command(page, { type: 'poll', id: 'sibling-toolbar' })).data.answer).toBe(
+    '새로운 claude 검증 답변',
+  );
+});
+for (const unsafe of ['previous-turn', 'multiple-replies', 'hidden-replies', 'streaming']) {
+  test(`Claude sibling toolbar rejects ${unsafe} completion`, async ({ page }) => {
+    await claudeSiblingToolbar(page);
+    await page.evaluate((unsafe) => {
+      const turn = document.querySelector('[role="article"]')!;
+      const stream = turn.querySelector('[data-is-streaming]')!;
+      if (unsafe === 'streaming') stream.setAttribute('data-is-streaming', 'true');
+      if (unsafe === 'multiple-replies' || unsafe === 'hidden-replies') {
+        const additional = stream
+          .querySelector('.font-claude-response')!
+          .cloneNode(true) as HTMLElement;
+        additional.hidden = unsafe === 'hidden-replies';
+        stream.append(additional);
+      }
+      if (unsafe === 'previous-turn') {
+        const later = turn.cloneNode(true) as HTMLElement;
+        later.querySelector('button')!.remove();
+        document.getElementById('messages')!.append(later);
+      }
+    }, unsafe);
+    expect((await command(page, { type: 'snapshot' })).data.lastAnswer).toBe('');
+  });
+}
+
+test('ChatGPT accepts unambiguous duplicate counters while uploading unchanged originals', async ({
+  page,
+}) => {
+  // Control the bridge collector interval from its creation, before navigation/injection.
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  const target = await setupUpload(page, 'chatgpt', 'hold');
+  await page.evaluate(() => {
+    (window as any).fixtureDisplayNames = {
+      'facts.txt': 'facts(1).txt',
+      'diagram.gif': 'diagram(1).gif',
+    };
+  });
+  await command(page, {
+    type: 'send',
+    id: 'renamed',
+    ...target,
+    prompt: 'Review selected originals',
+    attachments: uploadOriginals,
+  });
+  await expect(page.getByRole('progressbar')).toBeVisible();
+  await page.evaluate(() => (window as any).fixtureFinishUploads());
+  await page.clock.runFor(6000);
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([
+    'Review selected originals',
+  ]);
+  expect((await command(page, { type: 'poll', id: 'renamed' })).data.status).toBe('done');
+  expect(await page.evaluate(() => (window as any).fixtureUploads.flat())).toEqual(
+    uploadOriginals.map(({ sha256: _, ...file }) => file),
+  );
+});
+
+for (const names of [
+  ['facts(01).txt', 'diagram(1).gif'],
+  ['facts (1).txt', 'diagram(1).gif'],
+  ['facts(1).csv', 'diagram(1).gif'],
+  ['other(1).txt', 'diagram(1).gif'],
+  ['facts(1).txt', 'facts(2).txt'],
+  ['facts(1).txt'],
+  ['facts(1).txt', 'diagram(1).gif', 'extra.txt'],
+]) {
+  test(`ChatGPT rejects missing, extra or unmatched display names ${JSON.stringify(names)}`, async ({
+    page,
+  }) => {
+    const target = await setupUpload(page, 'chatgpt', 'hold');
+    await page.clock.install();
+    await page.clock.pauseAt(new Date(Date.now() + 1000));
+    await command(page, {
+      type: 'send',
+      id: 'bad-names',
+      ...target,
+      prompt: 'Must not send',
+      attachments: uploadOriginals,
+    });
+    await expect(page.getByRole('progressbar')).toBeVisible();
+    await page.evaluate((names) => {
+      const root = document.querySelector('[data-composer-attachments]')!;
+      root.querySelectorAll('button').forEach((button) => button.remove());
+      names.forEach((name) => {
+        const button = document.createElement('button');
+        button.setAttribute('aria-label', `Remove ${name}`);
+        root.append(button);
+      });
+      (window as any).fixtureFinishUploads();
+    }, names);
+    await page.clock.runFor(2500);
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+    expect((await command(page, { type: 'poll', id: 'bad-names' })).data.status).toBe('pending');
+    await command(page, { type: 'cancel', id: 'bad-names' });
+  });
+}
+
+test('ChatGPT rejects a counter colliding with another original filename', async ({ page }) => {
+  const target = await setupUpload(page, 'chatgpt', 'hold');
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  await page.evaluate(() => {
+    (window as any).fixtureDisplayNames = {
+      'facts.txt': 'facts(1).txt',
+      'facts(1).txt': 'facts(2).txt',
+    };
+  });
+  await command(page, {
+    type: 'send',
+    id: 'collision',
+    ...target,
+    prompt: 'Must not send',
+    attachments: [uploadOriginals[0]!, { ...uploadOriginals[0]!, name: 'facts(1).txt' }],
+  });
+  await expect(page.getByRole('progressbar')).toBeVisible();
+  await page.evaluate(() => (window as any).fixtureFinishUploads());
+  await page.clock.runFor(2500);
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  expect((await command(page, { type: 'poll', id: 'collision' })).data.status).toBe('pending');
+  await command(page, { type: 'cancel', id: 'collision' });
+});
+
+test('ChatGPT rejects the same attachment tile when its confirmed counter changes', async ({
+  page,
+}) => {
+  const target = await setupUpload(page, 'chatgpt', 'hold');
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  await page.evaluate(() => {
+    (window as any).fixtureDisplayNames = { 'facts.txt': 'facts(1).txt' };
+    document.querySelector('textarea,[contenteditable]')!.addEventListener(
+      'input',
+      () => {
+        document
+          .querySelector('[data-composer-attachments] button')!
+          .setAttribute('aria-label', 'Remove facts(2).txt');
+      },
+      { once: true },
+    );
+  });
+  await command(page, {
+    type: 'send',
+    id: 'counter-changed',
+    ...target,
+    prompt: 'Must not send',
+    attachments: [uploadOriginals[0]!],
+  });
+  await expect(page.getByRole('progressbar')).toBeVisible();
+  await page.evaluate(() => (window as any).fixtureFinishUploads());
+  await page.clock.runFor(2500);
+  expect((await command(page, { type: 'poll', id: 'counter-changed' })).data.status).toBe('error');
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+for (const completion of ['complete', 'hidden-copy', 'previous-turn', 'streaming'] as const) {
+  test(`Gemini Korean Copy completion stays scoped to the ${completion} response`, async ({
+    page,
+  }) => {
+    await page.clock.install();
+    await page.clock.pauseAt(new Date(Date.now() + 1000));
+    const target = await setup(page, 'gemini');
+    await page.evaluate((completion) => {
+      const state = window as any;
+      const append = state.assistant;
+      state.assistant = (text: string, complete: boolean) => {
+        append(text, complete);
+        const response = document.querySelector('model-response:last-child')!;
+        const body = response.querySelector('.model-response-text')!;
+        const nested = document.createElement('message-content');
+        nested.append(...body.childNodes);
+        body.append(nested);
+        const copy = response.querySelector('button')!;
+        copy.removeAttribute('data-test-id');
+        copy.removeAttribute('data-testid');
+        copy.setAttribute('aria-label', '복사');
+        if (completion === 'hidden-copy') copy.hidden = true;
+        if (completion === 'previous-turn') document.querySelector('model-response')!.append(copy);
+        if (completion === 'streaming') {
+          const stop = document.createElement('button');
+          stop.setAttribute('aria-label', 'Stop response');
+          document.body.append(stop);
+        }
+      };
+    }, completion);
+    await command(page, { type: 'send', id: 'korean-copy', ...target, prompt: '완료 확인' });
+    await page.clock.runFor(6000);
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual(['완료 확인']);
+    const progress = (await command(page, { type: 'poll', id: 'korean-copy' })).data;
+    expect(progress.status).toBe(completion === 'complete' ? 'done' : 'pending');
+    if (completion === 'complete') {
+      expect(progress.answer).toBe('새로운 gemini 검증 답변');
+      expect((await command(page, { type: 'snapshot' })).data.context.turns.at(-1)).toEqual({
+        question: '완료 확인',
+        answer: '새로운 gemini 검증 답변',
+      });
+    } else await command(page, { type: 'cancel', id: 'korean-copy' });
+  });
+}

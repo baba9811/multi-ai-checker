@@ -1,4 +1,4 @@
-import { LIMITS, Run, type Job, type Stage } from './model';
+import { LIMITS, Run, type Job, type Stage, type ConversationContext } from './model';
 import type { ProviderId } from '../providers/model';
 import type { Attachment } from '../attachments/model';
 
@@ -44,7 +44,7 @@ export function promptFor(run: Run, stage: Stage, reviewer?: ProviderId) {
       user_checked_evidence: run.evidence,
     };
   }
-  const prompt = `${guard}\n\n${task}\n\n검토 데이터(JSON):\n${JSON.stringify({ ...data, selected_attachments: run.attachments.map(({ name, type, size }) => ({ name, type, size })) }, null, 2)}`;
+  const prompt = `${guard}\n\n${task}\n\n검토 데이터(JSON):\n${JSON.stringify({ ...data, conversation_context: run.context, selected_attachments: run.attachments.map(({ name, type, size }) => ({ name, type, size })) }, null, 2)}`;
   if (prompt.length > LIMITS.prompt)
     throw new Error('검토 자료가 너무 깁니다. 답변 또는 근거를 줄여주세요.');
   return prompt;
@@ -74,6 +74,7 @@ export function createRun(
   chair: ProviderId,
   mode: Run['mode'],
   attachments: Attachment[] = [],
+  context?: ConversationContext,
 ): Run {
   if (new Set(selected).size !== selected.length || !selected.includes(chair))
     throw new Error('서로 다른 AI 2개 이상과 참여 중인 종합 AI를 선택하세요.');
@@ -89,6 +90,7 @@ export function createRun(
     jobs: [],
     evidence: [],
     attachments,
+    context,
   });
   return { ...run, jobs: jobsFor(run, 'collect') };
 }
@@ -127,5 +129,5 @@ export function recoverRun(value: unknown): Run | undefined {
   };
 }
 export function markdown(run: Run) {
-  return `# CrossCheck 기록\n\n${run.createdAt}\n\n> AI 간 합의는 사실 확인이 아닙니다. 출처와 미확인 주장을 검토하세요.\n\n## 질문\n${run.question}\n\n${run.jobs.map((j) => `## ${j.stage} · ${j.provider} · ${j.status}\n${j.answer || j.error || '답변 없음'}`).join('\n\n')}\n\n## 사용자가 확인한 근거\n${run.evidence.map((e) => `- ${e.url}\n  주장: ${e.claim}\n  발췌: ${e.excerpt}\n  판단: ${e.verdict}`).join('\n')}`;
+  return `# CrossCheck 기록\n\n${run.createdAt}\n\n> AI 간 합의는 사실 확인이 아닙니다. 출처와 미확인 주장을 검토하세요.\n\n## 가져온 대화 (현재 화면에 불러온 범위)\n${run.context?.turns.map((turn, index) => `### ${index + 1}번째 질문\n${turn.question}\n\n### ${index + 1}번째 답변\n${turn.answer}`).join('\n\n') ?? '이전 기록: 대화 맥락 저장 없음'}\n\n## 질문\n${run.question}\n\n${run.jobs.map((j) => `## ${j.stage} · ${j.provider} · ${j.status}\n${j.answer || j.error || '답변 없음'}`).join('\n\n')}\n\n## 사용자가 확인한 근거\n${run.evidence.map((e) => `- ${e.url}\n  주장: ${e.claim}\n  발췌: ${e.excerpt}\n  판단: ${e.verdict}`).join('\n')}`;
 }

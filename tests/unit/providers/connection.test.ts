@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { providerForUrl } from '../../../src/domains/providers/model';
 import {
   connect,
   inspect,
@@ -22,7 +23,7 @@ const browser = {
     sendMessage: vi.fn(async (id: number) => ({
       ok: true,
       data: {
-        provider: 'chatgpt',
+        provider: providerForUrl((await browser.tabs.get(id)).url),
         documentId: 'doc',
         url: (await browser.tabs.get(id)).url,
         composer: false,
@@ -31,6 +32,7 @@ const browser = {
         truncated: false,
         lastQuestion: '',
         lastAnswer: '',
+        context: { scope: 'rendered' as const, turns: [] },
       },
     })),
   },
@@ -126,6 +128,7 @@ it.each([
       truncated: false,
       lastQuestion: '',
       lastAnswer: '',
+      context: { scope: 'rendered' as const, turns: [] },
     },
   });
   await expect(preparePeer('chatgpt', saved)).rejects.toThrow('다시 연결');
@@ -191,7 +194,7 @@ it('stops waiting after the loading deadline and gives a page-check recovery', a
   }));
   candidates = [tab(2, home)];
   const outcome = expect(connect('chatgpt')).rejects.toThrow('페이지가 아직 로딩 중');
-  await vi.advanceTimersByTimeAsync(20000);
+  await vi.advanceTimersByTimeAsync(45000);
   await outcome;
   expect(browser.scripting.executeScript).not.toHaveBeenCalled();
   expect(browser.tabs.create).not.toHaveBeenCalled();
@@ -201,5 +204,72 @@ it('does not select or open tabs if the click permission request is denied', asy
   browser.permissions.request.mockResolvedValueOnce(false);
   await expect(connect('chatgpt')).rejects.toThrow('연결 권한이 필요');
   expect(browser.tabs.query).not.toHaveBeenCalled();
+  expect(browser.tabs.create).not.toHaveBeenCalled();
+});
+
+it.each([false, true])(
+  'activates a %s existing blank peer before bridge attachment',
+  async (existing) => {
+    if (existing) candidates = [tab(2, home)];
+    const binding = await preparePeer('chatgpt');
+    expect(browser.tabs.update).toHaveBeenCalledWith(binding.tabId, { active: true });
+    expect(browser.windows.update).toHaveBeenCalledWith(4, { focused: true });
+    expect(browser.tabs.update.mock.invocationCallOrder[0]).toBeLessThan(
+      browser.scripting.executeScript.mock.invocationCallOrder[0]!,
+    );
+  },
+);
+
+for (const action of ['connect', 'refresh', 'prepare'] as const) {
+  it(`${action} waits for a tab that completes after 28 seconds`, async () => {
+    vi.useFakeTimers();
+    const started = Date.now();
+    const readyHome = 'https://gemini.google.com/app';
+    candidates = [tab(2, readyHome)];
+    browser.tabs.get.mockImplementation(async (id: number) => ({
+      ...tab(id, readyHome),
+      status: Date.now() - started < 28000 ? 'loading' : 'complete',
+    }));
+    const promise =
+      action === 'connect'
+        ? connect('gemini')
+        : action === 'prepare'
+          ? preparePeer('gemini')
+          : refreshConnection({ provider: 'gemini', tabId: 2, documentId: 'old', url: readyHome });
+    const outcome = promise.then(
+      (binding) => ({ binding }),
+      (error) => ({ error }),
+    );
+    await vi.advanceTimersByTimeAsync(28000);
+    expect(await outcome).toMatchObject({ binding: { tabId: 2, url: readyHome } });
+    expect(browser.tabs.create).not.toHaveBeenCalled();
+  });
+}
+
+it.each(['closed', 'login', 'loading'])('preparePeer fails closed for a %s tab', async (state) => {
+  vi.useFakeTimers();
+  candidates = [tab(2, home)];
+  browser.tabs.get.mockImplementation(async (id: number) => {
+    if (state === 'closed') throw new Error('No tab');
+    return {
+      ...tab(id, state === 'login' ? 'https://accounts.example.test/signin' : home),
+      status: state === 'loading' ? 'loading' : 'complete',
+    };
+  });
+  // Reveal observes the tab before the readiness loop sees it close.
+  if (state === 'closed') browser.tabs.get.mockImplementationOnce(getTab);
+  const outcome = preparePeer('chatgpt').then(
+    () => undefined,
+    (error: Error) => error.message,
+  );
+  await vi.advanceTimersByTimeAsync(45000);
+  expect(await outcome).toContain(
+    state === 'closed'
+      ? '연결 탭이 닫혔습니다'
+      : state === 'login'
+        ? '로그인 또는 페이지 전환'
+        : '페이지가 아직 로딩 중',
+  );
+  expect(browser.scripting.executeScript).not.toHaveBeenCalled();
   expect(browser.tabs.create).not.toHaveBeenCalled();
 });
