@@ -412,7 +412,10 @@ async function setupUpload(
             remove.setAttribute('aria-label', `close ${stem}`);
           }
         } else {
-          remove.setAttribute('aria-label', `Remove ${file.name}`);
+          remove.setAttribute(
+            'aria-label',
+            `Remove ${state.fixtureDisplayNames?.[file.name] ?? file.name}`,
+          );
           if (provider === 'claude') remove.setAttribute('data-cds-attachment-remove', '');
         }
         content.append(remove);
@@ -1059,3 +1062,132 @@ for (const unsafe of ['previous-turn', 'multiple-replies', 'hidden-replies', 'st
     expect((await command(page, { type: 'snapshot' })).data.lastAnswer).toBe('');
   });
 }
+
+test('ChatGPT accepts unambiguous duplicate counters while uploading unchanged originals', async ({
+  page,
+}) => {
+  // Control the bridge collector interval from its creation, before navigation/injection.
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  const target = await setupUpload(page, 'chatgpt', 'hold');
+  await page.evaluate(() => {
+    (window as any).fixtureDisplayNames = {
+      'facts.txt': 'facts(1).txt',
+      'diagram.gif': 'diagram(1).gif',
+    };
+  });
+  await command(page, {
+    type: 'send',
+    id: 'renamed',
+    ...target,
+    prompt: 'Review selected originals',
+    attachments: uploadOriginals,
+  });
+  await expect(page.getByRole('progressbar')).toBeVisible();
+  await page.evaluate(() => (window as any).fixtureFinishUploads());
+  await page.clock.runFor(6000);
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([
+    'Review selected originals',
+  ]);
+  expect((await command(page, { type: 'poll', id: 'renamed' })).data.status).toBe('done');
+  expect(await page.evaluate(() => (window as any).fixtureUploads.flat())).toEqual(
+    uploadOriginals.map(({ sha256: _, ...file }) => file),
+  );
+});
+
+for (const names of [
+  ['facts(01).txt', 'diagram(1).gif'],
+  ['facts (1).txt', 'diagram(1).gif'],
+  ['facts(1).csv', 'diagram(1).gif'],
+  ['other(1).txt', 'diagram(1).gif'],
+  ['facts(1).txt', 'facts(2).txt'],
+  ['facts(1).txt'],
+  ['facts(1).txt', 'diagram(1).gif', 'extra.txt'],
+]) {
+  test(`ChatGPT rejects missing, extra or unmatched display names ${JSON.stringify(names)}`, async ({
+    page,
+  }) => {
+    const target = await setupUpload(page, 'chatgpt', 'hold');
+    await page.clock.install();
+    await page.clock.pauseAt(new Date(Date.now() + 1000));
+    await command(page, {
+      type: 'send',
+      id: 'bad-names',
+      ...target,
+      prompt: 'Must not send',
+      attachments: uploadOriginals,
+    });
+    await expect(page.getByRole('progressbar')).toBeVisible();
+    await page.evaluate((names) => {
+      const root = document.querySelector('[data-composer-attachments]')!;
+      root.querySelectorAll('button').forEach((button) => button.remove());
+      names.forEach((name) => {
+        const button = document.createElement('button');
+        button.setAttribute('aria-label', `Remove ${name}`);
+        root.append(button);
+      });
+      (window as any).fixtureFinishUploads();
+    }, names);
+    await page.clock.runFor(2500);
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+    expect((await command(page, { type: 'poll', id: 'bad-names' })).data.status).toBe('pending');
+    await command(page, { type: 'cancel', id: 'bad-names' });
+  });
+}
+
+test('ChatGPT rejects a counter colliding with another original filename', async ({ page }) => {
+  const target = await setupUpload(page, 'chatgpt', 'hold');
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  await page.evaluate(() => {
+    (window as any).fixtureDisplayNames = {
+      'facts.txt': 'facts(1).txt',
+      'facts(1).txt': 'facts(2).txt',
+    };
+  });
+  await command(page, {
+    type: 'send',
+    id: 'collision',
+    ...target,
+    prompt: 'Must not send',
+    attachments: [uploadOriginals[0]!, { ...uploadOriginals[0]!, name: 'facts(1).txt' }],
+  });
+  await expect(page.getByRole('progressbar')).toBeVisible();
+  await page.evaluate(() => (window as any).fixtureFinishUploads());
+  await page.clock.runFor(2500);
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  expect((await command(page, { type: 'poll', id: 'collision' })).data.status).toBe('pending');
+  await command(page, { type: 'cancel', id: 'collision' });
+});
+
+test('ChatGPT rejects the same attachment tile when its confirmed counter changes', async ({
+  page,
+}) => {
+  const target = await setupUpload(page, 'chatgpt', 'hold');
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  await page.evaluate(() => {
+    (window as any).fixtureDisplayNames = { 'facts.txt': 'facts(1).txt' };
+    document.querySelector('textarea,[contenteditable]')!.addEventListener(
+      'input',
+      () => {
+        document
+          .querySelector('[data-composer-attachments] button')!
+          .setAttribute('aria-label', 'Remove facts(2).txt');
+      },
+      { once: true },
+    );
+  });
+  await command(page, {
+    type: 'send',
+    id: 'counter-changed',
+    ...target,
+    prompt: 'Must not send',
+    attachments: [uploadOriginals[0]!],
+  });
+  await expect(page.getByRole('progressbar')).toBeVisible();
+  await page.evaluate(() => (window as any).fixtureFinishUploads());
+  await page.clock.runFor(2500);
+  expect((await command(page, { type: 'poll', id: 'counter-changed' })).data.status).toBe('error');
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});

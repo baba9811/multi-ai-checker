@@ -40,7 +40,7 @@ export async function connect(provider: ProviderId): Promise<Binding> {
   return attach(provider, tab.id);
 }
 async function readyConnectionTab(provider: ProviderId, tabId: number) {
-  const deadline = Date.now() + 20000;
+  const deadline = Date.now() + 45000;
   while (Date.now() < deadline) {
     let tab: chrome.tabs.Tab;
     try {
@@ -121,13 +121,8 @@ export async function preparePeer(provider: ProviderId, saved?: Binding): Promis
   const tab = blank ?? (await chrome.tabs.create({ url: providers[provider].home, active: true }));
   if (!tab.id) throw new Error('AI 탭을 열지 못했습니다.');
   await reveal({ tabId: tab.id });
-  const deadline = Date.now() + 20000;
-  while (Date.now() < deadline) {
-    const state = await chrome.tabs.get(tab.id);
-    if (state.status === 'complete') return attach(provider, tab.id);
-    await new Promise((resolve) => setTimeout(resolve, 200));
-  }
-  throw new Error(`${providers[provider].name} 탭 로딩을 기다리고 있습니다. 사이트를 확인하세요.`);
+  await readyConnectionTab(provider, tab.id);
+  return attach(provider, tab.id);
 }
 export async function models(binding: Binding, key?: string): Promise<ModelCatalog> {
   const snap = await inspect(binding);

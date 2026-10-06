@@ -42,6 +42,18 @@ function expectedName(provider: ProviderId, file: AttachmentPayload) {
     ? file.name.replace(/\.[^.]+$/, '')
     : file.name;
 }
+function chatgptNameMatches(original: string, displayed: string) {
+  if (original === displayed) return true;
+  const dot = original.lastIndexOf('.');
+  const stem = dot > 0 ? original.slice(0, dot) : original;
+  const extension = dot > 0 ? original.slice(dot) : '';
+  // ChatGPT adds a duplicate counter before the extension; retain the entire original stem.
+  return (
+    displayed.startsWith(stem) &&
+    displayed.endsWith(extension) &&
+    /^\([1-9]\d*\)$/.test(displayed.slice(stem.length, displayed.length - extension.length))
+  );
+}
 function uploadFailed(root: Element) {
   if (
     [
@@ -74,7 +86,11 @@ export function attachmentsReady(
         : tile.getAttribute('aria-label')
       )?.replace(/^(Remove |close )/, ''),
     )
-    .filter(Boolean);
+    .filter((name): name is string => !!name);
+  const nameMatches =
+    provider === 'chatgpt'
+      ? names.map((name) => files.filter((file) => chatgptNameMatches(file.name, name)))
+      : [];
   const imageCount =
     provider === 'gemini'
       ? current.filter((tile) => {
@@ -89,9 +105,13 @@ export function attachmentsReady(
     current.length === files.length &&
     (provider !== 'gemini' ||
       imageCount === files.filter((file) => file.type.startsWith('image/')).length) &&
-    files
-      .filter((file) => provider !== 'gemini' || !file.type.startsWith('image/'))
-      .every((file) => names.includes(expectedName(provider, file))) &&
+    (provider === 'chatgpt'
+      ? nameMatches.length === files.length &&
+        nameMatches.every((matches) => matches.length === 1) &&
+        new Set(nameMatches.map(([file]) => file)).size === files.length
+      : files
+          .filter((file) => provider !== 'gemini' || !file.type.startsWith('image/'))
+          .every((file) => names.includes(expectedName(provider, file)))) &&
     ![
       ...root.querySelectorAll('[role="progressbar"], progress, [aria-busy="true"], .animate-spin'),
     ].some(visible)
@@ -253,9 +273,10 @@ export async function uploadAttachments(
         '첨부파일 업로드 완료를 확인하지 못했습니다. 질문은 보내지 않았습니다. AI 탭의 파일 상태를 확인해주세요.',
       );
   }
-  // Gemini images have no filename label. Keep the exact confirmed chips and image sources.
+  // Preserve the confirmed display labels as well as exact chips and Gemini image sources.
   const receipt = tiles(provider, editor).map((tile) => ({
     tile,
+    label: tile.getAttribute('aria-label'),
     image: tile.closest('mat-basic-chip')?.querySelector('img')?.getAttribute('src'),
   }));
   return () =>
@@ -263,6 +284,7 @@ export async function uploadAttachments(
     tiles(provider, editor).every(
       (tile, index) =>
         tile === receipt[index]?.tile &&
+        tile.getAttribute('aria-label') === receipt[index]?.label &&
         tile.closest('mat-basic-chip')?.querySelector('img')?.getAttribute('src') ===
           receipt[index]?.image,
     );
