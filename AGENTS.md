@@ -11,6 +11,7 @@
 
 - Keep the existing one-start, bounded review workflow unless the user requests a change. Preserve the full approved sharing scope through every stage, reuse the main answer, and send the final synthesis only to the original bound conversation.
 - Keep provider DOM behavior in provider adapters, Chrome APIs in infrastructure, orchestration in application, and business rules in domains. Presentation uses the injected platform port.
+- Associate upload and completion controls with the intended composer or response before checking uniqueness. Reuse the owning region; never resolve ambiguity by choosing the first global match. Keep provider-specific portal associations explicit.
 - Fail closed on ambiguous editors, changed captured context, existing drafts, incomplete answers, or uncertain sends. Validate completeness against the messages actually captured; hidden or omitted messages must not make a partial transcript appear complete. Never overwrite a draft or automatically retry a request that may already have been sent.
 - Persist send intent before sending. Interrupted work must not silently resume after panel closure, reload, extension replacement, or browser restart. Distinguish uncertain attempts from work that never began so cancellation preserves safe explicit continuation.
 - Read model choices from the actual account's UI. Do not invent available models, subscription entitlements, quotas, search execution, or source verification.

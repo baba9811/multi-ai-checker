@@ -38,7 +38,7 @@ No `<all_urls>`, cookies, browsing-history API, remote-code, or extra login-host
 
 ## Data-usage declaration worksheet
 
-These are preparation notes, not completed dashboard declarations. Map the current dashboard definitions to actual final behavior; never select "no data" merely because there is no developer server.
+The dashboard saved Website content and Personal communications, No remote code, and the three audited data-use certifications. Saved-state evidence belongs to the [release checklist](release-checklist.md); this worksheet describes their data-flow basis. Recheck against the final package whenever behavior changes; never select "no data" merely because there is no developer server.
 
 | Data handled                                  | Declaration preparation                                                                                                                                                                                                                                     |
 | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

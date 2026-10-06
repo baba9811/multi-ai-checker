@@ -510,6 +510,47 @@ async function setupUpload(
   return target;
 }
 
+for (const inputs of ['own-and-other', 'ambiguous-own', 'only-other'] as const) {
+  test(`ChatGPT file input lookup stays in the composer form (${inputs})`, async ({ page }) => {
+    const target = await setupUpload(page, 'chatgpt');
+    await page.evaluate((inputs) => {
+      const own = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+      const active = own.closest('form')!;
+      const other = document.createElement('form');
+      active.before(other);
+      const extra = own.cloneNode() as HTMLInputElement;
+      own.hidden = extra.hidden = true; // File inputs need not be visually exposed.
+      extra.onchange = () => {
+        (window as any).fixtureOtherUploaderUsed = true;
+      };
+      if (inputs === 'ambiguous-own') active.append(extra);
+      else if (inputs === 'only-other') {
+        other.append(own);
+        own.addEventListener('change', extra.onchange);
+      } else other.append(extra);
+    }, inputs);
+    await command(page, {
+      type: 'send',
+      id: 'form-input',
+      ...target,
+      prompt: 'Review originals in this form',
+      attachments: uploadOriginals,
+    });
+    await expect
+      .poll(async () => (await command(page, { type: 'poll', id: 'form-input' })).data?.status, {
+        timeout: 10000,
+      })
+      .toBe(inputs === 'own-and-other' ? 'done' : 'error');
+    expect(await page.evaluate(() => (window as any).fixtureOtherUploaderUsed)).toBeUndefined();
+    expect(await page.evaluate(() => (window as any).fixtureUploads.flat())).toEqual(
+      inputs === 'own-and-other' ? uploadOriginals.map(({ sha256: _, ...file }) => file) : [],
+    );
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual(
+      inputs === 'own-and-other' ? ['Review originals in this form'] : [],
+    );
+  });
+}
+
 test('Gemini selects the direct document input and ignores its nested legacy file chooser', async ({
   page,
 }) => {

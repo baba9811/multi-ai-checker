@@ -176,7 +176,13 @@ function supported(input: HTMLInputElement, file: File) {
     )
   );
 }
-async function inputFor(provider: ProviderId, files: File[], valid: () => boolean) {
+async function inputFor(
+  provider: ProviderId,
+  editor: HTMLElement,
+  files: File[],
+  valid: () => boolean,
+) {
+  const root = provider === 'chatgpt' ? region(provider, editor) : document;
   const selector =
     provider === 'chatgpt'
       ? 'input[type="file"][aria-label="Attach files"]'
@@ -196,9 +202,9 @@ async function inputFor(provider: ProviderId, files: File[], valid: () => boolea
     buttons[0]!.click();
   }
   const deadline = Date.now() + 5000;
-  while (!document.querySelector(selector) && valid() && Date.now() < deadline)
+  while (!root?.querySelector(selector) && valid() && Date.now() < deadline)
     await new Promise((resolve) => setTimeout(resolve, 100));
-  const inputs = [...document.querySelectorAll<HTMLInputElement>(selector)];
+  const inputs = [...(root?.querySelectorAll<HTMLInputElement>(selector) ?? [])];
   if (inputs.length !== 1 || inputs[0]!.disabled)
     throw new Error('파일 업로드 입력란을 찾지 못했습니다. AI 탭에서 확인해주세요.');
   if (files.some((file) => !supported(inputs[0]!, file)))
@@ -241,7 +247,7 @@ export async function uploadAttachments(
       : [files];
   const uploaded: AttachmentPayload[] = [];
   for (const group of groups) {
-    const input = await inputFor(provider, group, valid);
+    const input = await inputFor(provider, editor, group, valid);
     if (!valid()) throw new Error('첨부파일 업로드를 중단했습니다.');
     const transfer = new DataTransfer();
     group.forEach((file) => transfer.items.add(file));

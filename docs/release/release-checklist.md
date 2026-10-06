@@ -29,7 +29,7 @@ These are release gates, not instructions to bypass protections or silently remo
 ## Store materials and owner checks
 
 - [ ] Reconcile [listing](store-listing.md), [privacy worksheet](privacy-and-permissions.md), [reviewer instructions](reviewer-instructions.md), in-product sharing notice, and actual manifest/data flows. Remove unsupported or unverified claims.
-- [ ] Complete narrow single-purpose and permission justifications, disclose provider data transfers, confirm bundled-code/no-remote-code declaration, and certify data use only after verification. [Dashboard privacy guidance](https://developer.chrome.com/docs/webstore/cws-dashboard-privacy).
+- [x] Complete narrow single-purpose and permission justifications, disclose provider data transfers, confirm bundled-code/no-remote-code declaration, and certify data use only after verification. [Dashboard privacy guidance](https://developer.chrome.com/docs/webstore/cws-dashboard-privacy).
 - [x] Refresh the actual-interface captures for 0.4.0 and provide a 128×128 store icon, a 440×280 small promo image, and at least one actual-interface screenshot at 1280×800 or 640×400; use only synthetic content and reviewed artwork. Confirm the dashboard's current required slots. [Official image requirements](https://developer.chrome.com/docs/webstore/images).
 - [x] Publish the revised multi-turn privacy notice and verify the public privacy link loads without authentication and matches the canonical source. Recheck all listing links and replace every **PENDING** placeholder before submission.
 - [ ] Owner completes truthful publisher/account declarations and distribution settings; review any publicly displayed contact details before saving them.
@@ -39,9 +39,9 @@ These are release gates, not instructions to bypass protections or silently remo
 
 Record each observed state with its actual package version/checksum and evidence: **package prepared → draft uploaded → submitted for review → approved/staged → publicly published**. An uploaded draft is not a submitted review; submission is not approval; approval/staging is not a confirmed public listing. The dashboard supports deferred publication after review. [Official publication workflow](https://developer.chrome.com/docs/webstore/publish).
 
-The initial manual draft upload and subsequent 0.3.1 CI draft upload are confirmed. No legal declaration, review submission, or public extension publication has occurred. The privacy notice is published separately from the extension; its deployment evidence is recorded below.
+The initial manual draft upload and subsequent 0.3.1 CI draft upload are confirmed. The audited data-use certifications are saved; no review submission or public extension publication has occurred. The privacy notice is published separately from the extension; its deployment evidence is recorded below.
 
-## Candidate package evidence — 0.4.0
+## Previous candidate package evidence — 0.4.0
 
 Reviewed product source: `8ba7a3a`. Local ZIP `multi-ai-checker-0.4.0-chrome.zip` is 161,022 bytes, SHA-256 `0fb2a063066664de0088358b36762f919cfb0895103c2bbe73687c99e9bb0282`. All 12 entries match the built installation directory byte for byte; bridge SHA-256 is `b09455f2e587174c9a5164bee73e97e4a028c1895ccebbd49777515ac34147a4`. Package/lock/manifest agree on 0.4.0. The ZIP contains the root MV3 manifest, local service worker/bridge/panel, expected four permissions and three optional HTTPS origins, strict CSP, four icons/source SVG and eight package license texts. No fixtures, maps, environment files, raw originals or private screenshots are included. The uploader's offline package validation passed. This candidate has not yet been uploaded to the store; remote full-suite and latest native completion evidence are tracked separately in [validation](../testing/validation.md).
 
@@ -55,7 +55,7 @@ Reviewed product source: `8ba7a3a`. Local ZIP `multi-ai-checker-0.4.0-chrome.zip
 
 ## Public policy deployment
 
-Canonical source: `docs/security/privacy-notice.html`. Only that HTML as `index.html` and an empty `.nojekyll` are published from the dedicated `codex/privacy-notice` branch root; the development checkout is not the Pages source. The multi-turn notice deployment commit is `b39172e504d06928b06fe6a76e2f5f524bb63528`; [Pages run 37394419563](https://github.com/baba9811/multi-ai-checker/actions/runs/37394419563) succeeded. Unauthenticated HTTPS returned 200 and all 8,967 bytes matched the canonical source (SHA-256 `cddb841c2f41604e8a7486a74acf36c40405affe051f2f5ce2385be67d77fcd0`). Pages is configured with enforced HTTPS. Verify this match after every policy update; publish a normal descendant commit to the policy branch without force-pushing.
+Canonical source: `docs/security/privacy-notice.html`. Only that HTML as `index.html` and an empty `.nojekyll` are published from the dedicated `codex/privacy-notice` branch root; the development checkout is not the Pages source. The current bilingual multi-turn and Limited Use notice deployment commit is `b9bcf24b149b089232feb2f2a6b0c9c493ef6790`; [Pages run 37446234500](https://github.com/baba9811/multi-ai-checker/actions/runs/37446234500) succeeded. Unauthenticated HTTPS returned 200 and all 9,841 bytes matched the canonical source (SHA-256 `bcd7d53075a971d42e7d93fab5abef08480091863c77f9ca52c154c9979e95c4`). Pages is configured with enforced HTTPS. Verify this match after every policy update; publish a normal descendant commit to the policy branch without force-pushing.
 
 Historical single-turn notice verification on 2026-10-06: HTTPS 200, `text/html; charset=utf-8`, 8,694 bytes, SHA-256 `1349a469ff60ce498255b75688c2bdcbeff5aff22e7d192c9296db8f328794c6`. That prior notice's desktop and 375px mobile rendering had no horizontal overflow and its mobile image was inspected. The current multi-turn notice byte verification is recorded above. Public contact is owner-authorized.
 
