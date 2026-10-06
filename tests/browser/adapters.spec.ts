@@ -43,6 +43,176 @@ async function setup(page: Page, provider: ProviderId, html = providerPage(provi
   expect(response.ok).toBe(true);
   return response.data as { documentId: string; url: string };
 }
+
+async function quillParagraphs(page: Page, inlineBreak = false) {
+  const target = await setup(page, 'gemini');
+  await page.evaluate((inlineBreak) => {
+    const editor = document.querySelector<HTMLElement>('.ql-editor')!;
+    const edit = document.execCommand.bind(document);
+    document.execCommand = (command, showUI, value) => {
+      const result = edit(command, showUI, value);
+      if (command !== 'insertText') return result;
+      // Native multi-line insertion emits one input event per line; model the site's final value.
+      const lines = value!.split('\n');
+      editor.replaceChildren(
+        ...lines.map((line) => {
+          const paragraph = document.createElement('p');
+          if (line) paragraph.textContent = line;
+          else paragraph.append(document.createElement('br'));
+          return paragraph;
+        }),
+      );
+      if (inlineBreak) {
+        const code = editor.children[2]!;
+        const line = editor.children[3]!;
+        code.append(document.createElement('br'), ...line.childNodes);
+        line.remove();
+      }
+      return result;
+    };
+    document.getElementById('send')!.onclick = () => {
+      // The synthetic service consumes Quill's paragraph value, not its display spacing.
+      const text = [...editor.children]
+        .map((paragraph) =>
+          paragraph.childNodes.length === 1 && paragraph.firstChild instanceof HTMLBRElement
+            ? ''
+            : [...paragraph.childNodes]
+                .map((node) => (node instanceof HTMLBRElement ? '\n' : node.textContent))
+                .join(''),
+        )
+        .join('\n');
+      (window as any).fixtureSent.push(text);
+      (window as any).user(text);
+      editor.replaceChildren();
+      (window as any).assistant('새로운 gemini 검증 답변');
+    };
+  }, inlineBreak);
+  return target;
+}
+const paragraphPrompt = '한국어 질문\n\n코드:\n    const  value = 1;\n\n끝';
+for (const inlineBreak of [false, true]) {
+  test(`Gemini Quill paragraphs preserve blank lines, Korean and code spacing through collection (inline BR: ${inlineBreak})`, async ({
+    page,
+  }) => {
+    const target = await quillParagraphs(page, inlineBreak);
+    await command(page, { type: 'send', id: 'quill', ...target, prompt: paragraphPrompt });
+    await expect
+      .poll(async () => {
+        const result = (await command(page, { type: 'poll', id: 'quill' })).data;
+        return result.status === 'error' ? result.error : result.status;
+      })
+      .toBe('done');
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([paragraphPrompt]);
+  });
+}
+
+test('Claude waits for a delayed enabled send control, sends once and collects completion', async ({
+  page,
+}) => {
+  const target = await setup(page, 'claude');
+  await page.evaluate(() => {
+    const button = document.querySelector<HTMLButtonElement>('#send')!;
+    button.disabled = true;
+    document.querySelector('[contenteditable]')!.addEventListener('input', () => {
+      setTimeout(() => (button.disabled = false), 700);
+    });
+  });
+  await command(page, {
+    type: 'send',
+    id: 'delayed-ready',
+    ...target,
+    prompt: 'Delayed readiness',
+  });
+  await expect
+    .poll(async () => {
+      const result = (await command(page, { type: 'poll', id: 'delayed-ready' })).data;
+      return result.status === 'error' ? result.error : result.status;
+    })
+    .toBe('done');
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual(['Delayed readiness']);
+});
+
+for (const edit of ['text', 'newline', 'spacing']) {
+  test(`Gemini Quill refuses a concurrent ${edit} edit while waiting for send readiness`, async ({
+    page,
+  }) => {
+    const target = await quillParagraphs(page);
+    await page.clock.install({ time: 0 });
+    await page.clock.pauseAt(1000);
+    await page.evaluate((edit) => {
+      const editor = document.querySelector<HTMLElement>('.ql-editor')!;
+      const button = document.querySelector<HTMLButtonElement>('#send')!;
+      button.disabled = true;
+      editor.addEventListener(
+        'input',
+        () => {
+          setTimeout(() => {
+            if (edit === 'newline') editor.children[1]!.remove();
+            else if (edit === 'spacing') editor.children[3]!.textContent = '    const value = 1;';
+            else editor.children[0]!.textContent = '사용자 변경';
+            button.disabled = false;
+          }, 700);
+        },
+        { once: true },
+      );
+    }, edit);
+    await command(page, { type: 'send', id: 'edited-quill', ...target, prompt: paragraphPrompt });
+    await page.clock.runFor(3000);
+    const result = (await command(page, { type: 'poll', id: 'edited-quill' })).data;
+    expect(result.status).toBe('error');
+    expect(result.error).toContain('입력 내용이 달라져');
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  });
+}
+
+for (const unsafe of [
+  'missing',
+  'disabled',
+  'aria-disabled',
+  'duplicate-button',
+  'duplicate-editor',
+  'changed-editor',
+  'busy',
+  'files',
+  'cancel',
+  'changed-url',
+]) {
+  test(`send readiness refuses ${unsafe} without clicking`, async ({ page }) => {
+    const target = await setupUpload(page, 'claude');
+    await page.clock.install({ time: 0 });
+    await page.clock.pauseAt(1000);
+    await page.evaluate((unsafe) => {
+      const editor = document.querySelector<HTMLElement>('[contenteditable]')!;
+      const button = document.querySelector<HTMLButtonElement>('#send')!;
+      button.disabled = true;
+      editor.addEventListener('input', () => {
+        setTimeout(() => {
+          button.disabled = unsafe === 'disabled';
+          if (unsafe === 'missing') button.remove();
+          if (unsafe === 'aria-disabled') button.setAttribute('aria-disabled', 'true');
+          if (unsafe === 'duplicate-button') button.after(button.cloneNode(true));
+          if (unsafe === 'duplicate-editor') editor.after(editor.cloneNode(true));
+          if (unsafe === 'changed-editor') editor.replaceWith(editor.cloneNode(true));
+          if (unsafe === 'busy') {
+            const stop = document.createElement('button');
+            stop.setAttribute('aria-label', 'Stop response');
+            stop.textContent = 'Stop';
+            document.body.append(stop);
+          }
+          if (unsafe === 'files') (window as any).fixtureExistingFile();
+          if (unsafe === 'changed-url') history.pushState({}, '', '/chat/changed');
+        }, 700);
+      });
+    }, unsafe);
+    await command(page, { type: 'send', id: 'unsafe-ready', ...target, prompt: 'Readiness guard' });
+    await page.clock.runFor(450);
+    if (unsafe === 'cancel') await command(page, { type: 'cancel', id: 'unsafe-ready' });
+    await page.clock.runFor(3000);
+    expect((await command(page, { type: 'poll', id: 'unsafe-ready' })).data.status).toBe('error');
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  });
+}
+
 for (const provider of providerIds) {
   test(`${provider} DOM contract: actual built bridge edits, sends once and collects a new completed response`, async ({
     page,

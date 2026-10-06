@@ -106,15 +106,21 @@ export function questions(provider: ProviderId) {
     : [...document.querySelectorAll(selectors[provider].user)].filter(visible).sort(messageOrder);
 }
 export function draftText(element?: HTMLElement) {
-  // ProseMirror stores inserted lines as paragraphs; innerText adds display-only blank lines.
+  // These editors store inserted lines as paragraphs; innerText adds display-only blank lines.
   if (
-    element?.matches('.ProseMirror') &&
+    element?.matches('.ProseMirror, .ql-editor') &&
     [...element.childNodes].every((node) => node instanceof HTMLParagraphElement)
   )
     return [...element.children]
       .map((paragraph) => {
         const clone = paragraph.cloneNode(true) as HTMLElement;
         clone.querySelectorAll('br.ProseMirror-trailingBreak').forEach((node) => node.remove());
+        if (
+          element.matches('.ql-editor') &&
+          clone.childNodes.length === 1 &&
+          clone.firstChild instanceof HTMLBRElement
+        )
+          clone.firstChild.remove();
         clone.querySelectorAll('br').forEach((node) => node.replaceWith('\n'));
         return clone.textContent ?? '';
       })
@@ -315,25 +321,34 @@ export async function submit(
       if (!document.execCommand('insertText', false, prompt))
         throw new Error('편집기가 자동 입력을 지원하지 않습니다. 프롬프트를 복사해 직접 보내세요.');
     }
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    if (!check())
-      throw new Error('작업이 중단되었습니다. 입력란에 프롬프트가 남아 있을 수 있습니다.');
-    if (!input.isConnected || composer(provider) !== input || isBusy(provider))
-      throw new Error('입력란 또는 생성 상태가 바뀌어 전송을 중단했습니다.');
-    if (!filesReady()) throw new Error('첨부파일 상태가 바뀌어 전송을 중단했습니다.');
-    const button = first(selectors[provider].send);
-    if (
-      !button ||
-      (button as HTMLButtonElement).disabled ||
-      button.getAttribute('aria-disabled') === 'true'
-    )
-      throw new Error(
-        '프롬프트만 입력했습니다. 전송 버튼을 찾지 못해 클릭하지 않았습니다. 탭에서 직접 보내고 답변을 가져오세요.',
-      );
-    // Recheck input to avoid sending a concurrent user edit.
-    if (draftText(input).replace(/\r\n/g, '\n') !== prompt.trim().replace(/\r\n/g, '\n'))
-      throw new Error('입력 내용이 달라져 전송을 중단했습니다.');
-    button.click();
+    // Preserve the post-input edit window while waiting for the site's send control.
+    const started = Date.now();
+    const deadline = started + 2500;
+    while (true) {
+      if (!check())
+        throw new Error('작업이 중단되었습니다. 입력란에 프롬프트가 남아 있을 수 있습니다.');
+      if (!input.isConnected || composer(provider) !== input || isBusy(provider))
+        throw new Error('입력란 또는 생성 상태가 바뀌어 전송을 중단했습니다.');
+      if (!filesReady()) throw new Error('첨부파일 상태가 바뀌어 전송을 중단했습니다.');
+      // Recheck exact input throughout readiness settling, including immediately before click.
+      if (draftText(input).replace(/\r\n/g, '\n') !== prompt.trim().replace(/\r\n/g, '\n'))
+        throw new Error('입력 내용이 달라져 전송을 중단했습니다.');
+      if (Date.now() >= deadline)
+        throw new Error(
+          '프롬프트만 입력했습니다. 전송 버튼을 찾지 못해 클릭하지 않았습니다. 탭에서 직접 보내고 답변을 가져오세요.',
+        );
+      const button = first(selectors[provider].send);
+      if (
+        button &&
+        !(button as HTMLButtonElement).disabled &&
+        button.getAttribute('aria-disabled') !== 'true' &&
+        Date.now() - started >= 300
+      ) {
+        button.click();
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    }
   } finally {
     guard.close();
   }
