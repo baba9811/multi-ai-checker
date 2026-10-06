@@ -1224,3 +1224,48 @@ test('ChatGPT rejects the same attachment tile when its confirmed counter change
   expect((await command(page, { type: 'poll', id: 'counter-changed' })).data.status).toBe('error');
   expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
 });
+
+for (const completion of ['complete', 'hidden-copy', 'previous-turn', 'streaming'] as const) {
+  test(`Gemini Korean Copy completion stays scoped to the ${completion} response`, async ({
+    page,
+  }) => {
+    await page.clock.install();
+    await page.clock.pauseAt(new Date(Date.now() + 1000));
+    const target = await setup(page, 'gemini');
+    await page.evaluate((completion) => {
+      const state = window as any;
+      const append = state.assistant;
+      state.assistant = (text: string, complete: boolean) => {
+        append(text, complete);
+        const response = document.querySelector('model-response:last-child')!;
+        const body = response.querySelector('.model-response-text')!;
+        const nested = document.createElement('message-content');
+        nested.append(...body.childNodes);
+        body.append(nested);
+        const copy = response.querySelector('button')!;
+        copy.removeAttribute('data-test-id');
+        copy.removeAttribute('data-testid');
+        copy.setAttribute('aria-label', '복사');
+        if (completion === 'hidden-copy') copy.hidden = true;
+        if (completion === 'previous-turn') document.querySelector('model-response')!.append(copy);
+        if (completion === 'streaming') {
+          const stop = document.createElement('button');
+          stop.setAttribute('aria-label', 'Stop response');
+          document.body.append(stop);
+        }
+      };
+    }, completion);
+    await command(page, { type: 'send', id: 'korean-copy', ...target, prompt: '완료 확인' });
+    await page.clock.runFor(6000);
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual(['완료 확인']);
+    const progress = (await command(page, { type: 'poll', id: 'korean-copy' })).data;
+    expect(progress.status).toBe(completion === 'complete' ? 'done' : 'pending');
+    if (completion === 'complete') {
+      expect(progress.answer).toBe('새로운 gemini 검증 답변');
+      expect((await command(page, { type: 'snapshot' })).data.context.turns.at(-1)).toEqual({
+        question: '완료 확인',
+        answer: '새로운 gemini 검증 답변',
+      });
+    } else await command(page, { type: 'cancel', id: 'korean-copy' });
+  });
+}

@@ -84,6 +84,7 @@ export const selectors = {
       'button[data-test-id="copy-button"]',
       'button[aria-label="Copy response"]',
       'button[aria-label="답변 복사"]',
+      'button[aria-label="복사"]',
     ],
   },
 } as const;

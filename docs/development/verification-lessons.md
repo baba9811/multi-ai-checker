@@ -190,3 +190,21 @@ For a new incident, record the observed failure, evidence, confirmed cause (or e
 - Observation: filtering known keys down to captured messages first left a valid index zero when later complete pairs were hidden, inert or aria-hidden.
 - Correction: reconcile recognized user/assistant keys in captured threads with the captured population before accepting continuity. Do not scrape hidden text, include unrelated tool/thread markers or invent unmarked history.
 - Verification: three later-omission fixtures failed before the fix. Fourteen relevant history/context cases pass, including earlier omissions and a complete-history positive case with unrelated markers.
+
+### A selected browser tab can still contain a hidden document
+
+- Observation: a content-free attachment diagnostic reported a complete Gemini document, valid operation guard, zero document inputs after 5,970 ms, and `document.visibilityState === 'hidden'`, although the native tab strip selected that tab. Its web-content area was blank. A separately opened normal native tab rendered the page and uploaded both synthetic originals with the same adapter and timing bounds.
+- Interpretation: this isolates the observed upload failure to the tab/document activation environment rather than proving a wrong upload selector. The exact Aside lifecycle cause remains unconfirmed; a selected tab ID alone did not establish a visible document.
+- Correction: observe the actual rendered surface and document readiness before changing provider selectors or deadlines. Keep browser-control sessions from competing with the installed extension. Temporary diagnostics contain no conversation text, file bytes, credentials, or URLs and must be removed before release.
+- Limit: successful upload and generation are separate from collection. The normal-tab attempt exposed a missing Korean completion marker; record that independently.
+
+### Observe the target upload slot, not only the file picker
+
+- Observation: a native accessibility click on an offscreen screenshot control opened the marquee slot instead; the correctly sized screenshot was rejected there as invalid dimensions. No incorrect image persisted. A fresh screenshot located the visible screenshot dropzone, and sequential native pickers accepted the intended icon, two screenshots, and small promo.
+- Verification: Save draft, reload, and a fresh listing read retained all four accepted images. The remaining form prerequisite was data-use certification. Image acceptance is not review submission or public listing evidence.
+
+### Completion controls can change independently of response content
+
+- Observation: the normal native Gemini tab uploaded and sent the selected originals, generated a completed answer, then timed out in extension collection. The actual Korean Copy control had `aria-label="복사"` and no test ID inside the same `model-response`; the adapter recognized neither this label nor another matching completion control.
+- Correction: add only the observed Korean label to the existing response-scoped completion list. Preserve visible-control, generation, exact prompt association, cardinality and stable-text checks.
+- Verification: a built-bridge fixture first sent exactly once but remained pending; the minimal correction passed that case plus hidden-control, previous-response and active-streaming protections. Nine related browser cases and the type/unit/build check passed. Native completion remains a separate acceptance check.
