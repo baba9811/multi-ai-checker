@@ -135,3 +135,16 @@ For a new incident, record the observed failure, evidence, confirmed cause (or e
 - Observation: closing the synthetic Claude draft tab did not discard its site-persisted prompt and attachments. A newly opened home tab restored them, and the extension correctly refused to overwrite the draft.
 - Correction: inspect the new tab before assuming it is empty. Clean only explicitly owned test drafts through the site's UI, verify after reload, and explicitly reconnect changed documents. Never add automatic draft deletion to the product.
 - Verification: the fresh empty editor and reconnection were observed; the next attempt sent and collected Claude's first response. Subsequent review-send readiness and Gemini paragraph handling are separate failures, recorded in validation.
+
+### Editor display text is not the submitted logical text
+
+- Observation: live Gemini uploaded both originals, but its Quill composer represented the prompt as paragraphs with placeholder BRs. `innerText` added display newlines, so exact comparison correctly stopped the send against an incorrectly decoded draft.
+- Correction: reuse the existing paragraph decoder for the observed Quill editor. Remove only the sole placeholder BR in an empty paragraph; preserve paragraph boundaries, real inline BRs, spaces and deliberate blank paragraphs. Do not normalize arbitrary whitespace or weaken concurrent-edit guards.
+- Verification: corrected fixtures reproduced the old built bridge's mismatch for both paragraph-only and real-inline-BR prompts. The updated bridge passed these cases and text/blank-line/spacing mutation rejections in the 65-case provider/editor run. Live verification remains a separate step.
+
+### Readiness polling must retain the editor's settling boundary
+
+- Observation: live Claude preserved a filled review draft because Send was not ready at the existing single check. The first bounded-poll implementation could click an already-ready button synchronously, accidentally removing the existing settling window.
+- Evidence: independent review identified the regression; all three unchanged ProseMirror concurrent-edit checks failed against that first implementation.
+- Correction: retain the minimum 300 ms settling window within a bounded 2.5-second readiness check. Recheck exact editor/text, operation validity, attachments, generation and unique enabled Send before the sole click. Missing readiness remains a stopped request, never an automatic resend.
+- Verification: delayed readiness, all three unchanged concurrent-edit checks and cancellation, URL change, replaced editor, ambiguous controls and attachment guards passed in the 65-case provider/editor run. These limits describe current implementation evidence, not permanent repository-wide timing rules.

@@ -6,7 +6,7 @@ Preparation only. Do not submit this copy until the [release checklist](release-
 
 **Name:** CrossCheck — Multi AI Checker
 
-**Short description:** Compare selected AI answers and attachments, review disagreements, and synthesize in your original conversation.
+**Short description:** Compare ChatGPT, Claude and Gemini conversations and attachments, cross-review answers, and synthesize in your original chat.
 
 **Detailed description:**
 
@@ -24,7 +24,7 @@ AI agreement is not factual verification. Search execution, source accuracy, and
 
 **이름:** CrossCheck — Multi AI Checker
 
-**짧은 설명:** 선택한 AI 답변과 첨부파일을 비교하고, 이견을 검토해 원래 대화에서 종합 답변을 만듭니다.
+**짧은 설명:** ChatGPT·Claude·Gemini 대화와 첨부파일을 비교·교차 검토하고, 원래 대화에서 종합 답변을 받으세요.
 
 **상세 설명:**
 
@@ -43,6 +43,14 @@ AI 간 합의는 사실 검증이 아닙니다. 실제 검색 실행·출처 정
 - Privacy policy URL: https://baba9811.github.io/multi-ai-checker/ (verify public reachability before submission).
 - Public support contact: **bany981111@gmail.com** (owner selected for public display). Verified through the official confirmation email; Publisher Settings confirms it is a verified public contact.
 - Saved project homepage: https://github.com/baba9811/multi-ai-checker. Saved support URL: https://github.com/baba9811/multi-ai-checker/issues.
-- Existing 0.3.1 draft uses the earlier single-answer description; replace it with the multi-turn copy above when uploading the new candidate. Category remains **Productivity → Tools**, default language **Korean**. English copy remains preparation material.
+- The existing 0.3.1 package draft now has the multi-turn detailed description above saved and independently revisited. Its package summary still comes from the uploaded 0.3.1 manifest; the new short description will arrive with the 0.4.0 package. Category remains **Productivity → Tools**, default language **Korean**. English copy remains preparation material.
 - Store images: actual final UI with synthetic content only; no private conversations or account identifiers. Specifications and rights review are in the checklist.
 - Provider names/logos: verify rights before use; an independence statement alone does not resolve trademark permission. [Store impersonation/IP policy](https://developer.chrome.com/docs/webstore/program-policies/impersonation-and-intellectual-property).
+
+## Public discovery
+
+The owner requested a publicly searchable listing. Keep the recognizable title **CrossCheck — Multi AI Checker** and describe AI answer comparison, cross-review and the supported providers naturally in the short and detailed descriptions. Keep the Korean manifest description identical to the Korean short description above. Do not add unrelated keyword lists, repetition, unsupported rankings or official-affiliation claims. [Listing guidance](https://developer.chrome.com/docs/webstore/best-listing).
+
+Before release, confirm **Public** visibility and the intended available regions, including South Korea. Public, Unlisted and Private all require review; Unlisted does not provide the requested store discovery. After confirmed publication, verify the public listing while signed out and search its exact title, then relevant functional terms. Indexing may take several hours, and keyword placement does not guarantee a ranking. Record observed results separately from saved metadata or selected visibility. [Distribution settings](https://developer.chrome.com/docs/webstore/cws-dashboard-distribution), [search discovery](https://developer.chrome.com/docs/webstore/discovery).
+
+Dashboard observation on 2026-10-06: **공개 (Public)** and **전체 지역 (all regions)** were already selected and were preserved. The item remains a never-published 0.3.1 draft with submission disabled. This is configuration evidence, not public search-result evidence.

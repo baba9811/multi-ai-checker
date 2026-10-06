@@ -3,7 +3,8 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
     name: 'CrossCheck — Multi AI Checker',
-    description: '사용자가 선택한 AI 답변을 비교하고, 근거를 검토해 최종 답변을 만듭니다.',
+    description:
+      'ChatGPT·Claude·Gemini 대화와 첨부파일을 비교·교차 검토하고, 원래 대화에서 종합 답변을 받으세요.',
     minimum_chrome_version: '120',
     icons: {
       16: 'icons/16.png',
