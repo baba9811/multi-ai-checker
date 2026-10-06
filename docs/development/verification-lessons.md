@@ -166,3 +166,27 @@ For a new incident, record the observed failure, evidence, confirmed cause (or e
 - Observation: after a store-image picker attempt, native screenshot capture timed out. Resetting the control REPL left its dedicated helper running at about 27% CPU; the Aside REPL also did not exit normally.
 - Correction: follow the user's explicit request to stop unused computer control. Stop the identified control helper gracefully and interrupt only the task-owned REPL; do not terminate unrelated apps or broad process groups.
 - Verification: a fresh process listing no longer contained the dedicated helper and the task REPL exited. Image slots were not confirmed uploaded; prepared local artwork is separate from store persistence. Check that the supported native tool restarts normally before later UI work.
+
+### Attachment display aliases must remain one-to-one
+
+- Observation: ChatGPT accepted the same synthetic originals but displayed duplicate-name counters, so literal original-name readiness stopped before prompt input.
+- Correction: accept only the provider's observed literal stem, positive integer counter and exact extension; require one unique original per tile and every original exactly once. Bind the confirmed display label into the existing receipt so a later rename also invalidates readiness.
+- Verification: the positive alias case failed before the fix; missing, extra, wrong, colliding and changed-label fixtures remain rejected. This does not infer file bytes from a name or thumbnail.
+
+### Install a fake clock before the code creates its timers
+
+- Observation: the new attachment-positive browser fixture sent once with exact bytes but response collection stayed pending when the test replaced timers after bridge initialization.
+- Correction: install the existing Playwright clock before navigation and bridge injection. Keep product polling, exact comparisons and time bounds unchanged.
+- Verification: preserving the first artifacts and changing only clock initialization made the same focused positive fixture pass; related attachment guards also passed.
+
+### Cancellation after awaited preflight is still known-unsent
+
+- Observation: cancellation during preparation, reveal or inspection entered an error handler before any persisted send intent; it could erase the ready checkpoint.
+- Correction: propagate cancellation before both pre-intent catch handlers mutate jobs. Preserve the conservative interrupted state after persisted sending intent.
+- Verification: five new baseline failures and one already-safe case; all six pass with zero sends before cancellation and exactly one on explicit continuation. Related workflow guards remain green.
+
+### Captured continuity alone misses an omitted suffix
+
+- Observation: filtering known keys down to captured messages first left a valid index zero when later complete pairs were hidden, inert or aria-hidden.
+- Correction: reconcile recognized user/assistant keys in captured threads with the captured population before accepting continuity. Do not scrape hidden text, include unrelated tool/thread markers or invent unmarked history.
+- Verification: three later-omission fixtures failed before the fix. Fourteen relevant history/context cases pass, including earlier omissions and a complete-history positive case with unrelated markers.
