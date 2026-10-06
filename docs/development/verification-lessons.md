@@ -148,3 +148,15 @@ For a new incident, record the observed failure, evidence, confirmed cause (or e
 - Evidence: independent review identified the regression; all three unchanged ProseMirror concurrent-edit checks failed against that first implementation.
 - Correction: retain the minimum 300 ms settling window within a bounded 2.5-second readiness check. Recheck exact editor/text, operation validity, attachments, generation and unique enabled Send before the sole click. Missing readiness remains a stopped request, never an automatic resend.
 - Verification: delayed readiness, all three unchanged concurrent-edit checks and cancellation, URL change, replaced editor, ambiguous controls and attachment guards passed in the 65-case provider/editor run. These limits describe current implementation evidence, not permanent repository-wide timing rules.
+
+### Accessible duplicate labels are not conversation content
+
+- Observation: Gemini sent the prompt and generated an answer, but an accessibility-only H5 duplicated part of the question and broke association with the exact sent text.
+- Correction: exclude the observed screen-reader-only class at the shared text extraction boundary. Preserve legitimate visible headings, actual question text and multiple-question rejection.
+- Verification: the focused positive and negative regressions and the 72-case provider/editor run passed after a confirmed baseline failure. This is separate from live collection evidence.
+
+### Settling must cover the first exact comparison
+
+- Observation: the send loop delayed its click but compared text immediately. A synthetic asynchronous paragraph cleanup reproduced a false draft mismatch before the settling deadline. Later stable live Claude DOM matched the prompt, but its insertion-time layout was not captured.
+- Correction: gate the first exact comparison and sole click with the same settling condition while checking cancellation, editor identity, generation and files immediately. Do not weaken comparisons or lengthen the wait without evidence.
+- Verification: all existing early concurrent edits and new postsettling mutations remained blocked. The next live run collected Claude's answer and review; the whole three-provider pipeline still encountered separate loading/filename failures.
