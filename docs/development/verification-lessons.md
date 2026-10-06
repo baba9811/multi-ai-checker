@@ -160,3 +160,9 @@ For a new incident, record the observed failure, evidence, confirmed cause (or e
 - Observation: the send loop delayed its click but compared text immediately. A synthetic asynchronous paragraph cleanup reproduced a false draft mismatch before the settling deadline. Later stable live Claude DOM matched the prompt, but its insertion-time layout was not captured.
 - Correction: gate the first exact comparison and sole click with the same settling condition while checking cancellation, editor identity, generation and files immediately. Do not weaken comparisons or lengthen the wait without evidence.
 - Verification: all existing early concurrent edits and new postsettling mutations remained blocked. The next live run collected Claude's answer and review; the whole three-provider pipeline still encountered separate loading/filename failures.
+
+### Resetting a native-control client does not prove its helper stopped
+
+- Observation: after a store-image picker attempt, native screenshot capture timed out. Resetting the control REPL left its dedicated helper running at about 27% CPU; the Aside REPL also did not exit normally.
+- Correction: follow the user's explicit request to stop unused computer control. Stop the identified control helper gracefully and interrupt only the task-owned REPL; do not terminate unrelated apps or broad process groups.
+- Verification: a fresh process listing no longer contained the dedicated helper and the task REPL exited. Image slots were not confirmed uploaded; prepared local artwork is separate from store persistence. Check that the supported native tool restarts normally before later UI work.
