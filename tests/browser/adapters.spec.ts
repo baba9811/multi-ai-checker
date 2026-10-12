@@ -1310,3 +1310,81 @@ for (const completion of ['complete', 'hidden-copy', 'previous-turn', 'streaming
     } else await command(page, { type: 'cancel', id: 'korean-copy' });
   });
 }
+
+for (const delayedClose of [false, true]) {
+  test(`Claude model picker separates checked model from effort and rejects ambiguous checks (delayed close: ${delayedClose})`, async ({
+    page,
+  }) => {
+    const target = await setup(page, 'claude');
+    await page.evaluate((delayedClose) => {
+      const trigger = document.createElement('button');
+      trigger.dataset.testid = 'model-selector-dropdown';
+      trigger.textContent = 'Sonnet 5.5  Medium';
+      trigger.setAttribute('aria-label', 'Model: Sonnet 5.5 Medium');
+      trigger.setAttribute('aria-haspopup', 'menu');
+      trigger.setAttribute('aria-expanded', 'false');
+      const menu = document.createElement('div');
+      menu.setAttribute('role', 'menu');
+      menu.hidden = true;
+      for (const name of ['Sonnet 5.5', 'Opus Test']) {
+        const option = document.createElement('button');
+        option.setAttribute('role', 'menuitemradio');
+        option.setAttribute('aria-checked', String(name === 'Sonnet 5.5'));
+        const modelName = document.createElement('span');
+        modelName.dataset.testid = 'model-name';
+        const title = document.createElement('div');
+        title.textContent = name;
+        const description = document.createElement('div');
+        description.textContent = 'Most efficient for simpler tasks';
+        const icon = document.createElement('div');
+        icon.textContent = 'icon';
+        modelName.append(title, description, icon);
+        option.append(modelName);
+        option.onclick = () => {
+          const confirm = () => {
+            for (const model of menu.querySelectorAll('[role="menuitemradio"]'))
+              model.setAttribute('aria-checked', String(model === option));
+            trigger.textContent = `${name}  Medium`;
+            menu.hidden = true;
+            trigger.setAttribute('aria-expanded', 'false');
+          };
+          if (delayedClose) setTimeout(confirm, 20);
+          else confirm();
+        };
+        menu.append(option);
+      }
+      const effort = document.createElement('button');
+      effort.setAttribute('role', 'menuitem');
+      effort.textContent = 'Effort Medium';
+      menu.append(effort);
+      trigger.onclick = () => {
+        menu.hidden = !menu.hidden;
+        trigger.setAttribute('aria-expanded', String(!menu.hidden));
+      };
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          menu.hidden = true;
+          trigger.setAttribute('aria-expanded', 'false');
+        }
+      });
+      document.body.prepend(trigger, menu);
+    }, delayedClose);
+    const catalog = await command(page, { type: 'models', ...target });
+    expect(catalog.ok).toBe(true);
+    expect(catalog.data.current).toBe('Sonnet 5.5');
+    expect(catalog.data.options.map((option: { label: string }) => option.label)).toEqual([
+      'Sonnet 5.5',
+      'Opus Test',
+    ]);
+    const selected = await command(page, { type: 'selectModel', ...target, key: 'Opus Test' });
+    expect(selected.ok).toBe(true);
+    expect(selected.data.current).toBe('Opus Test');
+    await page.evaluate(() => {
+      for (const model of document.querySelectorAll('[role="menuitemradio"]'))
+        model.setAttribute('aria-checked', 'true');
+    });
+    expect((await command(page, { type: 'models', ...target })).ok).toBe(false);
+    await expect(page.getByRole('menu')).not.toBeVisible();
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  });
+}

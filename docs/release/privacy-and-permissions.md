@@ -1,5 +1,7 @@
 # Privacy and permission worksheet — intended 0.4.0
 
+This worksheet belongs to the submitted DOM-based package. The experimental Claude connection probe is described in [development privacy boundaries](../security/privacy.md); reconcile public declarations before a future package includes it.
+
 Dashboard preparation worksheet. Public privacy policy: [CrossCheck privacy and support](https://baba9811.github.io/multi-ai-checker/) (publication verification is recorded in the release checklist). The owner selected **bany981111@gmail.com** as the public support/privacy contact. Policy effective date: **2026-10-06**. The legal publisher identity shown in the dashboard still requires owner verification. Check the final ZIP against [security/privacy.md](../security/privacy.md) before completing dashboard certifications.
 
 The store requires a policy for products handling user data, including collection/use/sharing and recipients. Local handling and provider uploads still require disclosure. [Privacy policy requirements](https://developer.chrome.com/docs/webstore/program-policies/privacy).
@@ -31,7 +33,7 @@ Single purpose: compare user-selected AI conversation responses and chosen files
 | `scripting`                              | Inject the bundled local bridge into the selected provider tab's top frame to inspect the conversation/composer and perform the user-started review and file upload.      |
 | `activeTab`                              | Identify the active provider conversation when the user opens/starts the extension.                                                                                       |
 | `https://chatgpt.com/*` (optional)       | Access the selected ChatGPT conversation/composer/model menu and process its authorized review requests and chosen uploads. Requested on a user connection/start gesture. |
-| `https://claude.ai/*` (optional)         | Same scoped behavior for selected Claude tabs; distribution remains blocked until the provider-permission question is resolved.                                           |
+| `https://claude.ai/*` (optional)         | Same scoped behavior for selected Claude tabs. Provider-permission uncertainty is tracked separately in the release checklist.                                            |
 | `https://gemini.google.com/*` (optional) | Same scoped behavior for selected Gemini tabs. No permission is requested for Google sign-in hosts.                                                                       |
 
 No `<all_urls>`, cookies, browsing-history API, remote-code, or extra login-host permissions are proposed. Check the actual manifest; remove unused permissions before upload. The minimum-permission rule also covers optional hosts. [Store privacy fields](https://developer.chrome.com/docs/webstore/cws-dashboard-privacy), [minimum-permission FAQ](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq/).

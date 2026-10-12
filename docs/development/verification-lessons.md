@@ -2,6 +2,72 @@
 
 These are dated observations, not permanent product guarantees. Durable working rules live in [AGENTS.md](../../AGENTS.md).
 
+## Page-local transport investigation — 2026-10-12 KST
+
+### Model controls can contain settings beyond the model name
+
+- Observation: a read-only live UI check showed the current Claude control combining a model label with an effort label. Comparing that whole control text with an individual model option blocked the connection probe.
+- Confirmed cause: `modelMenu()` returned the trigger's composite text even when the menu exposed a uniquely checked model option. A synthetic regression reproduced the mismatch before correction.
+- Correction: when selection markers exist, read the single enabled selected option's own label. Reject no selection, multiple selections, and disabled selections rather than guessing by removing words from the control text. Use the existing trigger fallback only when the menu exposes no selection markers.
+- Verification: the checked-option, ambiguous-check and delayed-close fixtures are included in the related browser checks recorded below. No account name, conversation sidebar, or private page capture was retained in fixtures.
+
+### Model selection and menu closure can complete asynchronously
+
+- Observation: a model click may leave the previous checked option and open menu visible briefly before the new selection appears and the menu closes. The delayed-close synthetic case reproduced this transition.
+- Correction: wait within the existing bounded confirmation loop for fresh selected-state evidence. Reopen the owned menu for confirmation only after the previous options disappear, and close the menu owned by this operation afterward. A click or old trigger label alone is not selection confirmation.
+- Verification: immediate and delayed closure both pass the related browser regression. This synthetic timing evidence does not establish every live account rollout.
+
+### A model-name wrapper can include hidden or descriptive text
+
+- Observation: a model-name wrapper contained the visible model name, a description, and icon text. The regression expected the synthetic model label but received those concatenated strings.
+- Confirmed cause: `textContent` flattened all descendants of the wrapper. The pre-correction synthetic assertions failed for both immediate and delayed menu closure.
+- Correction: reuse the existing label helper and read the wrapper's first displayed `innerText` line, then retain the existing trim and length bound. Keep selected-option cardinality and disabled-state checks; do not strip guessed suffixes or hardcode models.
+- Verification: both focused cases pass after the correction. The latest related browser run also covers other providers' menus and unsupported UI.
+
+### Navigation guards must cover asynchronous preflight requests
+
+- Observation: independent review identified that same-origin navigation during the organization/model GETs could occur before the completion POST. An origin-only check would still permit the mutation in a changed page.
+- Confirmed cause: the initial URL check did not span all awaited metadata work. A regression changed the exact URL during the second GET and demonstrated that the old code could reach POST.
+- Correction: retain the starting URL and verify it with the origin and cancellation state immediately before every request. Preserve the bridge's document/URL checks and never fall back to a different transport after an uncertain send.
+- Verification: the regression now rejects before POST; the provider unit checks cover this boundary. A live generation pass is separate evidence.
+
+### Stop must reach tab readiness before bridge injection
+
+- Observation: Stop during an owned tab's loading stage could wait for the full readiness deadline even though generation had not begun.
+- Confirmed cause: the readiness loop did not receive the probe's AbortSignal. The regression kept tab status loading and initially failed the prompt-cancellation assertion.
+- Correction: pass cancellation through the existing readiness helper and check it before and after each tab-state read. Do not inject or generate after cancellation; do not change unrelated callers' readiness behavior.
+- Verification: the focused session regression confirms prompt rejection with no bridge injection or generation.
+
+### API-only organizations are not chat destinations
+
+- Observation: the third native probe stopped at organization selection before POST. A safe read-only check reported only that the response was an array of two valid-UUID organizations with capability arrays, exactly one having chat capability; no organization identifier or raw account response was logged.
+- Confirmed cause: the initial prototype required one total organization, although the account may expose an API-only organization alongside its Claude chat organization. A new two-organization regression failed before correction. The public first-hand [usage-provider implementation](https://github.com/dineshkruplani/Claude-Usage-Badge-Extension/blob/7b4262c9faff033a23791b41a483fa621a06701d/src/providers/claude-web.ts#L101-L104) and [findings](https://github.com/dineshkruplani/Claude-Usage-Badge-Extension/blob/7b4262c9faff033a23791b41a483fa621a06701d/docs/PHASE1-FINDINGS.md#L78-L94) distinguish these capabilities.
+- Correction: require exactly one organization whose validated capability array includes chat, then validate its UUID. Reject absent or multiple chat-capable destinations. Do not copy the public implementation's first-item/plan fallback or logging.
+- Verification: the pre-correction failure is recorded and the latest unit check passes. The fifth native attempt progressed past organization selection but stopped at model catalog before POST, as detailed below.
+
+### Successful account reads can still lack a usable model catalog
+
+- Observation: the fifth native probe on the installed production side panel passed actual UI-model and chat-organization selection, then reported the fixed catalog-stage reason before POST. A safe same-origin GET returned HTTP 200 and confirmed only that `claude_ai_bootstrap_models_config` was explicitly null; no raw body, identifiers, or credentials were logged.
+- Confirmed blocker: the current account response provides no validated UI-name/backend-model pair for the strict request path. This is not fixed by successful login, HTTP 200, or a synthetic fixture's model array.
+- Decision: stop before generation. The pinned [AIFuel implementation](https://github.com/robertogogoni/aifuel/blob/de119ddd68e29adc23ad0d9abbd9ad14f087efb6/internal/installer/chrome-extension/background.js#L63-L97) treats a null catalog as empty; public clients' static default models do not establish this account's available or selected model. Do not guess, hardcode or substitute a plan/model to obtain a pass.
+- Status: a validated account/UI/backend pairing source remains absent. Live generation and terminal completion were not established.
+
+### Evidence at this handoff
+
+- Latest typecheck/build and all 125 unit tests pass. The latest built artifact passes 10 related synthetic browser cases: 2 immediate/delayed model-wrapper cases, 4 probe cases, and 4 other-provider/model-menu cases. The earlier full synthetic suite passed 114 cases before later fixes.
+- Four installed-extension tests passed before the final organization/wrapper changes. The latest exact experimental directory was separately installed/reloaded as CrossCheck 0.4.0 and its native side panel exercised; the fifth live attempt stopped at catalog before POST.
+- Independent review of the latest complete diff reported no important findings. This does not establish service compatibility. Full multi-provider HTTP review, attachments, bound-main synthesis and generation-time focus preservation remain unverified.
+- All task-owned Claude probe tabs and the task-owned search tab were closed. The browser-control REPL exited successfully and a fresh process check confirmed the authorized native control helper had stopped. No unrelated user process was stopped; no store query/upload/submission was made for this experiment.
+
+## Store submission preparation — 2026-10-07 KST
+
+### Filter tab inventories before logging
+
+- Observation: printing an unfiltered browser-tab inventory included unrelated tab URLs and signed URL fields in tool output. The raw values were not copied into repository files or used for this task.
+- Cause: inventory output was logged before selecting the task-relevant surface. Sanitizing only later would not undo that exposure.
+- Correction: filter to the intended task origin/item in memory, then log only necessary tab references and allowlisted status fields. Omit unrelated titles and URLs; sensitive path/query values must not reach logs.
+- Verification: subsequent operations targeted only the selected store item. Repository changes contain no raw inventory or signed URLs; browser control exited after the confirmed submission.
+
 ## Local investigation — 2026-10-06 KST
 
 ### Overlapping Playwright output cleanup

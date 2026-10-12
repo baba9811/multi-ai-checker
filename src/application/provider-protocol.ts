@@ -69,6 +69,16 @@ export const Command = z.discriminatedUnion('type', [
   }),
   z.object({ type: z.literal('poll'), id: z.string().max(100) }),
   z.object({ type: z.literal('cancel'), id: z.string().max(100) }),
+  z
+    .object({
+      type: z.literal('startClaudeProbe'),
+      id: z.string().min(1).max(100),
+      documentId: z.string().max(100),
+      url: z.string().max(3000),
+    })
+    .strict(),
+  z.object({ type: z.literal('pollClaudeProbe'), id: z.string().min(1).max(100) }).strict(),
+  z.object({ type: z.literal('cancelClaudeProbe'), id: z.string().min(1).max(100) }).strict(),
   z.object({ type: z.literal('models'), documentId: z.string(), url: z.string() }),
   z.object({
     type: z.literal('selectModel'),

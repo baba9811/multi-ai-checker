@@ -1,6 +1,6 @@
-# Reviewer instructions draft — intended 0.4.0
+# Reviewer instructions — 0.4.0
 
-Do not submit until the [release blockers](release-checklist.md) are resolved and the final build is verified. These instructions are expected behavior, not a report of completed live tests.
+Version 0.4.0 was submitted on 2026-10-07 with the saved Korean dashboard instructions covering this workflow. See the [release record](release-checklist.md) for the pending review and unresolved provider questions. The steps below describe expected behavior, not a report of completed live tests.
 
 CrossCheck has no extension-specific account or API key. It uses permitted provider accounts signed in normally in the same Chrome profile. Provider access, quotas, models, and file support vary. No shared personal account, cookie, token, or private conversation is supplied for review. Publisher support contact: **bany981111@gmail.com**. If a review-access limitation remains, establish an allowed review path before submission.
 

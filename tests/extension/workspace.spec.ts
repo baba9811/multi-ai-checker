@@ -68,3 +68,25 @@ test('production session recovery never resumes ambiguous sends or renders model
     )
     .toEqual({ bindings: {} });
 });
+
+test('installed probe restores unfinished intent without opening a provider or requesting permission', async ({
+  extension,
+}) => {
+  const { panel } = extension;
+  await panel.evaluate(() =>
+    chrome.storage.session.set({
+      'crosscheck.claude-probe.v1': { id: 'fixture-attempt', status: 'pending' },
+    }),
+  );
+  await panel.reload();
+  await panel.getByRole('button', { name: '연결', exact: true }).first().click();
+  await panel.getByText('백그라운드 연결 시험', { exact: true }).click();
+  await expect(panel.getByText(/지난 요청의 완료 여부를 확인하지 못했습니다/)).toBeVisible();
+  await expect(panel.getByRole('button', { name: 'Claude 연결 시험 시작' })).toBeEnabled();
+  expect(
+    await panel.evaluate(async () =>
+      (await chrome.tabs.query({})).some((tab) => tab.url?.startsWith('https://claude.ai/')),
+    ),
+  ).toBe(false);
+  expect((await panel.evaluate(() => chrome.permissions.getAll())).origins ?? []).toEqual([]);
+});

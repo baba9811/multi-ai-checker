@@ -14,6 +14,8 @@ import {
   messageKey,
 } from '../src/infrastructure/providers/dom';
 import { modelMenu } from '../src/infrastructure/providers/models';
+import { claudeProbe } from '../src/infrastructure/providers/claude/probe';
+import { ClaudeProbeReason, type ClaudeProbeProgress } from '../src/application/claude-probe';
 
 export default defineUnlistedScript(() => {
   const world = globalThis as typeof globalThis & { __crosscheckInstalled?: boolean };
@@ -39,6 +41,24 @@ export default defineUnlistedScript(() => {
     canCreate: boolean;
   };
   let active: Active | undefined;
+  let probe:
+    | (ClaudeProbeProgress & {
+        id: string;
+        controller: AbortController;
+        url: string;
+        poll: number;
+        start: number;
+      })
+    | undefined;
+  const stopProbe = () => {
+    if (probe?.status !== 'pending') return;
+    probe.status = 'error';
+    probe.answer = '';
+    probe.reason ??= 'interrupted';
+    probe.controller.abort();
+  };
+  window.addEventListener('beforeunload', stopProbe);
+  document.addEventListener('input', stopProbe, true);
   let choosingModel = false;
   const used = new Set<string>();
   const fail = (job: Active, message: string) => {
@@ -61,6 +81,20 @@ export default defineUnlistedScript(() => {
     void (async () => {
       if (command.type === 'snapshot')
         return settledSnapshot(provider, documentId, command.waitFor);
+      if (command.type === 'cancelClaudeProbe') {
+        if (probe?.id === command.id) stopProbe();
+        return true;
+      }
+      if (command.type === 'pollClaudeProbe') {
+        if (!probe || probe.id !== command.id) throw new Error('연결 시험을 찾지 못했습니다.');
+        if (location.href !== probe.url) stopProbe();
+        probe.poll = Date.now();
+        return {
+          status: probe.status,
+          answer: probe.answer,
+          reason: probe.reason,
+        } satisfies ClaudeProbeProgress;
+      }
       if (command.type === 'cancel') {
         if (active?.id === command.id)
           fail(active, '수집을 중단했습니다. 이미 시작된 AI 생성은 해당 탭에서 중지하세요.');
@@ -83,7 +117,12 @@ export default defineUnlistedScript(() => {
         throw new Error('연결 후 페이지가 바뀌었습니다. 다시 연결하세요.');
       assertTarget(provider, command.url);
       if (command.type === 'models' || command.type === 'selectModel') {
-        if (choosingModel || active?.status === 'pending' || isBusy(provider))
+        if (
+          choosingModel ||
+          active?.status === 'pending' ||
+          probe?.status === 'pending' ||
+          isBusy(provider)
+        )
           throw new Error('진행 중인 작업이 끝난 후 모델을 변경하세요.');
         choosingModel = true;
         try {
@@ -97,10 +136,62 @@ export default defineUnlistedScript(() => {
       }
       if (choosingModel) throw new Error('모델 설정이 끝난 뒤 시작하세요.');
       if (used.has(command.id)) throw new Error('이미 시도한 요청입니다. 중복 전송하지 않습니다.');
-      if (active?.status === 'pending') throw new Error('이 탭에서 다른 작업이 진행 중입니다.');
+      if (active?.status === 'pending' || probe?.status === 'pending')
+        throw new Error('이 탭에서 다른 작업이 진행 중입니다.');
       if (used.size >= 30)
         throw new Error('이 탭의 실행 한도에 도달했습니다. 새로고침 후 다시 연결하세요.');
       used.add(command.id);
+      if (command.type === 'startClaudeProbe') {
+        if (provider !== 'claude' || !['/', '/new'].includes(location.pathname))
+          throw new Error('Claude의 새 테스트 페이지가 필요합니다.');
+        const job = {
+          id: command.id,
+          status: 'pending' as ClaudeProbeProgress['status'],
+          answer: '',
+          reason: 'page' as ClaudeProbeReason | undefined,
+          controller: new AbortController(),
+          url: command.url,
+          poll: Date.now(),
+          start: Date.now(),
+        };
+        probe = job;
+        void (async () => {
+          const snap = await settledSnapshot(provider, documentId, 'composer');
+          if (
+            !snap.composer ||
+            snap.busy ||
+            snap.draft ||
+            snap.context.turns.length ||
+            snap.lastQuestion ||
+            snap.lastAnswer
+          )
+            throw new Error('테스트 페이지가 비어 있지 않습니다.');
+          job.reason = 'model';
+          const catalog = await modelMenu(provider);
+          if (
+            !catalog.current ||
+            !catalog.options.some((option) => !option.disabled && option.label === catalog.current)
+          )
+            throw new Error('현재 모델을 확인하지 못했습니다.');
+          if (location.href !== job.url || job.status !== 'pending')
+            throw new Error('테스트를 중단했습니다.');
+          job.reason = undefined;
+          const answer = await claudeProbe(catalog.current, job.controller.signal);
+          if (location.href !== job.url || job.status !== 'pending')
+            throw new Error('테스트를 중단했습니다.');
+          job.answer = answer;
+          job.status = 'done';
+        })().catch((error) => {
+          if (probe === job) {
+            const cause = ClaudeProbeReason.safeParse(
+              error instanceof Error ? error.cause : undefined,
+            );
+            if (cause.success) job.reason = cause.data;
+            stopProbe();
+          }
+        });
+        return true;
+      }
       const job: Active = {
         id: command.id,
         status: 'pending',
@@ -136,6 +227,13 @@ export default defineUnlistedScript(() => {
     return true;
   });
   setInterval(() => {
+    if (
+      probe?.status === 'pending' &&
+      (location.href !== probe.url ||
+        Date.now() - probe.poll > 15000 ||
+        Date.now() - probe.start > LIMITS.timeoutMs)
+    )
+      stopProbe();
     const job = active;
     if (!job || job.status !== 'pending') return;
     if (Date.now() - job.poll > 15000) {

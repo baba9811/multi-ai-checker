@@ -14,7 +14,7 @@
 - Associate upload and completion controls with the intended composer or response before checking uniqueness. Reuse the owning region; never resolve ambiguity by choosing the first global match. Keep provider-specific portal associations explicit.
 - Fail closed on ambiguous editors, changed captured context, existing drafts, incomplete answers, or uncertain sends. Validate completeness against the messages actually captured; hidden or omitted messages must not make a partial transcript appear complete. Never overwrite a draft or automatically retry a request that may already have been sent.
 - Persist send intent before sending. Interrupted work must not silently resume after panel closure, reload, extension replacement, or browser restart. Distinguish uncertain attempts from work that never began so cancellation preserves safe explicit continuation.
-- Read model choices from the actual account's UI. Do not invent available models, subscription entitlements, quotas, search execution, or source verification.
+- Read model choices from the actual account's UI. When selection markers exist, require one enabled selected menu option and read its own label; do not infer the model from a composite control label. Do not invent available models, subscription entitlements, quotas, search execution, or source verification.
 - Model agreement is not factual verification. Preserve uncertainty and distinguish verified sources from model claims.
 
 ## Domain ownership and dependency direction
@@ -52,7 +52,7 @@
 
 ## Privacy and release
 
-- Do not extract, copy, or log cookies, credentials, session tokens, or private browser profiles. Keep private conversations, account identifiers, signed URLs, and unrelated tab contents out of fixtures, logs, screenshots for publication, and commits.
+- Do not extract, copy, or log cookies, credentials, session tokens, or private browser profiles through development or browser-control tools. For explicitly authorized product authentication, keep necessary authentication values transient in their owning provider page and send them only to that provider; never expose them through extension messaging, storage, diagnostics, or developer-controlled servers. Filter browser inventories to task-relevant surfaces before logging; include only necessary references and safe status fields. Keep private conversations, account identifiers, signed URLs, and unrelated tab contents out of fixtures, logs, screenshots for publication, and commits.
 - Keep diagnostics content-free. Request only necessary provider permissions and preserve the existing local session-storage boundary unless explicitly redesigning it.
 - Bind publishing privileges to trusted workflow code and immutable repository identity. Enforce release provenance before authentication, deploy the validated artifact, and never rely on a tag or environment name alone as a trust boundary.
 - Before release, inspect the actual ZIP, manifest, permissions, bundled licenses, icons, store images, listing, privacy policy, and reviewer instructions. Verify the package corresponds to the tested source.

@@ -9,6 +9,7 @@ import {
   type Binding,
 } from '../../domains/providers/model';
 import { ProviderLogo } from './ProviderLogo';
+import { ClaudeProbe } from './ClaudeProbe';
 
 export function ConnectionSettings({
   platform,
@@ -300,6 +301,9 @@ export function ConnectionSettings({
           </article>
         );
       })}
+      {platform.startClaudeProbe && platform.readClaudeProbe && (
+        <ClaudeProbe platform={platform} disabled={disabled} onWorking={onWorking} />
+      )}
       <button className="text-button" onClick={downloadDiagnostics}>
         <Download size={13} /> 진단 저장
       </button>

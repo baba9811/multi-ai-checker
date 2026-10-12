@@ -12,7 +12,7 @@ Implementation sequence: add request-boundary regression tests; implement the de
 
 ## One-time connection
 
-1. Complete the initial dashboard item upload and record its **store** item ID and publisher ID. An unpacked extension ID is not a substitute. Complete listing/privacy/distribution fields. Resolve [release gates](release-checklist.md) before review submission.
+1. Complete the initial dashboard item upload and record its **store** item ID and publisher ID. An unpacked extension ID is not a substitute. Complete listing/privacy/distribution fields. Review the [release checklist](release-checklist.md) and record unresolved risks and the submission decision.
 2. Select an owner-controlled Google Cloud project. Enable `chromewebstore.googleapis.com`, `iam.googleapis.com`, `iamcredentials.googleapis.com`, and `sts.googleapis.com`. Create a dedicated service account, such as `crosscheck-store`, without project-wide Editor/Owner roles or service-account keys.
 3. Create a Workload Identity Pool and GitHub OIDC provider (`https://token.actions.githubusercontent.com`). Map `google.subject=assertion.sub` and `attribute.repository_id=assertion.repository_id`. For this repository, restrict the provider with the following condition (verify numeric GitHub ownership IDs if migrating):
 
@@ -40,7 +40,7 @@ Implementation sequence: add request-boundary regression tests; implement the de
    | `CWS_EXTENSION_ID`               | Existing store item ID, 32 lowercase letters `a`–`p`                                       |
    | `CWS_SUBMIT`                     | `false` for upload only; `true` submits and publishes on approval                          |
 
-   Missing/invalid configuration fails the run. Keep `CWS_SUBMIT=false` until live validation and release gates are resolved. Once ready, setting it to `true` automates future review submission; it never skips review or ignores store warnings. No credentials belong in repository files, GitHub variables, logs or chat.
+   Missing/invalid configuration fails the run. Keep `CWS_SUBMIT=false` while releases require a separate submission decision. Setting it to `true` automates future review submission; it never skips review or ignores store warnings. A one-time dashboard submission does not change this setting. No credentials belong in repository files, GitHub variables, logs or chat.
 
 ## Each release
 
@@ -53,6 +53,8 @@ The uploader refuses current warnings/takedowns, another pending/staged review, 
 After a timeout/network failure, inspect the dashboard **before** rerunning: the upload or submission might have succeeded. Resolve the draft/review there; a blind rerun is not a recovery procedure. A rejected upload/submission should be fixed in source and released with an appropriate new version. Do not use a lower version to roll back; release a higher-version fix. The workflow inherits the dashboard's visibility and rollout settings; check them before enabling submission.
 
 ## Validation and current activation
+
+On 2026-10-07, the owner requested review of the existing 0.4.0 package. Dashboard submission succeeded with automatic publication after approval selected; fresh Status and Package views show **Pending review**, version **0.4.0**, and no published item. `CWS_SUBMIT=false` was rechecked and remains unchanged. The [release record](release-checklist.md) owns the submission evidence and remaining risks; the earlier upload-only observations below are historical.
 
 Run `python3 -m unittest discover -s tests/release -v` for the uploader boundary checks; no third-party Python packages or real store requests are used. `python3 scripts/release/webstore.py PATH_TO_ZIP VERSION --check` validates a local artifact without authentication/network. The ordinary CI runs these checks alongside product tests.
 

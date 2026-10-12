@@ -39,15 +39,17 @@ export async function connect(provider: ProviderId): Promise<Binding> {
   await readyConnectionTab(provider, tab.id);
   return attach(provider, tab.id);
 }
-async function readyConnectionTab(provider: ProviderId, tabId: number) {
+async function readyConnectionTab(provider: ProviderId, tabId: number, signal?: AbortSignal) {
   const deadline = Date.now() + 45000;
   while (Date.now() < deadline) {
+    signal?.throwIfAborted();
     let tab: chrome.tabs.Tab;
     try {
       tab = await chrome.tabs.get(tabId);
     } catch {
       throw new Error('연결 탭이 닫혔습니다. 탭 열기 후 다시 연결해주세요.');
     }
+    signal?.throwIfAborted();
     if (tab.status === 'complete') {
       if (providerForUrl(tab.url ?? '') !== provider)
         throw new Error('사이트에서 로그인 또는 페이지 전환을 완료한 뒤 다시 확인해주세요.');
@@ -65,6 +67,14 @@ export async function refreshConnection(binding: Binding): Promise<Binding> {
     throw new Error('사이트 권한이 해제되었습니다. 연결 버튼으로 다시 허용해주세요.');
   await readyConnectionTab(binding.provider, binding.tabId);
   return attach(binding.provider, binding.tabId);
+}
+export async function prepareClaudeProbe(signal: AbortSignal): Promise<Binding> {
+  signal.throwIfAborted();
+  const tab = await chrome.tabs.create({ url: providers.claude.home, active: false });
+  if (!tab.id) throw new Error('테스트 탭을 열지 못했습니다.');
+  await readyConnectionTab('claude', tab.id, signal);
+  signal.throwIfAborted();
+  return attach('claude', tab.id);
 }
 async function attach(provider: ProviderId, tabId: number, conversation = false): Promise<Binding> {
   await chrome.scripting.executeScript({

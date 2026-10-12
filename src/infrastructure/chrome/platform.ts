@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Platform } from '../../application/ports';
 import { providers } from '../../domains/providers/model';
 import { extensionStatus, watchExtensionUpdate, openExtensionManager } from './updates';
+import { readClaudeProbe, startClaudeProbe } from './claude-probe';
 import {
   connect,
   reveal,
@@ -19,6 +20,8 @@ const Stored = z.object({
   bindings: z.record(z.string(), z.unknown()).optional(),
 });
 export const chromePlatform: Platform = {
+  readClaudeProbe,
+  startClaudeProbe,
   extensionStatus,
   watchExtensionUpdate,
   openExtensionManager,

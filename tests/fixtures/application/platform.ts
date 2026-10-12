@@ -25,6 +25,7 @@ declare global {
       extensionStatus: ExtensionStatus;
       updateAvailable?: (version: string) => void;
       managerOpens: number;
+      probeStarts: number;
     };
   }
 }
@@ -41,6 +42,7 @@ window.harness = {
     automaticUpdates: new URL(location.href).searchParams.get('updates') === 'automatic',
   },
   managerOpens: 0,
+  probeStarts: 0,
 };
 const bindings = Object.fromEntries(
   providerIds.map((provider, i) => [
@@ -54,6 +56,16 @@ const bindings = Object.fromEntries(
   ]),
 ) as Record<ProviderId, Binding>;
 export const fixturePlatform: Platform = {
+  async readClaudeProbe() {
+    const status = sessionStorage.getItem('fixture-claude-probe');
+    return status === 'done' ? { id: 'fixture', status: 'done' } : undefined;
+  },
+  async startClaudeProbe(signal) {
+    signal.throwIfAborted();
+    window.harness.probeStarts++;
+    sessionStorage.setItem('fixture-claude-probe', 'done');
+    return 'CROSSCHECK_OK';
+  },
   async extensionStatus() {
     const pendingVersion = sessionStorage.getItem('fixture-pending-update');
     return { ...window.harness.extensionStatus, ...(pendingVersion ? { pendingVersion } : {}) };

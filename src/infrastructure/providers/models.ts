@@ -45,9 +45,10 @@ function trigger(provider: ProviderId): HTMLElement | undefined {
 const optionSelector = '[role="menuitemradio"], [role="option"], [role="menuitem"]';
 function label(element: HTMLElement) {
   return (
-    element.querySelector('[data-testid="model-name"]')?.textContent ??
-    element.innerText.split('\n')[0] ??
-    ''
+    (
+      element.querySelector<HTMLElement>('[data-testid="model-name"]')?.innerText ??
+      element.innerText
+    ).split('\n')[0] ?? ''
   )
     .trim()
     .slice(0, 160);
@@ -58,6 +59,20 @@ function disabled(element: HTMLElement) {
     (element as HTMLButtonElement).disabled === true ||
     /upgrade|구독|업그레이드|한도 도달|limit reached/i.test(element.innerText)
   );
+}
+function selectedModel(options: HTMLElement[]): string | undefined {
+  const marked = options.filter(
+    (option) => option.hasAttribute('aria-checked') || option.hasAttribute('aria-selected'),
+  );
+  if (!marked.length) return;
+  const selected = marked.filter(
+    (option) =>
+      option.getAttribute('aria-checked') === 'true' ||
+      option.getAttribute('aria-selected') === 'true',
+  );
+  if (selected.length !== 1 || disabled(selected[0]!))
+    throw new Error('현재 선택된 모델을 확인하지 못했습니다. 사이트에서 확인하세요.');
+  return label(selected[0]!);
 }
 /** Opens only the model picker. No credentials, private APIs, or subscriptions are touched. */
 export async function modelMenu(provider: ProviderId, selectKey?: string): Promise<ModelCatalog> {
@@ -83,6 +98,7 @@ export async function modelMenu(provider: ProviderId, selectKey?: string): Promi
       if (options.length) break;
       await new Promise((resolve) => setTimeout(resolve, 80));
     }
+    const selected = selectedModel(options);
     const values = options
       .slice(0, 40)
       .map((el) => ({ key: label(el), label: label(el), disabled: disabled(el) }));
@@ -91,19 +107,40 @@ export async function modelMenu(provider: ProviderId, selectKey?: string): Promi
       if (matches.length !== 1 || disabled(matches[0]!))
         throw new Error('현재 선택할 수 없는 모델입니다. 목록을 새로 불러오세요.');
       matches[0]!.click();
+      let reopened = false;
       const end = Date.now() + 1500;
       const expected = selectKey.toLocaleLowerCase().replace(/\s+/g, ' ').trim();
       while (Date.now() < end) {
+        if (
+          selected !== undefined &&
+          !reopened &&
+          ![...document.querySelectorAll(optionSelector)].some(visible)
+        ) {
+          trigger(provider)?.click();
+          reopened = true;
+        }
+        const confirmed = selectedModel(
+          [...document.querySelectorAll(optionSelector)]
+            .filter(visible)
+            .filter((el) => families[provider].test(label(el))),
+        );
+        if (confirmed !== undefined) {
+          if (confirmed === selectKey) return { current: confirmed, options: values };
+        }
         const actual = trigger(provider)?.innerText.trim().slice(0, 160);
         const value = actual?.toLocaleLowerCase().replace(/\s+/g, ' ').trim();
-        if (value === expected || value?.endsWith(` ${expected}`))
+        if (
+          selected === undefined &&
+          confirmed === undefined &&
+          (value === expected || value?.endsWith(` ${expected}`))
+        )
           return { current: actual, options: values };
         await new Promise((resolve) => setTimeout(resolve, 80));
       }
       throw new Error('모델 변경을 확인하지 못했습니다. 사이트에서 확인하세요.');
     }
     return {
-      current,
+      current: selected ?? current,
       options: values,
       message: values.length
         ? undefined
