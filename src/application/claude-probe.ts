@@ -11,12 +11,22 @@ export type ClaudeProbeRecord = z.infer<typeof ClaudeProbeRecord>;
 export const ClaudeProbeReason = z.enum([
   'page',
   'model',
+  'model-menu',
+  'model-trigger',
   'account',
   'account-selection',
   'access',
   'catalog',
+  'model-confirmation',
   'send',
   'response',
+  'response-event',
+  'response-metadata',
+  'response-role',
+  'response-binding',
+  'response-block',
+  'response-terminal',
+  'response-confirmation',
   'interrupted',
 ]);
 export type ClaudeProbeReason = z.infer<typeof ClaudeProbeReason>;

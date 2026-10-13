@@ -14,12 +14,22 @@ const failure =
 const reasons: Record<ClaudeProbeReason, string> = {
   page: '시험 페이지가 준비되지 않아 요청하지 않았습니다.',
   model: '현재 선택된 모델을 확인하지 못해 요청하지 않았습니다.',
+  'model-menu': 'Claude에 열린 메뉴가 남아 있어 요청하지 않았습니다.',
+  'model-trigger': 'Claude 모델 선택 버튼이 준비되지 않아 요청하지 않았습니다.',
   account: 'Claude 로그인·계정 정보를 확인하지 못해 요청하지 않았습니다.',
   'account-selection': '사용할 Claude 계정을 하나로 확인하지 못해 요청하지 않았습니다.',
   access: 'Claude 접근이 거부됐습니다. 사이트에서 로그인·접근 상태를 확인하세요.',
   catalog: '계정의 모델 목록과 현재 선택을 확인하지 못해 요청하지 않았습니다.',
+  'model-confirmation': '요청 직전의 모델 선택을 다시 확인하지 못해 요청하지 않았습니다.',
   send: 'Claude가 시험 요청을 수락했는지 확인하지 못했습니다.',
   response: '시험 응답의 완성을 확인하지 못했습니다.',
+  'response-event': 'Claude 응답 이벤트의 형식을 확인하지 못했습니다.',
+  'response-metadata': 'Claude 응답의 부가 이벤트 형식을 확인하지 못했습니다.',
+  'response-role': 'Claude 응답의 작성자 표시를 확인하지 못했습니다.',
+  'response-binding': '시험 요청과 Claude 응답의 연결을 확인하지 못했습니다.',
+  'response-block': 'Claude 응답 내용의 형식을 확인하지 못했습니다.',
+  'response-terminal': 'Claude 응답의 완료 표시를 확인하지 못했습니다.',
+  'response-confirmation': '시험 대화와 최종 응답이 일치하는지 확인하지 못했습니다.',
   interrupted: '연결 시험이 중단됐습니다.',
 };
 export async function readClaudeProbe(): Promise<ClaudeProbeRecord | undefined> {

@@ -13,7 +13,7 @@ import {
   textOf,
   messageKey,
 } from '../src/infrastructure/providers/dom';
-import { modelMenu } from '../src/infrastructure/providers/models';
+import { modelMenu, readClaudeProbeLabel } from '../src/infrastructure/providers/models';
 import { claudeProbe } from '../src/infrastructure/providers/claude/probe';
 import { ClaudeProbeReason, type ClaudeProbeProgress } from '../src/application/claude-probe';
 
@@ -167,16 +167,11 @@ export default defineUnlistedScript(() => {
           )
             throw new Error('테스트 페이지가 비어 있지 않습니다.');
           job.reason = 'model';
-          const catalog = await modelMenu(provider);
-          if (
-            !catalog.current ||
-            !catalog.options.some((option) => !option.disabled && option.label === catalog.current)
-          )
-            throw new Error('현재 모델을 확인하지 못했습니다.');
+          const selectedModel = await readClaudeProbeLabel();
           if (location.href !== job.url || job.status !== 'pending')
             throw new Error('테스트를 중단했습니다.');
           job.reason = undefined;
-          const answer = await claudeProbe(catalog.current, job.controller.signal);
+          const answer = await claudeProbe(selectedModel, job.controller.signal);
           if (location.href !== job.url || job.status !== 'pending')
             throw new Error('테스트를 중단했습니다.');
           job.answer = answer;

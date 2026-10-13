@@ -2,7 +2,7 @@
 
 조사일: 2026-10-12 KST. 기준 `9c7893b`에서 분리한 `codex/background-web-transport` 작업이며 기존 미커밋 문서는 보존했습니다. 사용자는 **기존 ChatGPT·Claude·Gemini 웹 로그인과 구독만 사용**하는 조건을 선택했습니다. 별도 유료 개발자 API나 OpenRouter를 기본 연결로 바꾸지 않습니다.
 
-조사를 바탕으로 **Claude의 고정 텍스트 한 요청**을 별도의 연결 시험으로 구현했습니다. 최신 네이티브 시험은 계정 모델 목록이 명시적으로 null인 탓에 POST 전에 멈췄고 생성 완료는 없습니다. 기본 DOM 검토는 유지하며 세 서비스·전체 문맥·파일·최종 반환의 전환 완료를 뜻하지 않습니다. 이 실험의 스토어 업로드는 없고 현재 스토어 상태도 재조회하지 않았습니다. 설치·실계정 결과는 아래에서 별도로 기록합니다.
+**현재 실제 설치 패널에서 Claude 고정 텍스트의 백그라운드 완료 수집을 확인했습니다.** 2026-10-12 같은 검증 빌드의 정확한 설치 경로를 새로고침한 뒤 23번째 native 시험에서 `CROSSCHECK_OK`를 수집했습니다. 기존 확장 관리 탭 선택은 유지되고 새 Claude 탭은 비활성이었습니다. 기존 웹 로그인·구독만 사용하며 인증값 읽기·개발자 API·서버는 없습니다. MAIN-world 활성화 시도는 제거했고 닫힌 버튼/계정 모델 대응과 정확한 새 대화의 독립 readback을 사용합니다. 성공 범위는 비민감 고정 텍스트 한 요청이며 세 서비스 전체 문맥·파일·최종 반환은 미검증입니다. 기본 DOM 검토는 그대로이고 스토어 조회·업로드는 하지 않았습니다.
 
 ## 현재 불편의 코드 근거
 
@@ -12,12 +12,12 @@
 
 ## 비교 결과
 
-| 방식 | 사용자 편의 | 기존 웹 구독 조건 | 판단 |
-| --- | --- | --- | --- |
-| 같은 서비스의 내부 웹 HTTP 호출 | 편집기 입력·버튼 클릭·DOM 완료 탐색과 탭 전환을 줄일 수 있음 | 기존 브라우저 세션으로 호출 가능한 경우 유지 | 우선 검증할 후보. 인증·파일·완료·대화 연결은 서비스별로 입증해야 함 |
-| 공식 개발자 API / OpenRouter | 백그라운드 요청, 문서화된 응답, 단일 연결 가능 | 별도 인증·과금·데이터 수신자가 생김. 일부 구독 크레딧 예외는 실제 계정별 확인 필요 | 사용자가 선택한 기본 조건과 달라 이번 기본 전환에서 제외 |
-| 공식 구독 연동 / 로컬 실행 앱 | 일부 서비스는 기존 플랜으로 공식 호출 가능 | 추가 인증·설치가 필요하고 세 서비스 공통 경로가 아님 | 향후 대안. 웹 로그인만으로 세 서비스가 연결된다고 안내하지 않음 |
-| 별도 검토 창에서 기존 DOM 실행 | 개인 탭과 검토 탭을 분리할 수 있음 | 유지 | 과도기 실험만 가능. 최소화·가려짐·동결 때 성공은 미검증이며 DOM 방식 자체가 남음 |
+| 방식                            | 사용자 편의                                                  | 기존 웹 구독 조건                                                                  | 판단                                                                             |
+| ------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 같은 서비스의 내부 웹 HTTP 호출 | 편집기 입력·버튼 클릭·DOM 완료 탐색과 탭 전환을 줄일 수 있음 | 기존 브라우저 세션으로 호출 가능한 경우 유지                                       | 우선 검증할 후보. 인증·파일·완료·대화 연결은 서비스별로 입증해야 함              |
+| 공식 개발자 API / OpenRouter    | 백그라운드 요청, 문서화된 응답, 단일 연결 가능               | 별도 인증·과금·데이터 수신자가 생김. 일부 구독 크레딧 예외는 실제 계정별 확인 필요 | 사용자가 선택한 기본 조건과 달라 이번 기본 전환에서 제외                         |
+| 공식 구독 연동 / 로컬 실행 앱   | 일부 서비스는 기존 플랜으로 공식 호출 가능                   | 추가 인증·설치가 필요하고 세 서비스 공통 경로가 아님                               | 향후 대안. 웹 로그인만으로 세 서비스가 연결된다고 안내하지 않음                  |
+| 별도 검토 창에서 기존 DOM 실행  | 개인 탭과 검토 탭을 분리할 수 있음                           | 유지                                                                               | 과도기 실험만 가능. 최소화·가려짐·동결 때 성공은 미검증이며 DOM 방식 자체가 남음 |
 
 Chrome은 콘텐츠 스크립트 요청이 주입된 페이지의 origin에서 실행됨을 설명하고, Fetch 표준은 같은 origin 요청에 브라우저 관리 인증정보를 포함할 수 있음을 규정합니다. 따라서 HTTP 호출마다 쿠키 값을 읽거나 내보내야 하는 것은 아닙니다. 이것은 **요청 가능한 브라우저 구조의 근거**이며 특정 서비스의 생성 요청이 허용·성공한다는 근거가 아닙니다. [Chrome 요청 경계](https://developer.chrome.com/docs/extensions/develop/concepts/network-requests), [Fetch 인증 모드](https://fetch.spec.whatwg.org/#concept-request-credentials-mode).
 
@@ -25,11 +25,11 @@ Chrome은 콘텐츠 스크립트 요청이 주입된 페이지의 origin에서 �
 
 ## 서비스별 증거와 미확인 사항
 
-| 서비스 | 확인한 공개 구현 | 아직 확인하지 못한 것 |
-| --- | --- | --- |
+| 서비스  | 확인한 공개 구현                                                                                                                                                                                                                                                               | 아직 확인하지 못한 것                                                                                         |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | ChatGPT | ChatHub 공개 ref `a7a2bd6`는 `/api/auth/session`의 access token을 읽고 backend 호출·모델·파일 초기화에 Bearer 헤더를 사용. 브라우저 프록시도 인증 헤더를 확장 메시지로 전달. ChatGPTBox `df8ef92`도 Bearer를 사용. 조사한 생성 클라이언트의 자체 Sentinel 계산은 채택하지 않음 | 인증값을 페이지 밖으로 전달하지 않고 서비스 보호 검사를 우회하지 않는 현재 생성 경로, 파일·원래 대화 이어쓰기 |
-| Claude | 공개 웹 클라이언트는 조직·대화·completion 경로를 사용. 쿠키 조회 없는 GET과 공개 completion/SSE 구조로 한 요청 시험 구현. 실제 계정 모델 목록이 null이어서 catalog 단계에서 POST 전 중단 | 검증 가능한 계정/UI/백엔드 모델 대응 경로가 없음. 생성 POST·완료·포커스 유지, TXT/PNG·후속 요청·원래 대화 반환은 미검증 |
-| Gemini | 공개 웹 클라이언트는 StreamGenerate/batchexecute, 페이지별 요청 값과 별도 업로드를 사용. Gemini-API `1ad0d4a`는 최근 유지보수된 Python 구현 | 쿠키 추출 없이 현재 브라우저 문맥에서 작동하는지, 페이지 요청 값·첨부·RPC 완료를 안전하게 확인할 수 있는지 |
+| Claude  | bootstrap 선택 상태/닫힌 모델 표시와 서버 응답 readback 대응을 구현. 실제 native 패널의 고정 답변 수집·기존 활성 탭 유지 확인                                                                                                                                                  | 비민감 고정 텍스트 한 요청만. TXT/PNG·후속 요청·전체 문맥·원래 대화 반환은 미검증                             |
+| Gemini  | 공개 웹 클라이언트는 StreamGenerate/batchexecute, 페이지별 요청 값과 별도 업로드를 사용. Gemini-API `1ad0d4a`는 최근 유지보수된 Python 구현                                                                                                                                    | 쿠키 추출 없이 현재 브라우저 문맥에서 작동하는지, 페이지 요청 값·첨부·RPC 완료를 안전하게 확인할 수 있는지    |
 
 근거: [ChatHub ChatGPT client](https://github.com/chathub-dev/chathub/blob/a7a2bd6e12050d6a39fcaf30868bdfd7ccf78f22/src/app/bots/chatgpt-webapp/client.ts), [ChatHub proxy](https://github.com/chathub-dev/chathub/blob/a7a2bd6e12050d6a39fcaf30868bdfd7ccf78f22/src/services/proxy-fetch.ts), [ChatGPTBox](https://github.com/ChatGPTBox-dev/chatGPTBox/blob/df8ef92c7495c5dde1f256216d1608e87d099cf6/src/services/apis/chatgpt-web.mjs), [Claude 사용량 확장 조사](https://github.com/dineshkruplani/Claude-Usage-Badge-Extension/blob/main/docs/PHASE1-FINDINGS.md), [Gemini-API](https://github.com/HanaokaYuzu/Gemini-API/blob/1ad0d4a93e505e77c79769d78ef2997641f973c8/README.md).
 
@@ -37,12 +37,14 @@ ChatHub 공개 소스에는 Claude 2.1과 예전 Bard 도메인도 남아 있어
 
 ## 구현한 Claude 시험의 범위
 
-**연결 → 백그라운드 연결 시험**을 직접 시작하면 확장이 비활성 새 Claude 홈 탭을 만듭니다. 실제 화면의 현재 모델을 읽고 계정의 모델 이름과 유일하게 대응시킨 뒤 `Reply with CROSSCHECK_OK only.` 한 요청만 보냅니다. 사용자 창·활성 탭을 바꾸는 `reveal()`은 이 경로에서 호출하지 않습니다. 쿠키는 브라우저가 같은-origin 요청에 부착하며 조직·모델 참조는 공급자 페이지 메모리에만 있습니다.
+**연결 → 백그라운드 연결 시험**을 직접 시작하면 확장이 비활성 새 Claude 홈 탭을 만듭니다. 검증된 실제 선택 모델로 `Reply with CROSSCHECK_OK only.` 한 요청만 보내는 실험입니다. 사용자 창·활성 탭을 바꾸는 `reveal()`은 이 경로에서 호출하지 않습니다. 쿠키는 브라우저가 같은-origin 요청에 부착하며 조직·모델 참조는 공급자 페이지 메모리에만 있습니다. 실제 23번째 시험은 시작 → 진행 중 → **연결 시험 완료 · CROSSCHECK_OK**까지 native 패널에서 확인됐습니다.
+
+Task 6은 닫힌 소유 버튼의 첫 표시 텍스트에서 모델명만 읽고 별도 effort 표시를 합치지 않습니다. `app_start`의 유일한 chat 선택 상태·그 모델의 활성 config 표시명·유효하고 중복 없는 available-model ID 목록을 정확히 대응시킨 뒤 POST 직전 UI 표시를 다시 확인합니다. 고정 시험은 메뉴 열기·닫기를 사용하지 않습니다. 누락·중복·비활성 사유·표시 불일치·UI 변경을 거부하고 응답 크기 제한을 유지합니다. 요청 키는 공급자 페이지 메모리에만 있으며 일반 모델 목록 RPC에 넣지 않습니다. 목록 tier를 계정 권한으로 해석하지 않습니다. 일반 모델 메뉴의 값 사전 캡처와 닫힘 확인은 별도로 유지합니다.
 
 - 요청/완료 검사는 `src/infrastructure/providers/claude/probe.ts`, 의도 저장·비활성 탭·취소는 `src/infrastructure/chrome/claude-probe.ts`와 `provider-client.ts`가 소유합니다. 좁은 시작·조회·중단 명령은 기존 bridge의 정확한 확장 발신자·문서·URL 검사로 연결합니다. UI는 주입된 Platform 포트만 사용합니다.
 - 세션에는 시험 ID와 상태만 저장합니다. 답변·조직·백엔드 모델 참조·인증정보는 저장하지 않습니다. 열린 패널에는 완결된 텍스트 답변만 전달합니다. 복원한 진행 상태는 불확실로 표시하며 자동 재개하지 않습니다.
 - 각 GET/POST 직전에 시작 시점의 정확한 페이지 주소를 확인합니다. 저장 실패·기존 초안·생성 중·대화 변경·중단·조회 단절이면 멈추며 재시도나 DOM 대체 전송을 하지 않습니다.
-- 스트림은 실제 assistant/parent UUID, 텍스트 블록 종료, `end_turn`, `message_stop`을 모두 확인합니다. HTTP 200·스트림 EOF·일부 답변은 완료가 아닙니다. 내용과 전송 크기를 제한하고 오류 원문은 확장으로 내보내지 않습니다. 오류 진단은 고정된 단계 사유만 허용합니다.
+- 서버 assistant/parent UUID는 유효하고 서로 다른 임시 대응값이며 텍스트 블록 종료·`end_turn`·`message_stop`을 확인합니다. 이후 정확한 새 대화 GET의 고정 human 문장·두 메시지·스트림 ID/답변·parent/leaf·요청 모델·authoritative text-only content·빈 첨부·잘림 없음·정상 종료를 확인해야 패널에 답변을 반환합니다. legacy `text`는 빈 값 또는 같은 content 값만 허용하고 명시된 stream model 불일치는 거부합니다. HTTP 200·스트림 EOF·일부 답변·UUID 형식만으로 완료를 인정하지 않습니다. 내용과 전송 크기를 제한하고 오류 원문은 확장으로 내보내지 않습니다. 오류 진단은 고정된 단계 사유만 허용합니다.
 
 `chat` capability가 있는 조직이 정확히 하나이고 현재 모델 메타데이터가 명확할 때만 진행합니다. 계정에 API 전용 조직이 추가로 있어도 이를 채팅 대상으로 선택하지 않으며, 채팅 조직이 없거나 둘 이상이면 멈춥니다. 생각/도구 블록을 포함하는 응답과 확인하지 않은 이벤트 형식은 실패로 처리하므로 계정·모델에 따라 시험이 작동하지 않을 수 있습니다. 첨부 목록은 비어 있고 대화 가져오기·후속 생성·원래 메인 반환은 지원하지 않습니다. 새 테스트 대화는 Claude에 남을 수 있습니다.
 
@@ -52,14 +54,14 @@ Claude 요청 구조는 [OmniRoute payload](https://github.com/diegosouzapw/Omni
 
 ### 이번 작업의 검증 기록
 
-| 증거 | 확인한 범위 | 상태 |
-| --- | --- | --- |
-| 단위·타입·빌드 | Node 24.19.0·`npm run check`·단위 125개 | 최신 모델명 wrapper 수정 후 통과. 생성 성공 증거 아님 |
-| 합성 브라우저 | 최신 관련 10개 통과: 즉시/지연 wrapper 모델 2개·probe 4개·다른 공급자/모델 메뉴 4개 | 전체 114개는 마지막 수정 전 소스 결과. 모두 합성 응답 |
-| 설치 확장 | 설치 검사 4개 통과는 마지막 조직·wrapper 수정 전 결과. 최신 네이티브 경로 설치·새로고침·0.4.0 실제 패널 확인 | 설치 성공과 실계정 생성 성공은 구분 |
-| 실제 로그인 읽기 | 안전한 GET에서 조직 구조·capability 여부만 확인. 모델 목록 GET은 HTTP 200·`claude_ai_bootstrap_models_config: null` | 원문·계정/조직/모델 식별자·인증값은 출력하지 않음 |
-| 실제 로그인 생성 | 다섯번째 네이티브 시험은 모델·조직 선택을 통과하고 catalog 단계에서 POST 전 중단 | 생성 요청·완료·실행 중 포커스 유지 미검증 |
-| 독립 코드 리뷰 | 최신 전체 diff 재검토 | 중요한 결함 없음. 계정 호환성 증거 아님 |
+| 증거                  | 확인한 범위                                                                                                                                                                              | 상태                                                                                                        |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 단위·타입·빌드        | 최종 Task 7의 단위 190개·타입·빌드 통과, 2026-10-12 17:33 KST                                                                                                                            | 실제 로그인 결과와 별도                                                                                     |
+| 합성 브라우저         | 같은 최신 소스에서 관련 20개와 최종 전체 126개 통과                                                                                                                                      | 전체 검사는 `npm run test:e2e`, 5.6분. 모두 합성 응답이며 실제 로그인 결과와 별도                           |
+| 설치 확장             | 최신 5개 통과, 17:35 KST. 메뉴 20 ms 지연 cleanup 전 값 캡처·포커스 유지 포함                                                                                                            | 해당 메뉴 회귀는 test-only 복사 manifest로 Claude를 미리 허용함. 실제 권한 prompt·실서비스 성공 근거는 아님 |
+| 실제 로그인 읽기      | 앞선 HTTP 200·679,681 bytes·채팅 조직 1개·모델 ID 15개·UI 키 대응 1개. 후속 확인은 chat state/config/선택 행 각 1개·UI 이름 일치·main section·disabled reason 없음·available ID 대응 1개 | 원문·계정/조직/모델 식별자·인증값은 출력하지 않음                                                           |
+| 실제 로그인 생성·수집 | 23번째 exact production 설치/native 패널에서 시작·진행·완료 `CROSSCHECK_OK`. 기존 활성 탭 유지·새 Claude 탭 비활성 확인                                                                  | 단일 고정 텍스트. 전체 세 서비스·파일·최종 반환으로 확대하지 않음                                           |
+| 독립 코드 리뷰        | 최종 production·회귀 source 중요한 결함 없음. detached-menu P2는 회귀로 재현하고 수정                                                                                                    | 실계정 결과와 별도                                                                                          |
 
 독립 리뷰의 주소 변경 경합과 로딩 중 중단 지연은 각각 요청 직전 URL 재확인·준비 단계 AbortSignal로 수정하고 최소 단위 회귀를 추가했습니다. 이 수정 뒤의 합성·설치·실계정 결과를 앞선 전체 브라우저 결과와 합쳐 표시하지 않습니다.
 
@@ -67,13 +69,41 @@ Claude 요청 구조는 [OmniRoute payload](https://github.com/diegosouzapw/Omni
 
 세번째 실제 시험은 계정 조직 선택 단계에서 POST 전에 멈췄습니다. 안전한 GET은 식별자 없이 개수와 구조·capability 여부만 반환했고 API 전용 조직과 채팅 조직이 함께 있는 경우를 확인했습니다. 전체 조직 수가 하나여야 한다는 초기 조건을 두 조직의 합성 회귀로 재현한 뒤 유일한 채팅 capability 기준으로 수정했습니다. 상세 원인과 회귀 증거는 [검증 교훈](../development/verification-lessons.md)이 소유합니다.
 
-### 남은 구체적인 차단 사항
+### 구 catalog 실패와 bootstrap 대응의 후속 변경
 
-최신 경로의 다섯번째 네이티브 시험은 모델·조직 선택을 통과하고 계정 모델 catalog 단계에서 POST 전에 멈췄습니다. 같은-origin 읽기 전용 GET은 HTTP 200이지만 `claude_ai_bootstrap_models_config`가 명시적으로 null임을 내용 없는 상태값으로 확인했습니다. 실제 UI의 선택을 검증 가능한 백엔드 모델 참조와 대응시킬 자료가 없으므로 요청하지 않았습니다.
+앞선 다섯번째 네이티브 시험은 모델·조직 선택을 통과하고 구 계정 모델 catalog 단계에서 POST 전에 멈췄습니다. 같은-origin 읽기 전용 GET은 HTTP 200이지만 `claude_ai_bootstrap_models_config`가 명시적으로 null임을 내용 없는 상태값으로 확인했습니다. 당시 검증 가능한 백엔드 모델 참조가 없으므로 요청하지 않았습니다.
 
 [AIFuel의 확인한 구현](https://github.com/robertogogoni/aifuel/blob/de119ddd68e29adc23ad0d9abbd9ad14f087efb6/internal/installer/chrome-extension/background.js#L63-L97)도 이 목록의 null을 빈 목록으로 취급합니다. [OmniRoute의 공개 payload](https://github.com/diegosouzapw/OmniRoute/blob/7f3cbb046b3706bf0bbc047b7eaa0cbada8d9e50/open-sse/executors/claude-web/payload.ts)에 있는 정적 기본 모델은 현재 계정의 가용성이나 실제 UI 선택을 증명하지 않으므로 대체하지 않습니다. 필요한 것은 계정·UI·실제 요청 모델의 검증 가능한 대응 경로이며 로그인 성공만으로 이를 대신할 수 없습니다.
 
-실계정 생성·완료와 세 서비스 전체 전환은 미검증입니다. 자신이 만든 Claude 시험 탭과 검색 탭을 모두 닫고 브라우저 제어 REPL 정상 종료와 작업용 네이티브 helper 부재를 새 관찰로 확인했습니다. 스토어 조회·새 업로드·새 심사 제출은 하지 않았습니다.
+[Claude2api의 pinned 선언](https://github.com/aurora-develop/Claude2api/blob/6a9ea135f41626cd335950c97ba290f42fa7dd64/claude/models.go#L22)은 `edge-api/bootstrap` 경로를 찾는 단서로만 사용했습니다. 실제 읽기 전용 확인에서는 응답의 `claude_ai_available_models.models[].model_id` 목록과 화면의 유일하게 선택된 활성 항목의 `data-model-id`가 유일하게 일치했습니다. 이 프로젝트의 쿠키/TLS 처리 방식은 채택하지 않았고 공개 소스의 선언을 현재 서비스 계약이나 생성 성공의 증거로 쓰지 않습니다.
+
+Task 4는 이 label/key 값을 메뉴 cleanup 전에 캡처하고 GET 후 UI를 다시 읽는 방식이었습니다. 후속 리뷰에서는 메뉴를 닫은 뒤 DOM 참조를 읽어 설명·아이콘이 다시 모델명에 섞이는 P2를 재현했으며, 값을 먼저 캡처하는 최소 수정으로 회귀가 통과했습니다. 누락·잘못된 UI 키·중복 bootstrap ID·GET 중 선택 변경·탐색·중단은 POST를 차단했습니다. 일반 모델 RPC에 백엔드 키가 새지 않는 합성 검사도 통과했습니다. 일반 메뉴의 사전 값 캡처·닫힘 확인은 유지하되 고정 시험은 Task 6으로 바꿉니다.
+
+비동기 닫힘 회귀에서는 첫 읽기는 성공해도 메뉴가 열린 채 남아 두번째 읽기가 실패했습니다. Escape 전송을 닫힘 완료로 간주한 것이 원인이며, 선택 항목이 사라지고 expanded 상태도 해제된 것을 제한 시간 안에 확인한 뒤 반환하도록 수정했습니다. 이 수정 후 단위 129개와 관련 합성 브라우저 14개가 통과했습니다.
+
+합성 fixture의 활성화 handler가 실제와 다른 동작을 허용한 공백을 확인했습니다. 키보드-only fixture 수정 후 단위 129개·타입·빌드와 관련 합성 브라우저 17개가 통과했지만 설치 probe는 메뉴 단계에서 POST 전에 멈췄습니다. 초기 관찰에서는 페이지 Enter와 열림이 함께 보였으나, 후속 조사에서 synthetic Enter가 native button의 기본 click을 일으키지 않음을 확인해 그 인과 해석을 정정했습니다. Escape 닫힘이 비동기라는 관찰은 유지합니다.
+
+일반 설치 확장의 모델 목록도 준비된 활성 페이지에서 실패해 로딩·비활성 상태만의 문제로 해석하지 않았습니다. 공개 클라이언트의 이벤트 wrapper는 Base UI 관례와 일치했으며, 이것만으로 메뉴 전체 구현이나 Radix 활성화 방식까지 단정하지 않습니다. untouched home의 deferred MAIN `button.click()`은 메뉴를 열었지만 설치 ISOLATED-click probe는 여전히 메뉴 단계에서 실패했습니다. Task 5의 MAIN 활성화 제품 파일·명령·포트는 폐기하고 제거했습니다. 관찰된 차이만으로 실행 문맥 이동이 원인을 해결한다고 주장하지 않습니다. [관찰한 wrapper/click 소스](https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/vendor-frame-DNQ-FS3I.js), [Base UI trigger](https://github.com/mui/base-ui/blob/a2dc320c88c90eaa8160e536ec22ddd166576af2/packages/react/src/menu/trigger/MenuTrigger.tsx), [native button 처리](https://github.com/mui/base-ui/blob/a2dc320c88c90eaa8160e536ec22ddd166576af2/packages/react/src/internals/use-button/useButton.ts).
+
+### Task 6: 메뉴 없이 현재 선택 상태 읽기
+
+공개 웹 클라이언트는 `model_selector_state`에서 chat의 `model`을 읽고 chat config의 해당 모델 행에서 표시명을 대응시킵니다. 비활성 사유가 없는 상태와 legacy/deprecated가 아닌 행을 구별하며, 별도 context model 또는 hub default가 선택에 영향을 줄 수 있으므로 저장 상태만으로 UI 선택을 단정하지 않습니다. 현재 trigger는 모델 행의 이름을 먼저 표시하고 fast/effort/mode 설명을 별도 span에 표시합니다. 이 구조를 근거로 닫힌 소유 버튼의 첫 모델 표시를 읽고 계정 상태와 정확히 일치하는지를 검증하는 작은 경로를 구현했습니다. [상태/config 대응](https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/shared-1-DT-Mq-A-.js), [모델 이름·비활성·default 처리](https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/shared-0-Dsui6SsB.js), [trigger 표시 구조](https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/shared-7-B-kXHUOv.js).
+
+실제 안전한 GET은 chat state·chat config·선택 행 각각 1개, config 이름과 UI 이름의 일치, main section, disabled reason 없음, available-model ID의 유일한 대응을 상태값으로만 확인했습니다. 고정 시험은 popup을 열거나 닫지 않고 POST 직전 UI 표시를 다시 확인합니다. 이 변경 뒤 단위 152개·타입·빌드·합성 20개·설치 5개가 통과했고 독립 리뷰에서 중요한 문제가 없었습니다. 20번째 실제 시도에서 생성까지 진행됐으나 패널 수집은 실패했습니다. 공개 asset은 조사 시점 소스이며 문서화된 호환성 계약은 아닙니다.
+
+### Task 7: 요청 UUID와 서버 메시지 대응
+
+20번째 native 시험은 POST 뒤 응답 수집에서 실패했고, 최근 자체 테스트 대화 중 고정 문장으로 유일하게 확인한 대화의 안전한 GET은 HTTP 200·두 메시지·assistant `CROSSCHECK_OK`를 확인했습니다. 이 과거 조회는 원래 POST UUID와 제품 경로의 정확한 대응까지 입증한 것은 아닙니다. 21번째는 `response-binding`, 22번째는 `response-ids` 진단으로 요청한 human/assistant ID와 두 서버 ID가 모두 다름을 확인했습니다. 공개 Qv 클라이언트도 human ID가 요청과 다를 때 `clientUuidHonored: false`를 처리합니다. 클라이언트 생성 ID는 전송 의도이며 서버의 확정 identity가 아닙니다. [Qv 응답 대응](https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/shared-1-DT-Mq-A-.js).
+
+Task 7은 서로 다른 유효한 SSE ID를 임시값으로 받아들이고 기존 완료 검사를 유지합니다. 이후 새로 생성한 정확한 대화 UUID를 크기가 제한된 GET으로 읽어, 고정 human 문장·두 고유 메시지의 sender와 스트림 ID·정확한 답변·parent/leaf·요청 모델·빈 첨부/files/sync_sources·`truncated: false`·`end_turn`을 모두 확인한 뒤 패널 답변을 반환합니다. content 배열의 text-only 값이 authoritative이며 고정 문장/완료 스트림과 정확히 같아야 합니다. legacy `text`는 빈 문자열 또는 같은 값만 허용하고 명시된 stream model이 다르면 거부합니다. 독립 readback이 요청과 응답을 묶는 추가 경계이며 UUID 형식이나 답변이 그럴듯하다는 이유로 검증을 약화하지 않습니다. 추가 POST·자동 재시도는 없습니다. [실제 클라이언트 GET 구성](https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/shared-l-p-m-3-B9pUKnbr.js).
+
+같은 소유 테스트 대화에서 readback 형태를 안전하게 확인했으며 원문·ID·인증값은 출력하지 않았습니다. 최종 단위 190개·타입·빌드, 같은 빌드의 관련 합성 20개·설치 5개를 순서대로 통과한 뒤 exact production 경로를 새로고침했습니다. 23번째 actual native 패널이 `CROSSCHECK_OK` 완료를 표시했고 제품 코드의 정확한 새 대화 대응, 기존 확장 관리 탭 선택과 새 Claude 탭 비활성을 확인했습니다. 앞선 20–22번째 실패는 수정 전 기록이며 현재 차단 사항이 아닙니다. 최종 production·회귀 source의 독립 리뷰에는 중요한 문제가 없었습니다.
+
+후속 전체 브라우저 회귀도 동일 소스에서 재빌드한 뒤 126개 모두 통과했습니다. 이번 변경 파일의 포맷·diff 공백 검사는 통과했으며, 전체 포맷에는 변경하지 않은 기존 문서 4개와 보존한 로컬 실패 증거의 형식 경고가 남습니다.
+
+개발 도구에서는 읽기 전용 요청과 UI 동작만 확인했고 인증값 읽기나 수동 생성 POST는 하지 않았습니다. 실제 전송 시도는 설치 확장의 고정 시험 버튼으로만 수행했고 이번에는 패널의 완결 답변까지 확인했습니다.
+
+현재 작업용 Claude 시험 탭은 순서대로 닫았고 새 목록에서 소유/열린 탭과 출처 불명 홈 탭이 0개임을 확인했습니다. 관련 없는 탭은 보존했고 확장 관리 탭 선택과 패널 완료 표시는 유지됐습니다. 작업용 브라우저 REPL은 정상 종료했으며 허가된 네이티브 helper도 종료해 실제 helper 프로세스 부재를 확인했습니다. 세 서비스 전체 문맥·첨부·최종 반환의 내부 호출 전환은 미검증이고 스토어 조회·새 업로드·새 심사 제출은 하지 않았습니다.
 
 ## 제안하는 사용 흐름과 경계
 

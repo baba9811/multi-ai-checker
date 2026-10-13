@@ -60,7 +60,7 @@ function disabled(element: HTMLElement) {
     /upgrade|구독|업그레이드|한도 도달|limit reached/i.test(element.innerText)
   );
 }
-function selectedModel(options: HTMLElement[]): string | undefined {
+function selectedModel(options: HTMLElement[]): HTMLElement | undefined {
   const marked = options.filter(
     (option) => option.hasAttribute('aria-checked') || option.hasAttribute('aria-selected'),
   );
@@ -71,12 +71,23 @@ function selectedModel(options: HTMLElement[]): string | undefined {
       option.getAttribute('aria-selected') === 'true',
   );
   if (selected.length !== 1 || disabled(selected[0]!))
-    throw new Error('현재 선택된 모델을 확인하지 못했습니다. 사이트에서 확인하세요.');
-  return label(selected[0]!);
+    throw new Error('현재 선택된 모델을 확인하지 못했습니다. 사이트에서 확인하세요.', {
+      cause: 'model-selection',
+    });
+  return selected[0];
+}
+async function readyTrigger(provider: ProviderId) {
+  let button = trigger(provider);
+  const deadline = Date.now() + 2500;
+  while (!button && provider === 'claude' && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    button = trigger(provider);
+  }
+  return button;
 }
 /** Opens only the model picker. No credentials, private APIs, or subscriptions are touched. */
 export async function modelMenu(provider: ProviderId, selectKey?: string): Promise<ModelCatalog> {
-  const button = trigger(provider);
+  const button = await readyTrigger(provider);
   if (!button)
     return {
       options: [],
@@ -84,12 +95,12 @@ export async function modelMenu(provider: ProviderId, selectKey?: string): Promi
     };
   const current = button.innerText.trim().slice(0, 160) || undefined;
   if (button.getAttribute('aria-expanded') === 'true')
-    throw new Error('열린 모델 메뉴를 먼저 닫아주세요.');
+    throw new Error('열린 모델 메뉴를 먼저 닫아주세요.', { cause: 'model-menu' });
   if ([...document.querySelectorAll('[role="menu"], [role="listbox"]')].some(visible))
-    throw new Error('사이트의 열린 메뉴를 먼저 닫아주세요.');
-  button.click();
+    throw new Error('사이트의 열린 메뉴를 먼저 닫아주세요.', { cause: 'model-menu' });
   let options: HTMLElement[] = [];
   try {
+    button.click();
     const deadline = Date.now() + 1500;
     while (Date.now() < deadline) {
       options = [...document.querySelectorAll(optionSelector)]
@@ -116,7 +127,8 @@ export async function modelMenu(provider: ProviderId, selectKey?: string): Promi
           !reopened &&
           ![...document.querySelectorAll(optionSelector)].some(visible)
         ) {
-          trigger(provider)?.click();
+          const current = trigger(provider);
+          if (current) current.click();
           reopened = true;
         }
         const confirmed = selectedModel(
@@ -125,7 +137,7 @@ export async function modelMenu(provider: ProviderId, selectKey?: string): Promi
             .filter((el) => families[provider].test(label(el))),
         );
         if (confirmed !== undefined) {
-          if (confirmed === selectKey) return { current: confirmed, options: values };
+          if (label(confirmed) === selectKey) return { current: label(confirmed), options: values };
         }
         const actual = trigger(provider)?.innerText.trim().slice(0, 160);
         const value = actual?.toLocaleLowerCase().replace(/\s+/g, ' ').trim();
@@ -139,8 +151,9 @@ export async function modelMenu(provider: ProviderId, selectKey?: string): Promi
       }
       throw new Error('모델 변경을 확인하지 못했습니다. 사이트에서 확인하세요.');
     }
+    // Capture primitives before finally closes and potentially unmounts the menu.
     return {
-      current: selected ?? current,
+      current: selected ? label(selected) : current,
       options: values,
       message: values.length
         ? undefined
@@ -148,12 +161,56 @@ export async function modelMenu(provider: ProviderId, selectKey?: string): Promi
     };
   } finally {
     // Close the picker we opened, without changing user text or clicking a backdrop.
-    if ([...document.querySelectorAll(optionSelector)].some(visible)) {
+    if (
+      [...document.querySelectorAll(optionSelector)].some(visible) ||
+      trigger(provider)?.getAttribute('aria-expanded') === 'true'
+    ) {
       const target = document.activeElement ?? button;
       target.dispatchEvent(
         new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }),
       );
-      if (button.getAttribute('aria-expanded') === 'true') button.click();
+      const waitForClosed = async () => {
+        const deadline = Date.now() + 1500;
+        while (Date.now() < deadline) {
+          if (
+            ![...document.querySelectorAll(optionSelector)].some(visible) &&
+            trigger(provider)?.getAttribute('aria-expanded') !== 'true'
+          )
+            return true;
+          await new Promise((resolve) => setTimeout(resolve, 80));
+        }
+        return false;
+      };
+      if (!(await waitForClosed())) {
+        const current = trigger(provider);
+        if (current?.getAttribute('aria-expanded') === 'true') current.click();
+        if (!(await waitForClosed()))
+          throw new Error('모델 메뉴가 닫히지 않았습니다. 사이트에서 확인하세요.', {
+            cause: 'model-menu',
+          });
+      }
     }
   }
+}
+
+/** The probe pairs this separate visible name with the account's exact selected model metadata. */
+export async function readClaudeProbeLabel(): Promise<string> {
+  const button = await readyTrigger('claude');
+  if (!button || disabled(button))
+    throw new Error('Claude 모델 선택 버튼을 확인하지 못했습니다.', { cause: 'model-trigger' });
+  if (
+    button.getAttribute('aria-expanded') !== 'false' ||
+    [...document.querySelectorAll('[role="menu"], [role="listbox"]')].some(visible)
+  )
+    throw new Error('열린 메뉴를 먼저 닫아주세요.', { cause: 'model-menu' });
+  const text = document.createTreeWalker(button, NodeFilter.SHOW_TEXT);
+  let node: Node | null;
+  while ((node = text.nextNode())) {
+    const parent = node.parentElement;
+    const value = node.textContent?.replace(/\s+/g, ' ').trim();
+    if (!value || !parent || !visible(parent) || parent.closest('svg, .sr-only')) continue;
+    if (value.length <= 160) return value;
+    break;
+  }
+  throw new Error('Claude 모델 이름을 확인하지 못했습니다.', { cause: 'model' });
 }

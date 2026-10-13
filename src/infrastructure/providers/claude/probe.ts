@@ -1,6 +1,16 @@
 import { CLAUDE_PROBE_PROMPT, type ClaudeProbeReason } from '../../../application/claude-probe';
+import { readClaudeProbeLabel } from '../models';
 export { CLAUDE_PROBE_PROMPT };
 const FAILURE = 'Claude probe failed.';
+const RESPONSE_STAGES = [
+  'response-event',
+  'response-metadata',
+  'response-binding',
+  'response-role',
+  'response-block',
+  'response-terminal',
+] as const;
+const METADATA_EVENTS = ['ping', 'message_limit', 'conversation_ready', 'cache_performance'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function fail(): never {
   throw new Error(FAILURE);
@@ -12,10 +22,10 @@ const record = (value: unknown): Record<string, unknown> => {
 
 export async function collectClaudeProbeStream(
   stream: ReadableStream<Uint8Array>,
-  human: string,
-  assistant: string,
   signal: AbortSignal,
-): Promise<string> {
+  model: string,
+): Promise<{ answer: string; human: string; assistant: string }> {
+  let stage: (typeof RESPONSE_STAGES)[number] = 'response-event';
   const reader = stream.getReader();
   const abort = () => {
     void reader.cancel().catch(() => {});
@@ -28,8 +38,11 @@ export async function collectClaudeProbeStream(
     started = false,
     ended = false,
     stopped = false;
+  let human = '',
+    assistant = '';
   const blocks = new Map<number, boolean>();
   function frame(raw: string) {
+    stage = 'response-event';
     let name = '';
     const data: string[] = [];
     for (const line of raw.split(/\r\n|\n|\r/)) {
@@ -41,25 +54,40 @@ export async function collectClaudeProbeStream(
       else fail();
     }
     if (!name && !data.length) return;
+    if (stopped) fail();
+    if (METADATA_EVENTS.includes(name)) return;
     const value = record(JSON.parse(data.join('\n')));
     if (typeof value.type !== 'string' || !value.type || (name && value.type !== name) || stopped)
       fail();
     name ||= value.type;
-    if (['ping', 'message_limit', 'conversation_ready', 'cache_performance'].includes(name)) return;
+    if (METADATA_EVENTS.includes(name)) return;
     if (name === 'message_start') {
+      stage = 'response-binding';
       const message = record(value.message);
+      if (message.model !== undefined && message.model !== model) fail();
       if (
         started ||
-        message.uuid !== assistant ||
-        message.parent_uuid !== human ||
-        message.role !== 'assistant'
+        typeof message.uuid !== 'string' ||
+        !UUID.test(message.uuid) ||
+        typeof message.parent_uuid !== 'string' ||
+        !UUID.test(message.parent_uuid) ||
+        message.uuid === message.parent_uuid
       )
         fail();
+      stage = 'response-role';
+      if (
+        (message.role !== undefined && message.role !== 'assistant') ||
+        (message.sender !== undefined && message.sender !== 'assistant')
+      )
+        fail();
+      human = message.parent_uuid;
+      assistant = message.uuid;
       started = true;
       return;
     }
     if (!started) fail();
     if (name === 'message_delta') {
+      stage = 'response-terminal';
       if (
         ended ||
         !blocks.size ||
@@ -71,11 +99,17 @@ export async function collectClaudeProbeStream(
       return;
     }
     if (name === 'message_stop') {
+      stage = 'response-terminal';
       if (!ended || !text.trim()) fail();
       stopped = true;
       return;
     }
-    if (ended) fail();
+    if (ended) {
+      stage = 'response-terminal';
+      fail();
+    }
+    if (['content_block_start', 'content_block_delta', 'content_block_stop'].includes(name))
+      stage = 'response-block';
     const index = value.index;
     if (typeof index !== 'number' || !Number.isSafeInteger(index) || index < 0) fail();
     if (name === 'content_block_start') {
@@ -100,10 +134,12 @@ export async function collectClaudeProbeStream(
       const chunk = await reader.read();
       if (signal.aborted) fail();
       if (chunk.done) {
+        stage = 'response-terminal';
         buffer += decoder.decode();
         break;
       }
       bytes += chunk.value.byteLength;
+      stage = 'response-event';
       if (bytes > 1048576) fail();
       buffer += decoder.decode(chunk.value, { stream: true });
       let separator: RegExpExecArray | null;
@@ -112,13 +148,15 @@ export async function collectClaudeProbeStream(
         buffer = buffer.slice(separator.index + separator[0].length);
       }
       if (stopped) {
+        stage = 'response-terminal';
         if (buffer.trim()) fail();
-        return text;
+        return { answer: text, human, assistant };
       }
     }
+    stage = 'response-terminal';
     return fail();
   } catch {
-    return fail();
+    throw new Error(FAILURE, { cause: signal.aborted ? 'interrupted' : stage });
   } finally {
     signal.removeEventListener('abort', abort);
     await reader.cancel().catch(() => {});
@@ -126,7 +164,7 @@ export async function collectClaudeProbeStream(
   }
 }
 
-export async function claudeProbe(uiModel: string, signal: AbortSignal): Promise<string> {
+export async function claudeProbe(initialLabel: string, signal: AbortSignal): Promise<string> {
   let stage: ClaudeProbeReason = 'page';
   try {
     const initialUrl = location.href;
@@ -198,24 +236,57 @@ export async function claudeProbe(uiModel: string, signal: AbortSignal): Promise
     const org = eligible[0]!.uuid;
     if (typeof org !== 'string' || !UUID.test(org)) fail();
     stage = 'catalog';
-    const models = record(
-      await json(`/api/organizations/${org}`),
-    ).claude_ai_bootstrap_models_config;
-    const normalize = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
-    if (!Array.isArray(models) || !uiModel.trim()) fail();
-    const matches = models
-      .map(record)
-      .filter(
-        (model) =>
-          model.inactive === false &&
-          model.overflow === false &&
-          typeof model.name === 'string' &&
-          normalize(model.name) === normalize(uiModel),
-      );
-    const selected = matches[0];
-    if (matches.length !== 1 || !selected) fail();
-    const model = selected.model;
-    if (typeof model !== 'string' || !/^[a-z0-9][a-z0-9._-]{0,127}$/i.test(model)) fail();
+    const bootstrap = record(
+      await json(
+        `/edge-api/bootstrap/${org}/app_start?statsig_hashing_algorithm=djb2&growthbook_format=sdk&cache_bust=1&include_system_prompts=false`,
+      ),
+    );
+    const normalize = (name: string) => name.replace(/\s+/g, ' ').trim();
+    const label = normalize(initialLabel);
+    if (!label || label.length > 160) fail();
+    function chatSelector(value: unknown) {
+      if (!Array.isArray(value)) return fail();
+      const chat = value.map(record).filter((entry) => entry.id === 'chat');
+      if (chat.length !== 1) return fail();
+      return chat[0]!;
+    }
+    const state = chatSelector(bootstrap.model_selector_state);
+    const config = chatSelector(bootstrap.model_selector_config);
+    const validId = (id: unknown): id is string =>
+      typeof id === 'string' && /^[a-z0-9][a-z0-9._-]{0,127}$/i.test(id);
+    if (!validId(state.model) || !Array.isArray(config.models)) fail();
+    const configured = config.models.map(record);
+    const configuredIds = configured.map((entry) => entry.id);
+    if (
+      configuredIds.some((id) => !validId(id)) ||
+      new Set(configuredIds).size !== configuredIds.length
+    )
+      fail();
+    const matching = configured.filter(
+      (entry) =>
+        (entry.disabled === undefined || entry.disabled === false) &&
+        (entry.disabled_reason === undefined || entry.disabled_reason === null) &&
+        (entry.section === undefined ||
+          (typeof entry.section === 'string' &&
+            !['legacy', 'deprecated'].includes(entry.section))) &&
+        typeof entry.name === 'string' &&
+        normalize(entry.name) === label,
+    );
+    if (matching.length !== 1 || matching[0]!.id !== state.model) fail();
+    const model = state.model;
+    const available = record(bootstrap.claude_ai_available_models).models;
+    if (!Array.isArray(available)) fail();
+    const ids = available.map((entry) => record(entry).model_id);
+    if (
+      ids.some((id) => !validId(id)) ||
+      new Set(ids).size !== ids.length ||
+      ids.filter((id) => id === model).length !== 1
+    )
+      fail();
+    stage = 'model-confirmation';
+    if (signal.aborted || location.href !== initialUrl) fail();
+    const confirmed = await readClaudeProbeLabel();
+    if (normalize(confirmed) !== label) fail();
     const conversation = crypto.randomUUID(),
       human = crypto.randomUUID(),
       assistant = crypto.randomUUID();
@@ -267,8 +338,62 @@ export async function claudeProbe(uiModel: string, signal: AbortSignal): Promise
       !response.headers.get('content-type')?.toLowerCase().startsWith('text/event-stream')
     )
       fail();
-    return await collectClaudeProbeStream(response.body, human, assistant, signal);
-  } catch {
-    throw new Error(FAILURE, { cause: signal.aborted ? 'interrupted' : stage });
+    const completed = await collectClaudeProbeStream(response.body, signal, model);
+    stage = 'response-confirmation';
+    const saved = record(
+      await json(
+        `/api/organizations/${org}/chat_conversations/${conversation}?tree=True&rendering_mode=messages&render_all_tools=true&include_inline_comparison=true`,
+      ),
+    );
+    if (
+      saved.uuid !== conversation ||
+      saved.model !== model ||
+      saved.current_leaf_message_uuid !== completed.assistant ||
+      !Array.isArray(saved.chat_messages) ||
+      saved.chat_messages.length !== 2
+    )
+      fail();
+    const messages = saved.chat_messages.map(record);
+    if (new Set(messages.map((message) => message.uuid)).size !== 2) fail();
+    const user = messages.find((message) => message.uuid === completed.human);
+    const reply = messages.find((message) => message.uuid === completed.assistant);
+    if (
+      !user ||
+      !reply ||
+      user.sender !== 'human' ||
+      reply.sender !== 'assistant' ||
+      reply.parent_message_uuid !== completed.human ||
+      reply.stop_reason !== 'end_turn'
+    )
+      fail();
+    for (const message of messages) {
+      if (
+        message.truncated !== false ||
+        typeof message.text !== 'string' ||
+        !Array.isArray(message.content)
+      )
+        fail();
+      const content = message.content.map(record);
+      if (content.some((block) => block.type !== 'text' || typeof block.text !== 'string')) fail();
+      const text = content.map((block) => block.text).join('');
+      if (
+        text !== (message === user ? CLAUDE_PROBE_PROMPT : completed.answer) ||
+        (message.text !== '' && message.text !== text)
+      )
+        fail();
+      for (const key of ['attachments', 'files', 'sync_sources'])
+        if (!Array.isArray(message[key]) || message[key].length !== 0) fail();
+    }
+    if (signal.aborted || location.href !== initialUrl || location.origin !== 'https://claude.ai')
+      fail();
+    return completed.answer;
+  } catch (error) {
+    const cause =
+      stage === 'response' &&
+      error instanceof Error &&
+      RESPONSE_STAGES.some((reason) => reason === error.cause)
+        ? error.cause
+        : stage;
+    throw new Error(FAILURE, { cause: signal.aborted ? 'interrupted' : cause });
   }
 }

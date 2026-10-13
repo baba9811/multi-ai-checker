@@ -1,5 +1,6 @@
 import { test, expect } from './extension';
 import { createRun } from '../../src/domains/crosscheck/workflow';
+import { providerPage } from '../fixtures/providers/pages';
 
 test('production panel starts without permissions or manual stage controls', async ({
   extension,
@@ -89,4 +90,112 @@ test('installed probe restores unfinished intent without opening a provider or r
     ),
   ).toBe(false);
   expect((await panel.evaluate(() => chrome.permissions.getAll())).origins ?? []).toEqual([]);
+});
+
+test.describe('synthetic Claude permission already granted', () => {
+  test.use({ syntheticClaudePermission: true });
+
+  test('installed Claude model picker captures its choice before asynchronous cleanup without moving focus', async ({
+    extension,
+  }) => {
+    const { context, panel } = extension;
+    const url = 'https://claude.ai/new';
+    const claude = await context.newPage();
+    await claude.route('https://claude.ai/**', (route) =>
+      route.fulfill({ contentType: 'text/html', body: providerPage('claude') }),
+    );
+    await claude.goto(url);
+    await claude.evaluate(() => {
+      const trigger = document.createElement('button');
+      trigger.dataset.testid = 'model-selector-dropdown';
+      trigger.textContent = 'Sonnet fixture Medium';
+      trigger.setAttribute('aria-expanded', 'false');
+      trigger.dataset.menuOpens = '0';
+      const menu = document.createElement('div');
+      menu.setAttribute('role', 'menu');
+      menu.hidden = true;
+      const option = document.createElement('button');
+      option.setAttribute('role', 'menuitemradio');
+      option.setAttribute('aria-checked', 'true');
+      option.dataset.modelId = 'claude-private-fixture-key';
+      option.textContent = 'Sonnet fixture';
+      menu.append(option);
+      trigger.onclick = () => {
+        trigger.dataset.menuOpens = String(Number(trigger.dataset.menuOpens) + 1);
+        menu.hidden = !menu.hidden;
+        trigger.setAttribute('aria-expanded', String(!menu.hidden));
+        if (!menu.hidden) option.focus();
+      };
+      option.onkeydown = (event) => {
+        if (event.key !== 'Escape') return;
+        setTimeout(() => {
+          menu.remove();
+          option.textContent = '';
+          trigger.setAttribute('aria-expanded', 'false');
+        }, 20);
+      };
+      document.body.prepend(trigger, menu);
+    });
+    expect(
+      await panel.evaluate(() => chrome.permissions.contains({ origins: ['https://claude.ai/*'] })),
+    ).toBe(true);
+    const tabs = await panel.evaluate(
+      async (url) =>
+        (await chrome.tabs.query({})).filter((tab) => tab.url === url).map((tab) => tab.id!),
+      url,
+    );
+    expect(tabs).toHaveLength(1);
+    const tabId = tabs[0]!;
+    await panel.evaluate(async (tabId) => {
+      await chrome.scripting.executeScript({
+        target: { tabId, frameIds: [0] },
+        files: ['bridge.js'],
+        world: 'ISOLATED',
+      });
+    }, tabId);
+    const snapshot = await panel.evaluate(
+      (tabId) => chrome.tabs.sendMessage(tabId, { type: 'snapshot' }),
+      tabId,
+    );
+    expect(snapshot.ok).toBe(true);
+    const other = await context.newPage();
+    await other.goto('about:blank');
+    await other.bringToFront();
+    const activeBefore = await panel.evaluate(async () =>
+      (await chrome.tabs.query({ active: true, currentWindow: true })).map((tab) => tab.id),
+    );
+    expect(activeBefore).toHaveLength(1);
+    expect(activeBefore[0]).not.toBe(tabId);
+    const catalog = await panel.evaluate(
+      ({ tabId, documentId, url }) =>
+        chrome.tabs.sendMessage(tabId, { type: 'models', documentId, url }),
+      { tabId, documentId: snapshot.data.documentId, url },
+    );
+    expect(catalog).toEqual({
+      ok: true,
+      data: {
+        current: 'Sonnet fixture',
+        options: [{ key: 'Sonnet fixture', label: 'Sonnet fixture', disabled: false }],
+      },
+    });
+    expect(JSON.stringify(catalog)).not.toContain('claude-private-fixture-key');
+    await expect(claude.getByTestId('model-selector-dropdown')).toHaveAttribute(
+      'data-menu-opens',
+      '1',
+    );
+    await expect(claude.getByTestId('model-selector-dropdown')).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    await expect(claude.getByRole('menu')).not.toBeVisible();
+    expect(
+      await claude.evaluate(() => (window as unknown as { fixtureSent: string[] }).fixtureSent),
+    ).toEqual([]);
+    expect(
+      await panel.evaluate(async () =>
+        (await chrome.tabs.query({ active: true, currentWindow: true })).map((tab) => tab.id),
+      ),
+    ).toEqual(activeBefore);
+    expect(await other.evaluate(() => document.hasFocus())).toBe(true);
+  });
 });

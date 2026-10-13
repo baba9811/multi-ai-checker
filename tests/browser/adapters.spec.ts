@@ -922,10 +922,11 @@ for (const provider of providerIds) {
           };
           menu.append(option);
         });
-        trigger.onclick = () => {
+        const toggle = () => {
           menu.hidden = !menu.hidden;
           trigger.setAttribute('aria-expanded', String(!menu.hidden));
         };
+        trigger.onclick = toggle;
         document.addEventListener('keydown', (event) => {
           if (event.key === 'Escape') {
             menu.hidden = true;
@@ -957,6 +958,42 @@ test('unsupported model UI returns no invented models and sends nothing', async 
   expect(result.data.options).toEqual([]);
   expect(result.data.message).toContain('웹에서 선택한 모델');
   expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+test('Claude model picker waits for its delayed owning trigger', async ({ page }) => {
+  const target = await setup(page, 'claude');
+  await page.evaluate(() => {
+    setTimeout(() => {
+      const button = document.createElement('button');
+      button.dataset.testid = 'model-selector-dropdown';
+      button.textContent = 'Sonnet delayed';
+      button.setAttribute('aria-expanded', 'false');
+      const menu = document.createElement('div');
+      menu.setAttribute('role', 'menu');
+      menu.hidden = true;
+      const option = document.createElement('button');
+      option.setAttribute('role', 'menuitemradio');
+      option.setAttribute('aria-checked', 'true');
+      option.textContent = 'Sonnet delayed';
+      menu.append(option);
+      button.onclick = () => {
+        menu.hidden = !menu.hidden;
+        button.setAttribute('aria-expanded', String(!menu.hidden));
+        if (!menu.hidden) option.focus();
+      };
+      option.onkeydown = (event) => {
+        if (event.key === 'Escape') {
+          menu.hidden = true;
+          button.setAttribute('aria-expanded', 'false');
+        }
+      };
+      document.body.prepend(button, menu);
+    }, 320);
+  });
+  const result = await command(page, { type: 'models', ...target });
+  expect(result.data.current).toBe('Sonnet delayed');
+  expect(result.data.options).toHaveLength(1);
+  await expect(page.getByRole('menu')).not.toBeVisible();
 });
 
 test('new-conversation navigation is accepted once and subsequent conversation changes stop collection', async ({
@@ -1388,3 +1425,137 @@ for (const delayedClose of [false, true]) {
     expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
   });
 }
+
+test('Claude model reads wait for asynchronous Escape cleanup before returning', async ({
+  page,
+}) => {
+  const target = await setup(page, 'claude');
+  const result = await page.evaluate(async (target) => {
+    const trigger = document.createElement('button');
+    trigger.dataset.testid = 'model-selector-dropdown';
+    trigger.textContent = 'Sonnet fixture Medium';
+    trigger.setAttribute('aria-expanded', 'false');
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+    const option = document.createElement('button');
+    option.setAttribute('role', 'menuitemradio');
+    option.setAttribute('aria-checked', 'true');
+    option.textContent = 'Sonnet fixture';
+    menu.append(option);
+    let fallbackCloses = 0;
+    const close = () =>
+      setTimeout(() => {
+        menu.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+      }, 20);
+    trigger.onclick = () => {
+      if (!menu.hidden) {
+        fallbackCloses++;
+        close();
+        return;
+      }
+      menu.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      option.focus();
+    };
+    option.onkeydown = (event) => {
+      if (event.key === 'Escape') close();
+    };
+    document.body.prepend(trigger, menu);
+    const results = [];
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await new Promise<{ ok: boolean }>((resolve) => {
+        (window as any).__bridgeHandler(
+          { type: 'models', ...target },
+          { id: 'fixture', url: 'chrome-extension://fixture/sidepanel.html' },
+          resolve,
+        );
+      });
+      results.push({ ok: response.ok, closed: menu.hidden });
+    }
+    return { results, fallbackCloses };
+  }, target);
+  expect(result.results).toEqual([
+    { ok: true, closed: true },
+    { ok: true, closed: true },
+  ]);
+  expect(result.fallbackCloses).toBe(0);
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+test('Claude model picker clicks its owning trigger once', async ({ page }) => {
+  const target = await setup(page, 'claude');
+  await page.evaluate(() => {
+    const trigger = document.createElement('button');
+    trigger.dataset.testid = 'model-selector-dropdown';
+    trigger.textContent = 'Sonnet fixture Medium';
+    trigger.setAttribute('aria-expanded', 'false');
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+    const option = document.createElement('button');
+    option.setAttribute('role', 'menuitemradio');
+    option.setAttribute('aria-checked', 'true');
+    option.textContent = 'Sonnet fixture';
+    menu.append(option);
+    (window as any).fixtureTriggerClicks = 0;
+    trigger.onclick = () => {
+      (window as any).fixtureTriggerClicks++;
+      menu.hidden = !menu.hidden;
+      trigger.setAttribute('aria-expanded', String(!menu.hidden));
+      if (!menu.hidden) option.focus();
+    };
+    option.onkeydown = (event) => {
+      if (event.key !== 'Escape') return;
+      menu.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+    };
+    document.body.prepend(trigger, menu);
+  });
+  const catalog = await command(page, { type: 'models', ...target });
+  expect(catalog.ok).toBe(true);
+  expect(catalog.data.current).toBe('Sonnet fixture');
+  expect(catalog.data.options).toEqual([
+    { key: 'Sonnet fixture', label: 'Sonnet fixture', disabled: false },
+  ]);
+  expect(await page.evaluate(() => (window as any).fixtureTriggerClicks)).toBe(1);
+  await expect(page.getByRole('menu')).not.toBeVisible();
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+test('Claude model picker closes an empty menu after the options timeout', async ({ page }) => {
+  const target = await setup(page, 'claude');
+  await page.evaluate(() => {
+    const trigger = document.createElement('button');
+    trigger.dataset.testid = 'model-selector-dropdown';
+    trigger.textContent = 'Sonnet fixture';
+    trigger.setAttribute('aria-expanded', 'false');
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    menu.textContent = 'Loading models';
+    menu.hidden = true;
+    trigger.onclick = () => {
+      menu.hidden = !menu.hidden;
+      trigger.setAttribute('aria-expanded', String(!menu.hidden));
+      trigger.focus();
+    };
+    trigger.onkeydown = (event) => {
+      if (event.key === 'Escape') {
+        menu.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+    };
+    document.body.prepend(trigger, menu);
+  });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const catalog = await command(page, { type: 'models', ...target });
+    expect(catalog.ok).toBe(true);
+    expect(catalog.data.options).toEqual([]);
+    expect(await page.getByTestId('model-selector-dropdown').getAttribute('aria-expanded')).toBe(
+      'false',
+    );
+    await expect(page.getByRole('menu')).not.toBeVisible();
+  }
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
