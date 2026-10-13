@@ -10,6 +10,7 @@ import {
 } from '../../domains/providers/model';
 import { ProviderLogo } from './ProviderLogo';
 import { ClaudeProbe } from './ClaudeProbe';
+import { GeminiReadiness } from './GeminiReadiness';
 
 export function ConnectionSettings({
   platform,
@@ -304,6 +305,9 @@ export function ConnectionSettings({
       })}
       {platform.startClaudeProbe && platform.readClaudeProbe && (
         <ClaudeProbe platform={platform} disabled={disabled} onWorking={onWorking} />
+      )}
+      {platform.checkGeminiReadiness && platform.readGeminiReadiness && (
+        <GeminiReadiness platform={platform} disabled={disabled} onWorking={onWorking} />
       )}
       <button className="text-button" onClick={downloadDiagnostics}>
         <Download size={13} /> 진단 저장

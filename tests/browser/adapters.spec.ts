@@ -1559,3 +1559,279 @@ test('Claude model picker closes an empty menu after the options timeout', async
   }
   expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
 });
+
+async function setupCurrentGeminiModes(
+  page: Page,
+  variant: 'normal' | 'unmount' | 'ambiguous' | 'disabled' | 'foreign' | 'duplicate-owner',
+) {
+  const target = await setup(page, 'gemini');
+  await page.evaluate((variant) => {
+    const trigger = document.createElement('button');
+    trigger.setAttribute('data-test-id', 'bard-mode-menu-button');
+    trigger.setAttribute('aria-haspopup', 'menu');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-controls', 'fixture-mode-menu');
+    trigger.textContent = 'Gemini Automatic fixture low';
+    const menu = document.createElement('div');
+    menu.id = 'fixture-mode-menu';
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+    const rows: HTMLElement[] = [];
+    for (const [index, title] of ['Automatic fixture', 'Reasoned fixture'].entries()) {
+      const row = document.createElement('gem-menu-item');
+      row.style.cssText = 'display:block;min-height:40px;width:300px';
+      row.tabIndex = 0;
+      row.setAttribute('role', 'menuitem');
+      row.setAttribute('data-mode-id', `fixture-mode-${index}`);
+      row.setAttribute('aria-disabled', String(variant === 'disabled' && index === 0));
+      row.classList.toggle('selected', index === 0 || variant === 'ambiguous');
+      const content = document.createElement('gem-menu-item-content');
+      const labels = document.createElement('div');
+      labels.className = 'label-container';
+      const label = document.createElement('span');
+      label.className = 'label';
+      label.textContent = title;
+      const description = document.createElement('div');
+      description.className = 'sublabel';
+      description.textContent = 'Gemini model description, not its name';
+      labels.append(label, description);
+      content.append(labels);
+      row.append(content);
+      row.onclick = () => {
+        for (const candidate of rows) candidate.classList.toggle('selected', candidate === row);
+        trigger.textContent = `Gemini ${title} low`;
+        menu.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+      };
+      rows.push(row);
+      if (variant !== 'foreign') menu.append(row);
+    }
+    const effort = document.createElement('gem-menu-item');
+    effort.style.cssText = 'display:block;min-height:40px;width:300px';
+    effort.setAttribute('role', 'menuitem');
+    effort.className = 'selected';
+    effort.textContent = '빠른 사고';
+    menu.append(effort);
+    const foreign = document.createElement('div');
+    foreign.id = variant === 'duplicate-owner' ? menu.id : 'fixture-foreign-menu';
+    foreign.setAttribute('role', 'menu');
+    foreign.hidden = true;
+    if (variant === 'foreign' || variant === 'duplicate-owner') {
+      const foreignRow = document.createElement('gem-menu-item');
+      foreignRow.style.cssText = 'display:block;min-height:40px;width:300px';
+      foreignRow.setAttribute('role', 'menuitem');
+      foreignRow.setAttribute('data-mode-id', 'fixture-foreign-mode');
+      foreignRow.className = 'selected';
+      foreignRow.textContent = 'Gemini foreign model';
+      foreign.append(foreignRow);
+    }
+    const close = () => {
+      const finish = () => {
+        menu.hidden = true;
+        foreign.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+        if (variant === 'unmount') {
+          for (const row of rows) {
+            row.textContent = '';
+            row.removeAttribute('data-mode-id');
+          }
+          menu.remove();
+        }
+      };
+      if (variant === 'unmount') setTimeout(finish, 20);
+      else finish();
+    };
+    trigger.onclick = () => {
+      if (trigger.getAttribute('aria-expanded') === 'true') {
+        close();
+        return;
+      }
+      menu.hidden = false;
+      foreign.hidden = variant !== 'foreign' && variant !== 'duplicate-owner';
+      trigger.setAttribute('aria-expanded', 'true');
+      trigger.focus();
+    };
+    trigger.onkeydown = (event) => {
+      if (event.key === 'Escape') close();
+    };
+    document.body.prepend(trigger, menu, foreign);
+  }, variant);
+  return target;
+}
+
+test('Gemini keyed model menu separates selected mode from selected effort and keeps public keys as labels', async ({
+  page,
+}) => {
+  const target = await setupCurrentGeminiModes(page, 'normal');
+  const catalog = await command(page, { type: 'models', ...target });
+  expect(catalog.ok).toBe(true);
+  expect(catalog.data).toEqual({
+    current: 'Automatic fixture',
+    options: [
+      { key: 'Automatic fixture', label: 'Automatic fixture', disabled: false },
+      { key: 'Reasoned fixture', label: 'Reasoned fixture', disabled: false },
+    ],
+  });
+  expect(JSON.stringify(catalog)).not.toContain('fixture-mode-');
+  await expect(page.locator('#fixture-mode-menu')).not.toBeVisible();
+  const selected = await command(page, { type: 'selectModel', ...target, key: 'Reasoned fixture' });
+  expect(selected.ok).toBe(true);
+  expect(selected.data.current).toBe('Reasoned fixture');
+  await expect(page.locator('#fixture-mode-menu')).not.toBeVisible();
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+test('Gemini keyed model menu captures title before awaited menu unmount', async ({ page }) => {
+  const target = await setupCurrentGeminiModes(page, 'unmount');
+  const catalog = await command(page, { type: 'models', ...target });
+  expect(catalog.ok).toBe(true);
+  expect(catalog.data.current).toBe('Automatic fixture');
+  expect(catalog.data.options.map((option: { label: string }) => option.label)).toEqual([
+    'Automatic fixture',
+    'Reasoned fixture',
+  ]);
+  await expect(page.locator('#fixture-mode-menu')).toHaveCount(0);
+  expect(
+    await page.locator('[data-test-id="bard-mode-menu-button"]').getAttribute('aria-expanded'),
+  ).toBe('false');
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+for (const variant of ['ambiguous', 'disabled', 'foreign', 'duplicate-owner'] as const) {
+  test(`Gemini keyed model menu rejects ${variant} selection without sending`, async ({ page }) => {
+    const target = await setupCurrentGeminiModes(page, variant);
+    const catalog = await command(page, { type: 'models', ...target });
+    expect(catalog.ok).toBe(false);
+    await expect(page.locator('[role="menu"]:visible')).toHaveCount(0);
+    expect(
+      await page.locator('[data-test-id="bard-mode-menu-button"]').getAttribute('aria-expanded'),
+    ).toBe('false');
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  });
+}
+
+async function setupCompactGeminiModes(
+  page: Page,
+  variant: 'normal' | 'escape-ignored' | 'foreign-owner' | 'duplicate-inner' | 'duplicate-menu',
+) {
+  const target = await setupCurrentGeminiModes(page, 'normal');
+  await page.evaluate((variant) => {
+    const inner = document.querySelector<HTMLButtonElement>(
+      '[data-test-id="bard-mode-menu-button"]',
+    )!;
+    const oldMenu = document.querySelector<HTMLElement>('#fixture-mode-menu')!;
+    const owner = document.createElement('bard-mode-switcher');
+    owner.setAttribute('data-test-id', 'bard-mode-switcher');
+    owner.style.display = 'block';
+    const host = document.createElement('gem-button');
+    host.setAttribute('data-test-id', 'bard-mode-menu-button');
+    host.style.display = 'inline-block';
+    for (const attribute of ['data-test-id', 'aria-haspopup', 'aria-controls', 'aria-expanded'])
+      inner.removeAttribute(attribute);
+    inner.setAttribute('aria-label', 'Mode: Automatic fixture');
+    inner.onclick = null;
+    const menu = document.createElement('gem-menu');
+    menu.setAttribute('role', 'menu');
+    menu.setAttribute('data-test-id', 'gem-mode-menu');
+    const styles = document.createElement('style');
+    styles.textContent = 'gem-menu { display:block } gem-menu[hidden] { display:none }';
+    document.head.append(styles);
+    menu.hidden = true;
+    menu.append(...oldMenu.childNodes);
+    oldMenu.remove();
+    const popover = document.createElement('gem-popover');
+    const pane = document.createElement('div');
+    pane.className = 'cdk-overlay-pane';
+    const overlay = document.createElement('div');
+    overlay.className = 'cdk-overlay-popover';
+    const popup = document.createElement('div');
+    popup.setAttribute('data-test-id', 'bard-mode-popover-menu');
+    popup.append(menu);
+    overlay.append(popup);
+    pane.append(overlay);
+    popover.append(pane);
+    host.append(inner);
+    owner.append(host);
+    if (variant === 'foreign-owner') {
+      const foreignOwner = document.createElement('bard-mode-switcher');
+      foreignOwner.setAttribute('data-test-id', 'bard-mode-switcher');
+      foreignOwner.append(popover);
+      document.body.prepend(foreignOwner);
+    } else owner.append(popover);
+    if (variant === 'duplicate-inner') host.append(inner.cloneNode(true));
+    let duplicate: HTMLElement | undefined;
+    if (variant === 'duplicate-menu') {
+      duplicate = menu.cloneNode(true) as HTMLElement;
+      popup.append(duplicate);
+    }
+    const close = () => {
+      menu.hidden = true;
+      if (duplicate) duplicate.hidden = true;
+    };
+    (window as any).fixtureControlClicks = 0;
+    host.onclick = () => {
+      (window as any).fixtureControlClicks++;
+      menu.hidden = !menu.hidden;
+      if (duplicate) duplicate.hidden = menu.hidden;
+      inner.focus();
+    };
+    inner.onkeydown = (event) => {
+      if (event.key === 'Escape' && variant !== 'escape-ignored') close();
+    };
+    for (const row of menu.querySelectorAll<HTMLElement>('[data-mode-id]')) {
+      row.onclick = () => {
+        for (const candidate of menu.querySelectorAll('[data-mode-id]'))
+          candidate.classList.toggle('selected', candidate === row);
+        inner.textContent = `Gemini ${row.querySelector('.label')!.textContent} low`;
+        close();
+      };
+    }
+    document.body.prepend(owner);
+  }, variant);
+  return target;
+}
+
+test('Gemini compact model menu uses its unique inner control and local owning popover', async ({
+  page,
+}) => {
+  const target = await setupCompactGeminiModes(page, 'normal');
+  const catalog = await command(page, { type: 'models', ...target });
+  expect(catalog.ok).toBe(true);
+  expect(catalog.data.current).toBe('Automatic fixture');
+  expect(catalog.data.options.map((option: { label: string }) => option.label)).toEqual([
+    'Automatic fixture',
+    'Reasoned fixture',
+  ]);
+  expect(JSON.stringify(catalog)).not.toContain('fixture-mode-');
+  expect(await page.evaluate(() => (window as any).fixtureControlClicks)).toBe(1);
+  await expect(page.locator('[data-test-id="gem-mode-menu"]')).not.toBeVisible();
+  const selected = await command(page, { type: 'selectModel', ...target, key: 'Reasoned fixture' });
+  expect(selected.ok).toBe(true);
+  expect(selected.data.current).toBe('Reasoned fixture');
+  await expect(page.locator('[data-test-id="gem-mode-menu"]')).not.toBeVisible();
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+test('Gemini compact model menu closes its own visible popover when Escape is ignored', async ({
+  page,
+}) => {
+  const target = await setupCompactGeminiModes(page, 'escape-ignored');
+  const catalog = await command(page, { type: 'models', ...target });
+  expect(catalog.ok).toBe(true);
+  expect(catalog.data.current).toBe('Automatic fixture');
+  expect(await page.evaluate(() => (window as any).fixtureControlClicks)).toBe(2);
+  await expect(page.locator('[data-test-id="gem-mode-menu"]')).not.toBeVisible();
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+for (const variant of ['foreign-owner', 'duplicate-inner', 'duplicate-menu'] as const) {
+  test(`Gemini compact model menu rejects ${variant} without sending`, async ({ page }) => {
+    const target = await setupCompactGeminiModes(page, variant);
+    const catalog = await command(page, { type: 'models', ...target });
+    expect(catalog.ok).toBe(false);
+    if (variant === 'duplicate-inner')
+      expect(await page.evaluate(() => (window as any).fixtureControlClicks)).toBe(0);
+    await expect(page.locator('[role="menu"]:visible')).toHaveCount(0);
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  });
+}

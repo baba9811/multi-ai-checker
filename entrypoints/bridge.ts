@@ -17,6 +17,8 @@ import { modelMenu, readClaudeProbeLabel } from '../src/infrastructure/providers
 import { claudeProbe } from '../src/infrastructure/providers/claude/probe';
 import { createClaudePeer } from '../src/infrastructure/providers/claude/peer';
 import { ClaudeProbeReason, type ClaudeProbeProgress } from '../src/application/claude-probe';
+import { GeminiReadinessProgress } from '../src/application/gemini-readiness';
+import { geminiReadiness } from '../src/infrastructure/providers/gemini/readiness';
 
 export default defineUnlistedScript(() => {
   const world = globalThis as typeof globalThis & { __crosscheckInstalled?: boolean };
@@ -82,6 +84,24 @@ export default defineUnlistedScript(() => {
   };
   window.addEventListener('beforeunload', stopProbe);
   document.addEventListener('input', stopProbe, true);
+  let readiness:
+    | (GeminiReadinessProgress & {
+        id: string;
+        controller: AbortController;
+        url: string;
+        poll: number;
+        start: number;
+      })
+    | undefined;
+  const stopReadiness = () => {
+    if (readiness?.status !== 'pending') return;
+    readiness.status = 'error';
+    readiness.result = undefined;
+    readiness.reason ??= 'interrupted';
+    readiness.controller.abort();
+  };
+  window.addEventListener('beforeunload', stopReadiness);
+  document.addEventListener('input', stopReadiness, true);
   let choosingModel = false;
   const used = new Set<string>();
   const fail = (job: Active, message: string) => {
@@ -107,6 +127,21 @@ export default defineUnlistedScript(() => {
           ...(await settledSnapshot(provider, documentId, command.waitFor)),
           ...(peerThread ? { threadId: peerThread.id } : {}),
         };
+      if (command.type === 'cancelGeminiReadiness') {
+        if (readiness?.id === command.id) stopReadiness();
+        return true;
+      }
+      if (command.type === 'pollGeminiReadiness') {
+        if (!readiness || readiness.id !== command.id)
+          throw new Error('Gemini 준비 확인을 찾지 못했습니다.');
+        if (location.href !== readiness.url) stopReadiness();
+        readiness.poll = Date.now();
+        return {
+          status: readiness.status,
+          result: readiness.result,
+          reason: readiness.reason,
+        } satisfies GeminiReadinessProgress;
+      }
       if (command.type === 'cancelClaudeProbe') {
         if (probe?.id === command.id) stopProbe();
         return true;
@@ -158,6 +193,7 @@ export default defineUnlistedScript(() => {
           choosingModel ||
           active?.status === 'pending' ||
           probe?.status === 'pending' ||
+          readiness?.status === 'pending' ||
           peerJob?.status === 'pending' ||
           isBusy(provider)
         )
@@ -177,6 +213,7 @@ export default defineUnlistedScript(() => {
       if (
         active?.status === 'pending' ||
         probe?.status === 'pending' ||
+        readiness?.status === 'pending' ||
         peerJob?.status === 'pending'
       )
         throw new Error('이 탭에서 다른 작업이 진행 중입니다.');
@@ -240,6 +277,50 @@ export default defineUnlistedScript(() => {
         return true;
       }
       if (peerThread) throw new Error('이 페이지는 Claude 백그라운드 검토에 연결되어 있습니다.');
+      if (command.type === 'startGeminiReadiness') {
+        if (provider !== 'gemini' || location.href !== 'https://gemini.google.com/app')
+          throw new Error('Gemini의 새 준비 확인 페이지가 필요합니다.');
+        const job: NonNullable<typeof readiness> = {
+          id: command.id,
+          status: 'pending',
+          reason: 'page',
+          controller: new AbortController(),
+          url: command.url,
+          poll: Date.now(),
+          start: Date.now(),
+        };
+        readiness = job;
+        // Cancellation must keep the picker locked until its asynchronous cleanup finishes.
+        choosingModel = true;
+        void (async () => {
+          const snap = await settledSnapshot(provider, documentId, 'composer');
+          if (
+            !snap.composer ||
+            snap.busy ||
+            snap.draft ||
+            snap.context.turns.length ||
+            snap.lastQuestion ||
+            snap.lastAnswer
+          )
+            throw new Error('준비 확인 페이지가 비어 있지 않습니다.');
+          if (location.href !== job.url || job.status !== 'pending')
+            throw new Error('확인이 중단되었습니다.');
+          job.reason = 'model';
+          const result = await geminiReadiness(job.controller.signal);
+          if (readiness !== job || location.href !== job.url || job.status !== 'pending')
+            throw new Error('확인이 중단되었습니다.');
+          job.result = result;
+          job.reason = undefined;
+          job.status = 'done';
+        })()
+          .catch(() => {
+            if (readiness === job) stopReadiness();
+          })
+          .finally(() => {
+            choosingModel = false;
+          });
+        return true;
+      }
       if (command.type === 'startClaudeProbe') {
         if (provider !== 'claude' || !['/', '/new'].includes(location.pathname))
           throw new Error('Claude의 새 테스트 페이지가 필요합니다.');
@@ -321,6 +402,13 @@ export default defineUnlistedScript(() => {
     return true;
   });
   setInterval(() => {
+    if (
+      readiness?.status === 'pending' &&
+      (location.href !== readiness.url ||
+        Date.now() - readiness.poll > 15000 ||
+        Date.now() - readiness.start > LIMITS.timeoutMs)
+    )
+      stopReadiness();
     if (
       peerJob?.status === 'pending' &&
       (location.href !== peerJob.url ||

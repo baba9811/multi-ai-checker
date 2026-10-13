@@ -76,6 +76,14 @@ export async function prepareClaudeProbe(signal: AbortSignal): Promise<Binding> 
   signal.throwIfAborted();
   return attach('claude', tab.id);
 }
+export async function prepareGeminiReadiness(signal: AbortSignal): Promise<Binding> {
+  signal.throwIfAborted();
+  const tab = await chrome.tabs.create({ url: providers.gemini.home, active: false });
+  if (!tab.id) throw new Error('Gemini 준비 확인 탭을 열지 못했습니다.');
+  await readyConnectionTab('gemini', tab.id, signal);
+  signal.throwIfAborted();
+  return attach('gemini', tab.id);
+}
 async function attach(provider: ProviderId, tabId: number, conversation = false): Promise<Binding> {
   await chrome.scripting.executeScript({
     target: { tabId, frameIds: [0] },

@@ -366,3 +366,35 @@ For a new incident, record the observed failure, evidence, confirmed cause (or e
 - Failure: the new installed-origin context test remained pending instead of reaching its synthetic fixture. Preserved trace artifacts show a challenge-platform request, demonstrating that the extension-created tab's initial navigation was not captured by the intended Playwright route before registration. This was a fixture setup failure, not proof of a provider adapter failure; no security challenge was solved or bypassed.
 - Correction: preload a registered synthetic provider tab and let a narrowly scoped test-only allocation substitute return it only for the exact inactive-home request. The test still exercises production readiness, ISOLATED bridge injection, sender-checked RPC, fetch/completion/readback validation, session writes and panel UI. Its disposable pregranted manifest and regular extension-origin panel do not prove interactive permission grants, actual new-tab allocation or native side-panel behavior.
 - Evidence: the corrected seven-case installed suite passed, and a separate actual native side-panel context attempt verified both replies, Chrome-created inactive tab, unchanged foreground and exact conversation binding. The fixture's substitutions must be disclosed wherever this result is cited. Related browser and live evidence belong to [the transport investigation](../research/background-web-transport.md).
+
+## Gemini readiness — 2026-10-13
+
+### Model selection and effort selection have different owners
+
+- Evidence: current Gemini's keyed `gem-menu-item` model row and low-effort row both have a selected class. Only the model row has `data-mode-id`; its own title sits in `gem-menu-item-content .label-container > .label`. The public client uses distinct selection predicates. The existing name-family filter omitted the automatic mode and could accept ambiguous catalogs. Six built-bridge regressions failed on the previous artifact.
+- Correction: use the trigger's unique `aria-controls` portal, read only its keyed model rows, require a unique enabled selected model, and copy its own title/key before awaited cleanup. Never include effort rows or export the backend mode key through the public model catalog. Legacy fixtures remain a separate path.
+
+### Dense array positions do not prove effective security flags
+
+- Evidence: Google's public JSPB decoder lets a trailing numeric-field object override earlier dense entries. Four synthetic regressions showed the initial readiness reader reporting protection disabled when the effective value was enabled or the representation was unsupported.
+- Correction: reject unsupported sparse objects and unknown flag fields; do not implement an unnecessary general decoder or adopt a default-disabled assumption. Only an explicit, unambiguous supported false value establishes disabled protection. Missing, duplicated, conflicting and inaccessible values remain unknown.
+- Verification: these four cases failed with the wrong disabled value before correction; all 31 focused provider unit checks passed afterward. Full checks and installed evidence belong to the validation document.
+
+### Cancellation is not completed UI cleanup
+
+- Evidence: a readiness operation marked itself cancelled before its model reader finished delayed Escape cleanup. A built-bridge regression showed a new send being accepted while the old picker was still cleaning up.
+- Correction: retain the existing model-mutation lock through the reader's `finally` cleanup even when readiness status is already error. Only release the lock after the asynchronous chain drains. The regression requires zero sends during cleanup and successful model reading afterward.
+
+### Synthetic injection must reproduce production's DOM footprint
+
+- Evidence: the first readiness fixture combined its bootstrap literal and handlers in one script. After splitting them, a synthetic `addScriptTag` still left the entire compiled bridge in the DOM, introducing a second reference to `WIZ_global_data`. The strict provider reader correctly returned unknown. Actual Chrome ISOLATED injection adds no such DOM script node.
+- Correction: put the invented bootstrap in its own literal script and remove only the test-injected script node after execution. Keep the production ambiguity check. Installed tests separately exercise actual ISOLATED injection; their disposable pregrant and exact allocation substitution remain disclosed.
+- Network evidence: the installed readiness test also counts provider-origin fetch/XHR routes; a main-world fetch stub alone cannot observe an isolated-world call. No live security or login protection is bypassed by fixture corrections.
+
+### A side panel can change the provider's responsive model control
+
+- Live observation: the first native Gemini readiness attempt stopped without generation. With the actual side panel open, the provider used a compact `gem-button` host with a native inner button; neither had `aria-controls` or `aria-expanded`. The wide-layout reader could not associate its menu. A separate blank native content area and rendered browser-tool DOM were observed; that environment difference is not asserted as the cause of the model-reader failure.
+- Source and DOM evidence: Google's compact template pairs the control with a popover attached as a child of its `bard-mode-switcher`. The actual model menu stays under that same owner and its explicit provider popover markers, while its model and effort rows retain their distinct keys/selection. No ARIA relationship was invented.
+- Correction: normalize only the observed compact host to its unique enabled native button; bind only its same-component model popover. A present malformed ARIA association still fails rather than falling back. Keep the wide layout's ARIA contract. Cleanup uses owning popover visibility when expanded-state attributes are absent.
+- Verification: the compact success, foreign owner, duplicate native control, duplicate local menu and ignored-Escape cases failed on the prior artifact before correction. The first cleanup assertions also exposed a fixture's display rule defeating its hidden attribute; fix that fixture fidelity issue without weakening model/owner/send assertions. Final browser and native acceptance are recorded separately in validation.
+- User-facing failure: propagate only the existing fixed page/model stage through Chrome's Error cause. Presentation maps those literals to fixed guidance and never renders raw provider errors. The unit cause assertion and sanitized UI assertion both failed before that small change.

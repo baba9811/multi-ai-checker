@@ -3,6 +3,7 @@ import type { Platform } from '../../application/ports';
 import { providers } from '../../domains/providers/model';
 import { extensionStatus, watchExtensionUpdate, openExtensionManager } from './updates';
 import { readClaudeProbe, startClaudeProbe } from './claude-probe';
+import { readGeminiReadiness, checkGeminiReadiness } from './gemini-readiness';
 import {
   connect,
   reveal,
@@ -20,6 +21,8 @@ const Stored = z.object({
   bindings: z.record(z.string(), z.unknown()).optional(),
 });
 export const chromePlatform: Platform = {
+  readGeminiReadiness,
+  checkGeminiReadiness,
   readClaudeProbe,
   startClaudeProbe,
   extensionStatus,

@@ -59,6 +59,24 @@ const bindings = Object.fromEntries(
   ]),
 ) as Record<ProviderId, Binding>;
 export const fixturePlatform: Platform = {
+  async readGeminiReadiness() {
+    return sessionStorage.getItem('fixture-gemini-readiness') === 'done'
+      ? { id: 'fixture', status: 'done' }
+      : undefined;
+  },
+  async checkGeminiReadiness(signal) {
+    signal.throwIfAborted();
+    if (new URL(location.href).searchParams.get('readiness') === 'model-error')
+      throw new Error('SYNTHETIC_PRIVATE_MARKER', { cause: 'model' });
+    if (new URL(location.href).searchParams.get('readiness') === 'hold')
+      await new Promise<never>((_, reject) =>
+        signal.addEventListener('abort', () => reject(new Error('SYNTHETIC_PRIVATE_MARKER')), {
+          once: true,
+        }),
+      );
+    sessionStorage.setItem('fixture-gemini-readiness', 'done');
+    return { model: 'Automatic fixture', protection: 'enabled' };
+  },
   async readClaudeProbe() {
     const status = sessionStorage.getItem('fixture-claude-probe');
     return status === 'done' ? { id: 'fixture', status: 'done' } : undefined;

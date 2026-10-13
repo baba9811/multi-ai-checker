@@ -10,7 +10,19 @@ CrossCheck는 같은 Chrome 프로필에 웹 로그인한 ChatGPT·Claude·Gemin
 
 출시 작업의 2026-10-07 제출·심사 대기·미게시 기록은 과거 상태입니다. 2026-10-13 공개 조회에서는 **0.4.0 상세 페이지·설치 제공·CrossCheck와 Multi AI Checker 검색 노출**을 확인했습니다. 실제 사용자 설치와 대시보드 승인 시점·현재 심사/초안 상태는 확인하지 않았습니다. 이 로컬 실험 브랜치는 스토어에 배포하지 않았고 버전 번호만으로 공개 패키지와 같은 소스라고 판단하지 않습니다. 제출 당시 PR #2·릴리스 `37449257291`·CI ZIP 12개 파일 일치 등 역사와 최신 공개 근거는 [출시 체크리스트](../release/release-checklist.md)가 소유하며 배포 절차는 [배포 자동화](../release/automation.md)를 확인합니다.
 
-## 현재 Task 9: 렌더된 원본의 Claude 검토 — 2026-10-13 완료 기록
+## 현재 Task 10: Gemini 준비 확인 — 2026-10-13
+
+Gemini 현재 메뉴의 모델과 응답 깊이를 구분하고, 넓은 ARIA owner와 실제 좁은 `gem-button`/local popover owner를 각각 읽습니다. 실제 설치/native 두 번째 실행은 **자동 모드**를 반환했고 보안 상태는 **unknown**이어서 생성하지 않았습니다. 첫 compact 모델 읽기 실패와 수정 뒤 수용을 구분합니다. 보안 활성 여부나 unknown의 원인을 미확인 상태에서 단정하지 않습니다.
+
+**연결 → Gemini 준비 확인**은 metadata-only 동작입니다. 새 inactive home, strict id/document/url RPC, 전송 아닌 확인 intent의 선저장·uncertain 복원·자동 재시작 없음·cleanup까지 mutation lock을 유지합니다. RPC에는 UI 모델 이름/고정 enum만, session에는 확인 ID/status만 남습니다. auth/account API/prompt/upload는 추가하지 않았습니다. 개발 도구로 실제 bootstrap/token/request body를 읽지 않았습니다.
+
+최종 check는 340개·타입·빌드, full synthetic 151개(2.9분), installed-origin 11개(18.6초)와 독립 코드/UX 재리뷰를 통과했습니다. 설치 fixture의 permission/navigation/native 한계와 최종 exact artifact hashes는 [validation](../testing/validation.md)이 소유합니다. 초기 generic/error-copy 및 compact layout 수정 뒤의 실제 native 결과는 합성 성공으로 대신하지 않았습니다.
+
+이전 Claude synthetic 결과는 native 기록 저장으로 다운로드 완료를 확인했습니다. 두 task-owned Gemini 홈은 실제 native close와 fresh absence로 정리하고 manager 선택/최종 패널 결과를 보존했습니다. 브라우저 REPL 종료0과 native helper의 실제 부재도 확인했습니다. 새 업로드·심사·공개 배포는 없습니다.
+
+다음은 unknown 보호 상태를 값 유출 없이 확인하는 지원 경로, 정상 protection/transport, 현재 계정 mode/effort request mapping, text-only metadata와 exact CID/RID/RCID readback을 증명하는 별도 generation 단계입니다. 과거 Python recipe/SDK 실패 fallback/생략된 보호 값으로 요청하지 않습니다. Gemini 답변·파일·main 반환이 아직 미검증이라는 표시를 유지합니다. [계획](gemini-background-readiness-plan.md), [현재 client 조사](../research/background-web-transport.md).
+
+## Task 9: 렌더된 원본의 Claude 검토 — 2026-10-13 완료 기록
 
 현재 불러온 비-Claude 원본의 완료된 전체 캡처 Q/A와 직접 선택한 원본을 collect·economy review의 두 Claude 프롬프트에 공유합니다. 기존 원본 답변과 `importedRun`/`promptFor`를 재사용하고 두 요청의 전체 승인 범위를 유지합니다. 결과는 Claude의 독립 답변과 검토 답변이며 원래 메인에 새 요청/최종 synthesis를 보내지 않습니다. 기존 진단과 기본 전체 파이프라인은 유지합니다.
 

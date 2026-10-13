@@ -6,11 +6,16 @@ import path from 'node:path';
 export const test = base.extend<{
   extension: { context: BrowserContext; panel: Page; id: string };
   syntheticClaudePermission: boolean;
+  syntheticGeminiPermission: boolean;
   syntheticPeerPermissions: boolean;
 }>({
   syntheticClaudePermission: [false, { option: true }],
+  syntheticGeminiPermission: [false, { option: true }],
   syntheticPeerPermissions: [false, { option: true }],
-  extension: async ({ syntheticClaudePermission, syntheticPeerPermissions }, use) => {
+  extension: async (
+    { syntheticClaudePermission, syntheticPeerPermissions, syntheticGeminiPermission },
+    use,
+  ) => {
     // Respect managed browser policy. Do not disable it or quietly skip this suite.
     if (process.env.CHROMIUM_PATH === '/usr/bin/chromium' || !process.env.CHROMIUM_PATH) {
       const policy = await readFile('/etc/chromium/policies/managed/extensions.json', 'utf8').catch(
@@ -25,7 +30,7 @@ export const test = base.extend<{
     let context: BrowserContext | undefined;
     try {
       let extensionPath = path.resolve('.output/chrome-mv3');
-      if (syntheticClaudePermission || syntheticPeerPermissions) {
+      if (syntheticClaudePermission || syntheticPeerPermissions || syntheticGeminiPermission) {
         // Tests activation after a grant, not the browser's interactive permission prompt.
         // Only this disposable copy changes; production artifacts and policy stay untouched.
         const copy = path.join(temporaryRoot, 'extension');
@@ -35,7 +40,9 @@ export const test = base.extend<{
         const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
         manifest.host_permissions = syntheticPeerPermissions
           ? ['https://claude.ai/*', 'https://chatgpt.com/*']
-          : ['https://claude.ai/*'];
+          : syntheticGeminiPermission
+            ? ['https://gemini.google.com/*']
+            : ['https://claude.ai/*'];
         manifest.optional_host_permissions = manifest.optional_host_permissions.filter(
           (origin: string) => !manifest.host_permissions.includes(origin),
         );

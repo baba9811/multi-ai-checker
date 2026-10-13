@@ -1,5 +1,27 @@
 # 검증 기록
 
+## Task 10 Gemini readiness — 2026-10-13
+
+현재 단계는 **현재 Gemini 모델 메뉴와 보안 상태를 읽는 준비 확인**입니다. Gemini generation, 파일 전달, 후속 대화, 메인 최종 반환은 구현·수용한 상태가 아닙니다. 확장 요청의 prompt/upload/authenticated fetch를 추가하지 않았으며 실제 서비스 자체의 일반 로딩 네트워크를 관찰·증명한 결과로 해석하지 않습니다.
+
+| 증거           | 최종 확인한 것                                                                                                                                              | 구분/한계                                                                                                                                                                                           |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 타입·단위·빌드 | 340개·타입·빌드 통과                                                                                                                                        | pinned Node 24, architecture 경계 포함. 개인정보·보안 표현·의도 저장·취소 검사를 포함                                                                                                               |
+| 합성 브라우저  | 최종 전체 151개 통과, 2.9분                                                                                                                                 | 현재 keyed/compact 모델·메뉴 정리·취소 경합·고정 오류 안내·사용자 중단과 기존 전체 흐름. 실계정 성공과 별도                                                                                         |
+| 설치 확장      | 최종 11개 통과, 18.6초                                                                                                                                      | 실제 ISOLATED 주입/RPC/session/UI. Gemini positive case는 disposable permission pregrant와 정확한 inactive allocation shim, 일반 extension-origin panel 사용; 실제 권한·새 탭 생성·native UI는 별도 |
+| 독립 리뷰      | 보안 표현 sparse override·취소 후 메뉴 cleanup lock·fixture DOM 불일치·compact 소유권을 검토하고 재리뷰. UX의 중단 안내·펼치기 표시도 수정·재리뷰           | 중요한 미해결 production/UX finding 없음. 리뷰어는 실제 테스트나 native 결과를 대신하지 않음                                                                                                        |
+| 실제 native    | 첫 시도는 compact 모델 읽기 실패. 최종 설치 경로 재로드 후 두 번째 native 실행은 실제 **자동 모드** 표시와 **보안 상태 unknown에 따른 전송 보류** 결과 수집 | manager 탭이 실행 내내 선택됐고 새 Gemini home은 비활성. 준비 확인만 수용했으며 Gemini 답변이나 보안 비활성을 입증하지 않음                                                                         |
+
+최종 bridge SHA-256은 `aba846558b45ea5b2aabc9a86e7cf9bf3e09e07cb17a142477a04bc6052f8184`, `sidepanel-BlXO3N55.js`는 `8e7803bcafb375f480243d9aac174cdcbc9d9f4dc2820560d0c9ad8be8a4e74a`입니다. version은 계속 0.4.0이므로 version만으로 artifact identity를 판단하지 않습니다. 같은 프로젝트의 실제 설치 경로·새로고침 완료·새 native action을 확인했습니다. 개발 도구의 직접 생성 POST/수동 adapter 주입으로 대체하지 않았습니다.
+
+첫 실제 실패는 패널 폭에 따른 `gem-button` compact control과 없는 ARIA linkage를 재현해 수정했습니다. 공개 compact template과 실제 같은 component ancestry를 확인했고 local owner만 읽습니다. unknown 보호 상태의 이유나 실제 필수 검사 활성 여부는 이 결과만으로 단정하지 않습니다. Missing/default/unsupported 표현을 disabled로 바꾸거나 SDK 실패 fallback을 사용하지 않습니다. 현재 positive 보호 조건·정상 전송/응답 계약이 미해결이므로 이 단계에서 생성하지 않습니다.
+
+Synthetic bootstrap은 단독 literal script이며 test-only addScriptTag node만 실행 뒤 제거해 실제 ISOLATED DOM footprint를 재현합니다. 설치 test의 provider-origin fetch/XHR route counter도 0을 확인해 MAIN fetch stub의 관찰 한계를 보완합니다. 이 증거는 합성 페이지의 확장 자체 호출 경계이며 실제 서비스의 모든 네트워크 부재 증거가 아닙니다.
+
+재로드 전에 이전 완료된 Claude synthetic 검토를 실제 `기록 저장`으로 내보냈고 native download가 `crosscheck.md · 8.7KB · 완료`를 표시했습니다. Task-owned Gemini 홈 두 개는 주소·선택을 각각 확인한 native close로 정리했습니다. Browser closeTab의 결과만으로 native 탭 폐쇄를 단정하지 않고 fresh native 탭 목록에서 없음을 확인했습니다. 마지막 manager 선택과 패널의 자동 모드/unknown 결과는 유지됐으며 두 browser REPL은 정상 종료0, 허가된 native helper도 종료 후 실제 프로세스 부재를 확인했습니다. 다른 사용자 탭은 건드리지 않았습니다.
+
+이 수정은 개발 checkpoint이며 새 ZIP/스토어 업로드·심사 제출·공개 배포를 수행하지 않았습니다. 기존 공개 0.4.0의 과거 수용과 이 로컬 artifact를 구분합니다. [준비 확인 계획](../development/gemini-background-readiness-plan.md), [실패와 재발 방지](../development/verification-lessons.md), [현재 공개 client 조사와 다음 gate](../research/background-web-transport.md).
+
 ## Task 9 Claude 원본 검토 — 2026-10-13 완료 기록
 
 현재 렌더된 원본의 모든 캡처 Q/A와 선택한 UTF-8 TXT/PNG를 Claude의 collect·economy review 두 요청으로 보내는 명시적 실험입니다. 원래 메인에는 새 요청을 보내지 않고 기본 전체 파이프라인은 유지합니다. 지원 범위는 TXT 각 64 KiB 이하, PNG 각 축 4096 이하와 기존 10개·총 20 MiB입니다. 파일 내용/해시·모든 receipt·정확한 첫 human history를 확인하고 review의 전체 manifest와 앞선 history도 그대로여야 합니다.

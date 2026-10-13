@@ -35,7 +35,7 @@
 - Target the exact extension by name, ID, version, and installation path. Remove or reload only this project's installation; leave unrelated extensions and tabs alone.
 - Keep installation steps sequential: build, select the directory containing `manifest.json`, confirm the installed version, open the production panel, and refresh provider tabs when replacing injected code.
 - For native file pickers, verify each state transition: picker opened, path field opened, path resolved, intended directory selected, installation accepted. Do not chain dependent keystrokes across unobserved dialogs.
-- Capture required values while their owning UI is live, and confirm cleanup before the next dependent interaction. Treat UI actions as attempts until a fresh observation confirms the result. Reacquire element references after state changes. If accessibility text and visible state disagree, inspect a screenshot and a fresh snapshot before repeating an action.
+- Capture required values while their owning UI is live, and confirm cleanup before the next dependent interaction. Keep dependent mutations blocked until cleanup finishes, including after cancellation. Treat UI actions as attempts until a fresh observation confirms the result. Reacquire element references after state changes. If accessibility text and visible state disagree, inspect a screenshot and a fresh snapshot before repeating an action.
 - Prefer DOM tools for web content and native UI tools only for browser chrome or native dialogs. Avoid competing controllers manipulating the same surface. Serialize operations that require the same foreground surface, and verify readiness after activation.
 - Keep native computer control active only while it is needed for a UI action. Release it when returning to code or tests; a client reset alone does not prove its backend stopped. If a control helper remains active, identify ownership and stop only the authorized helper without disrupting unrelated tasks or applications.
 - Forward attachments only after the user selects the original files and each destination confirms upload readiness. Never silently omit a file, infer binary content from a thumbnail, or persist raw attachment bytes in workspace history. After losing in-memory files, require matching originals before resuming.
@@ -49,7 +49,7 @@
 - Preserve failure logs before rerunning a suite that cleans its output. Inspect the first meaningful failure and determine whether it occurred during setup, an assertion, or teardown.
 - For timeouts or missing artifacts, check process contention, overlapping runs, output cleanup, and browser availability before changing product logic or increasing time limits. Do not kill unrelated user processes.
 - After a fix, run the relevant regression check, then the required validation commands. Repeat broader checks only when new changes, failures, or unresolved concerns justify them.
-- Never bypass managed browser policy, CAPTCHA, provider quotas, login protections, or security checks to make a test pass. Record blocked or unverified checks honestly.
+- Never bypass managed browser policy, CAPTCHA, provider quotas, login protections, or security checks to make a test pass. Reject unsupported or ambiguous representations of security controls; a parser default is not evidence that a protection is disabled. Record blocked or unverified checks honestly.
 
 ## Privacy and release
 
