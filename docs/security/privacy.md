@@ -2,17 +2,19 @@
 
 ## 권한과 데이터 경계
 
-| 항목           | 동작                                                                                |
-| -------------- | ----------------------------------------------------------------------------------- |
-| `sidePanel`    | 사용자 작업 화면                                                                    |
-| `storage`      | 브라우저 세션 메모리 기록. sync/local 대화 저장 없음                                |
-| `scripting`    | 선택한 탭의 top frame에 로컬 ISOLATED bridge 주입                                   |
-| `activeTab`    | 사용자가 연 확장에서 현재 탭 선택                                                   |
-| Optional hosts | chatgpt.com / claude.ai / gemini.google.com의 HTTPS만, 시작 시 선택한 origin만 허용 |
+| 항목           | 동작                                                                                           |
+| -------------- | ---------------------------------------------------------------------------------------------- |
+| `sidePanel`    | 사용자 작업 화면                                                                               |
+| `storage`      | 브라우저 세션 메모리 기록. sync/local 대화 저장 없음                                           |
+| `scripting`    | 선택한 탭의 top frame에 로컬 ISOLATED bridge와 동일 문서의 고정 MAIN 보안 메타데이터 함수 실행 |
+| `activeTab`    | 사용자가 연 확장에서 현재 탭 선택                                                              |
+| Optional hosts | chatgpt.com / claude.ai / gemini.google.com의 HTTPS만, 시작 시 선택한 origin만 허용            |
 
 쿠키·비밀번호·로그인 토큰을 조회하지 않습니다. 확장 백엔드, telemetry, 별도 개발자 API, remote code, web-accessible resource, `postMessage` 명령 채널이 없습니다. 확장 화면의 CSP는 외부 네트워크와 실행 코드를 막으며, 공급자 페이지에서 실행되는 bridge의 같은-origin 요청과는 구분합니다. 연결을 해제하면 해당 origin 권한을 제거합니다.
 
-MAIN-world에서 모델 메뉴를 활성화하는 Task 5는 폐기했고 제품 파일·명령·포트를 제거했습니다. 명시적 Claude 내부 요청은 ISOLATED bridge가 닫힌 모델 표시와 계정 상태를 검증하는 경로입니다. MAIN-world 제품 경로나 임의 요청 proxy는 없습니다. 이전 한 요청/고정 합성 문맥 진단과 현재 렌더된 원본 검토는 서로 다른 milestone입니다. 최종 Task 9 artifact는 실제 native panel의 세 Q/A·TXT/PNG collect/review 수용을 마쳤으며 artifact별 근거는 [검증 기록](../testing/validation.md)이 소유합니다.
+MAIN-world에서 모델 메뉴를 활성화하는 Task 5는 폐기했고 해당 제품 파일·명령·포트를 제거했습니다. 명시적 Claude 내부 요청은 ISOLATED bridge가 닫힌 모델 표시와 계정 상태를 검증하는 경로입니다. Task 11의 Gemini 준비 확인은 별도 순수 MAIN-world 함수로 현재 페이지의 보안 플래그만 해석하고 고정 enum을 반환합니다. 실제 bootstrap/인증값은 그 페이지 밖으로 반환하거나 저장하지 않으며 네트워크·DOM 변경·전역 export·이벤트 명령 채널·임의 요청 proxy가 없습니다. 원래 bridge 문서와 별도 Chrome 문서 ID를 각각 검사하고 top frame의 동일 문서에만 실행하며, 실제 모델 재검사와 정리까지 pending 잠금을 유지합니다. 이 플래그 확인만으로 공식 클라이언트의 실제 필수 보안 검사나 생성 성공을 입증하지 않습니다. [진단 설계](../development/gemini-protection-diagnostics-plan.md).
+
+이전 한 요청/고정 합성 문맥 진단과 현재 렌더된 원본 검토는 서로 다른 milestone입니다. 최종 Task 9 artifact는 실제 native panel의 세 Q/A·TXT/PNG collect/review 수용을 마쳤으며 artifact별 근거는 [검증 기록](../testing/validation.md)이 소유합니다.
 
 선택한 서비스에는 패널에서 공유 범위를 확인한 여러 턴의 질문과 답변·검토·근거 및 직접 선택한 원본 첨부파일을 보냅니다. 해당 서비스는 자신의 로그인 쿠키와 기존 대화 맥락을 사용하며, 그 서비스의 데이터 처리 정책이 적용됩니다. 확장은 서비스의 보관·학습 설정을 변경하지 않습니다.
 

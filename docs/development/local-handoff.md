@@ -10,7 +10,21 @@ CrossCheck는 같은 Chrome 프로필에 웹 로그인한 ChatGPT·Claude·Gemin
 
 출시 작업의 2026-10-07 제출·심사 대기·미게시 기록은 과거 상태입니다. 2026-10-13 공개 조회에서는 **0.4.0 상세 페이지·설치 제공·CrossCheck와 Multi AI Checker 검색 노출**을 확인했습니다. 실제 사용자 설치와 대시보드 승인 시점·현재 심사/초안 상태는 확인하지 않았습니다. 이 로컬 실험 브랜치는 스토어에 배포하지 않았고 버전 번호만으로 공개 패키지와 같은 소스라고 판단하지 않습니다. 제출 당시 PR #2·릴리스 `37449257291`·CI ZIP 12개 파일 일치 등 역사와 최신 공개 근거는 [출시 체크리스트](../release/release-checklist.md)가 소유하며 배포 절차는 [배포 자동화](../release/automation.md)를 확인합니다.
 
-## 현재 Task 10: Gemini 준비 확인 — 2026-10-13
+## 현재 Task 11: Gemini 실제 설정 projection — 2026-10-14, metadata 수용 완료
+
+Task 10은 `65d1334`로 보존했습니다. 실제 unknown을 고정 이유로 분리한 첫 native 진단은 `bootstrap-ambiguous`였습니다. 문자열 언급을 정의로 취급하는 DOM scanner를 완화하지 않고, provider 페이지 안의 self-contained MAIN 함수가 현재 `TSDtV`를 읽고 고정 enum만 반환하도록 전환했습니다. 원문/인증값/모델 key는 RPC·storage·로그에 반환하지 않습니다. 세션은 ID/status만 유지합니다.
+
+원래 bridge UUID와 Chrome native document ID를 각각 검사합니다. 고정 top-frame/home boolean으로 native ID를 얻고 전후 원래 binding을 확인한 뒤 동일 문서 MAIN에만 실행합니다. 초기 실제 모델 capture는 pending 상태이며 private mode key/잠금을 유지하고 명시적 finish의 모델·key 재검사와 cleanup 뒤에만 done을 허용합니다. 새 generation/계정 API/prompt/upload는 없습니다.
+
+최종 소스는 **431 단위·타입·빌드, 집중 준비 확인 31개(40.7초), 전체 synthetic174개(3.4분), installed-origin13개(22.1초)**를 순서대로 통과했습니다. 설치 fixture의 permission pregrant·inactive allocation shim·일반 extension-origin panel 한계는 유지됩니다. 최종 signal guard 이후의 실제 native 설치에서는 새 비활성 Gemini 홈 하나에서 **자동 모드 + 페이지 추가 보안 검사 켜짐**을 수집했습니다. 정확한 프로젝트 설치 ID/경로/버전과 reload 완료를 확인하고 실제 extension action/sidepanel을 사용했으며 manager 탭은 시험 중 계속 선택됐습니다. 최종 artifact 해시와 증거별 한계는 [검증 기록](../testing/validation.md)이 소유합니다.
+
+초기 pre-dense native 성공 뒤 후속 artifact의 generic/model-selection/model-trigger 실패를 구분했습니다. 고정 단계 진단으로 required 모델 버튼 부재를 selection 오류와 분리하고, 입력란 준비가 모델 제어 준비를 보장하지 않음을 확인했습니다. Gemini는 기존 2.5초/80ms 준비 대기를 재사용합니다. 실제 모델 변경을 cleanup까지 감시하고, cleanup 안의 모든 예외를 고정 실패로 처리하며, 실패한 페이지의 mutation lock은 새로고침·재연결까지 유지합니다. 취소/페이지 변경 사유를 우선하면서 고정된 cleanup 실패만 내부에 보존합니다. 대기 중 취소 후 버튼이 복원되자 메뉴를 열던 회귀도 red로 재현했고, 기존 signal을 대기 직후 다시 검사해 UI 변경 전에 멈추도록 수정했습니다. 대기 수정 artifact의 native 세 번 연속 성공은 마지막 signal guard 이전의 역사적 증거이며 최종 artifact의 한 번 수용과 구분합니다.
+
+최종 소유 홈은 native close 뒤 fresh absence로 폐쇄를 확인했고 manager 선택을 복원했습니다. 허가된 native helper도 종료 뒤 실제 부재를 확인했습니다. 최종 로컬 개발 ZIP은 테스트한 output과 12개 파일이 모두 일치하며 패키지 검사 결과는 [검증 기록](../testing/validation.md)에 보존합니다. 사용자 원본·다른 탭·설정은 수정하지 않았고 push·store 업로드·심사·공개 배포는 없습니다.
+
+다음 Task 12의 [정상 client capability 사전 확인](gemini-client-capability-plan.md)은 계획 단계입니다. 보안 bootstrap 플래그를 실제 cached/injected 소비 상태와 같다고 추정하지 않습니다. 정상 transport·보호 경로·완료/readback과 Gemini 생성·원본 전달·메인 반환은 아직 미검증이며, 누락 attestation fallback이나 임의 직접 POST는 사용하지 않습니다. [진단 설계](gemini-protection-diagnostics-plan.md), [검증](../testing/validation.md), [실패 교훈](verification-lessons.md).
+
+## 이전 Task 10: Gemini 준비 확인 — 2026-10-13
 
 Gemini 현재 메뉴의 모델과 응답 깊이를 구분하고, 넓은 ARIA owner와 실제 좁은 `gem-button`/local popover owner를 각각 읽습니다. 실제 설치/native 두 번째 실행은 **자동 모드**를 반환했고 보안 상태는 **unknown**이어서 생성하지 않았습니다. 첫 compact 모델 읽기 실패와 수정 뒤 수용을 구분합니다. 보안 활성 여부나 unknown의 원인을 미확인 상태에서 단정하지 않습니다.
 

@@ -110,6 +110,14 @@ export const Command = z.discriminatedUnion('type', [
     .strict(),
   z.object({ type: z.literal('pollGeminiReadiness'), id: z.string().min(1).max(100) }).strict(),
   z.object({ type: z.literal('cancelGeminiReadiness'), id: z.string().min(1).max(100) }).strict(),
+  z
+    .object({
+      type: z.literal('finishGeminiReadiness'),
+      id: z.string().min(1).max(100),
+      documentId: z.string().max(100),
+      url: z.string().max(3000),
+    })
+    .strict(),
   z.object({ type: z.literal('models'), documentId: z.string(), url: z.string() }),
   z.object({
     type: z.literal('selectModel'),

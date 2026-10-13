@@ -120,7 +120,7 @@ function selectedGeminiMode(options: HTMLElement[]): HTMLElement {
 async function readyTrigger(provider: ProviderId) {
   let button = trigger(provider);
   const deadline = Date.now() + 2500;
-  while (!button && provider === 'claude' && Date.now() < deadline) {
+  while (!button && (provider === 'claude' || provider === 'gemini') && Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 80));
     button = trigger(provider);
   }
@@ -131,8 +131,8 @@ export async function modelMenu(provider: ProviderId, selectKey?: string): Promi
   return (await readModelMenu(provider, selectKey)).catalog;
 }
 /** The mode key stays in the provider page; public model catalogs contain visible labels only. */
-export async function readGeminiMode(): Promise<GeminiMode> {
-  const result = await readModelMenu('gemini', undefined, true);
+export async function readGeminiMode(signal?: AbortSignal): Promise<GeminiMode> {
+  const result = await readModelMenu('gemini', undefined, true, signal);
   if (!result.geminiMode)
     throw new Error('현재 선택된 Gemini 모델을 확인하지 못했습니다.', {
       cause: 'model-selection',
@@ -143,15 +143,20 @@ async function readModelMenu(
   provider: ProviderId,
   selectKey?: string,
   requireGeminiMode = false,
+  signal?: AbortSignal,
 ): Promise<{ catalog: ModelCatalog; geminiMode?: GeminiMode }> {
   const button = await readyTrigger(provider);
-  if (!button)
+  signal?.throwIfAborted();
+  if (!button) {
+    if (requireGeminiMode)
+      throw new Error('Gemini 모델 선택 버튼을 확인하지 못했습니다.', { cause: 'model-trigger' });
     return {
       catalog: {
         options: [],
         message: '모델 메뉴를 찾지 못했습니다. 웹에서 선택한 모델을 사용합니다.',
       },
     };
+  }
   const current = button.innerText.trim().slice(0, 160) || undefined;
   if (button.getAttribute('aria-expanded') === 'true')
     throw new Error('열린 모델 메뉴를 먼저 닫아주세요.', { cause: 'model-menu' });
@@ -290,41 +295,45 @@ async function readModelMenu(
           : undefined,
     };
   } finally {
-    // Close the picker we opened, without changing user text or clicking a backdrop.
-    if (
-      [...document.querySelectorAll(optionSelector)].some(visible) ||
-      trigger(provider)?.getAttribute('aria-expanded') === 'true' ||
-      localPopovers().length
-    ) {
-      const target = document.activeElement ?? button;
-      target.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }),
-      );
-      const waitForClosed = async () => {
-        const deadline = Date.now() + 1500;
-        while (Date.now() < deadline) {
+    try {
+      // Close the picker we opened, without changing user text or clicking a backdrop.
+      if (
+        [...document.querySelectorAll(optionSelector)].some(visible) ||
+        trigger(provider)?.getAttribute('aria-expanded') === 'true' ||
+        localPopovers().length
+      ) {
+        const target = document.activeElement ?? button;
+        target.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }),
+        );
+        const waitForClosed = async () => {
+          const deadline = Date.now() + 1500;
+          while (Date.now() < deadline) {
+            if (
+              ![...document.querySelectorAll(optionSelector)].some(visible) &&
+              trigger(provider)?.getAttribute('aria-expanded') !== 'true' &&
+              !localPopovers().length
+            )
+              return true;
+            await new Promise((resolve) => setTimeout(resolve, 80));
+          }
+          return false;
+        };
+        if (!(await waitForClosed())) {
+          const current = trigger(provider);
           if (
-            ![...document.querySelectorAll(optionSelector)].some(visible) &&
-            trigger(provider)?.getAttribute('aria-expanded') !== 'true' &&
-            !localPopovers().length
+            current?.getAttribute('aria-expanded') === 'true' ||
+            (current === button && localPopovers().length)
           )
-            return true;
-          await new Promise((resolve) => setTimeout(resolve, 80));
+            current!.click();
+          if (!(await waitForClosed())) throw new Error();
         }
-        return false;
-      };
-      if (!(await waitForClosed())) {
-        const current = trigger(provider);
-        if (
-          current?.getAttribute('aria-expanded') === 'true' ||
-          (current === button && localPopovers().length)
-        )
-          current!.click();
-        if (!(await waitForClosed()))
-          throw new Error('모델 메뉴가 닫히지 않았습니다. 사이트에서 확인하세요.', {
-            cause: 'model-menu',
-          });
       }
+    } catch {
+      throw new Error(
+        '모델 메뉴 정리를 확인하지 못했습니다. 이 페이지를 새로고침한 뒤 다시 연결하세요.',
+        { cause: 'model-cleanup' },
+      );
     }
   }
 }

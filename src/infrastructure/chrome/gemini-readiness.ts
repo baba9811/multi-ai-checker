@@ -1,11 +1,14 @@
 import {
+  GeminiProtectionStatus,
+  GeminiReadinessResult,
   GeminiReadinessProgress,
   GeminiReadinessRecord,
-  type GeminiReadinessResult,
 } from '../../application/gemini-readiness';
+import { z } from 'zod';
 import { LIMITS } from '../../domains/crosscheck/model';
 import { providers, type Binding } from '../../domains/providers/model';
-import { prepareGeminiReadiness, rpc } from './provider-client';
+import { inspect, prepareGeminiReadiness, rpc } from './provider-client';
+import { readGeminiPageProtection } from '../providers/gemini/readiness';
 
 const storageKey = 'crosscheck.gemini-readiness.v1';
 const failure = 'Gemini 준비 상태를 확인하지 못했습니다. 요청은 보내지 않았습니다.';
@@ -50,12 +53,70 @@ export async function checkGeminiReadiness(signal: AbortSignal): Promise<GeminiR
         await rpc(target.tabId, { type: 'pollGeminiReadiness', id }),
       );
       signal.throwIfAborted();
-      if (progress.status === 'done') {
-        if (!progress.result) throw new Error(failure);
+      if (progress.status === 'pending' && progress.result) {
+        reason = 'page';
+        await inspect(target);
+        signal.throwIfAborted();
+        const [identity] = z
+          .array(
+            z
+              .object({
+                frameId: z.literal(0),
+                documentId: z.string().min(1).max(128),
+                result: z.literal(true),
+              })
+              .strict(),
+          )
+          .length(1)
+          .parse(
+            await chrome.scripting.executeScript({
+              target: { tabId: target.tabId, frameIds: [0] },
+              world: 'ISOLATED',
+              func: () =>
+                window.top === window && location.href === 'https://gemini.google.com/app',
+            }),
+          );
+        signal.throwIfAborted();
+        await inspect(target);
+        signal.throwIfAborted();
+        const [projection] = z
+          .array(
+            z
+              .object({
+                frameId: z.literal(0),
+                documentId: z.literal(identity!.documentId),
+                result: GeminiProtectionStatus,
+              })
+              .strict(),
+          )
+          .length(1)
+          .parse(
+            await chrome.scripting.executeScript({
+              target: { tabId: target.tabId, documentIds: [identity!.documentId] },
+              world: 'MAIN',
+              func: readGeminiPageProtection,
+            }),
+          );
+        signal.throwIfAborted();
+        await inspect(target);
+        signal.throwIfAborted();
+        const result = GeminiReadinessResult.parse({ ...progress.result, ...projection!.result });
+        reason = 'model-confirmation';
+        z.literal(true).parse(
+          await rpc(target.tabId, {
+            type: 'finishGeminiReadiness',
+            id,
+            documentId: target.documentId,
+            url: target.url,
+          }),
+        );
+        signal.throwIfAborted();
+        reason = undefined;
         await chrome.storage.session.set({ [storageKey]: { id, status: 'done' } });
         signal.throwIfAborted();
-        return progress.result;
+        return result;
       }
+      if (progress.status === 'done') throw new Error(failure);
       if (progress.status === 'error') {
         reason = progress.reason;
         throw new Error(failure);

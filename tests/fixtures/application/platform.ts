@@ -68,6 +68,8 @@ export const fixturePlatform: Platform = {
     signal.throwIfAborted();
     if (new URL(location.href).searchParams.get('readiness') === 'model-error')
       throw new Error('SYNTHETIC_PRIVATE_MARKER', { cause: 'model' });
+    if (new URL(location.href).searchParams.get('readiness') === 'confirmation-error')
+      throw new Error('SYNTHETIC_PRIVATE_MARKER', { cause: 'model-confirmation' });
     if (new URL(location.href).searchParams.get('readiness') === 'hold')
       await new Promise<never>((_, reject) =>
         signal.addEventListener('abort', () => reject(new Error('SYNTHETIC_PRIVATE_MARKER')), {
@@ -75,6 +77,20 @@ export const fixturePlatform: Platform = {
         }),
       );
     sessionStorage.setItem('fixture-gemini-readiness', 'done');
+    const protectionReason = [
+      'bootstrap-missing',
+      'bootstrap-format',
+      'bootstrap-limit',
+      'configuration-format',
+      'flag-missing',
+      'flag-ambiguous',
+      'flag-format',
+    ] as const;
+    const reason = protectionReason.find(
+      (value) => value === new URL(location.href).searchParams.get('readiness'),
+    );
+    if (reason)
+      return { model: 'Automatic fixture', protection: 'unknown', protectionReason: reason };
     return { model: 'Automatic fixture', protection: 'enabled' };
   },
   async readClaudeProbe() {

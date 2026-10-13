@@ -17,7 +17,10 @@ import { modelMenu, readClaudeProbeLabel } from '../src/infrastructure/providers
 import { claudeProbe } from '../src/infrastructure/providers/claude/probe';
 import { createClaudePeer } from '../src/infrastructure/providers/claude/peer';
 import { ClaudeProbeReason, type ClaudeProbeProgress } from '../src/application/claude-probe';
-import { GeminiReadinessProgress } from '../src/application/gemini-readiness';
+import {
+  GeminiReadinessProgress,
+  GeminiReadinessReason,
+} from '../src/application/gemini-readiness';
 import { geminiReadiness } from '../src/infrastructure/providers/gemini/readiness';
 
 export default defineUnlistedScript(() => {
@@ -91,18 +94,36 @@ export default defineUnlistedScript(() => {
         url: string;
         poll: number;
         start: number;
+        modeId?: string;
+        pickerPending: boolean;
       })
     | undefined;
   const stopReadiness = () => {
     if (readiness?.status !== 'pending') return;
     readiness.status = 'error';
     readiness.result = undefined;
+    readiness.modeId = undefined;
     readiness.reason ??= 'interrupted';
     readiness.controller.abort();
+    if (!readiness.pickerPending) choosingModel = modelCleanupFailed;
   };
   window.addEventListener('beforeunload', stopReadiness);
   document.addEventListener('input', stopReadiness, true);
+  for (const type of ['pointerdown', 'keydown', 'click'])
+    document.addEventListener(
+      type,
+      (event) => {
+        if (event.isTrusted) stopReadiness();
+      },
+      true,
+    );
   let choosingModel = false;
+  let modelCleanupFailed = false;
+  const failedModelCleanup = (failure: unknown): boolean =>
+    failure instanceof Error &&
+    (failure.cause === 'model-cleanup' ||
+      (failure instanceof AggregateError &&
+        failure.errors.some((error) => error instanceof Error && error.cause === 'model-cleanup')));
   const used = new Set<string>();
   const fail = (job: Active, message: string) => {
     job.status = 'error';
@@ -188,6 +209,57 @@ export default defineUnlistedScript(() => {
       if (command.documentId !== documentId)
         throw new Error('연결 후 페이지가 바뀌었습니다. 다시 연결하세요.');
       assertTarget(provider, command.url);
+      if (modelCleanupFailed)
+        throw new Error(
+          '모델 메뉴 정리를 확인하지 못했습니다. 이 페이지를 새로고침한 뒤 다시 연결하세요.',
+        );
+      if (command.type === 'finishGeminiReadiness') {
+        const job = readiness;
+        if (
+          provider !== 'gemini' ||
+          !job ||
+          job.id !== command.id ||
+          job.status !== 'pending' ||
+          !job.result ||
+          !job.modeId ||
+          job.pickerPending
+        )
+          throw new Error('Gemini 준비 확인을 완료하지 못했습니다. 요청은 보내지 않았습니다.');
+        const model = job.result.model;
+        const modeId = job.modeId;
+        job.pickerPending = true;
+        job.poll = Date.now();
+        job.reason = 'model-confirmation';
+        try {
+          const confirmed = await geminiReadiness(job.controller.signal);
+          if (
+            readiness !== job ||
+            job.status !== 'pending' ||
+            job.controller.signal.aborted ||
+            location.href !== job.url ||
+            confirmed.model !== model ||
+            confirmed.modeId !== modeId
+          )
+            throw new Error('확인이 중단되었습니다.');
+          job.status = 'done';
+          job.reason = undefined;
+          job.modeId = undefined;
+          return true;
+        } catch (failure) {
+          modelCleanupFailed ||= failedModelCleanup(failure);
+          if (readiness === job && job.status === 'pending') {
+            const cause = GeminiReadinessReason.safeParse(
+              failure instanceof Error ? failure.cause : undefined,
+            );
+            if (cause.success) job.reason = cause.data;
+            stopReadiness();
+          }
+          throw new Error('Gemini 준비 확인을 완료하지 못했습니다. 요청은 보내지 않았습니다.');
+        } finally {
+          job.pickerPending = false;
+          if (readiness === job && job.status !== 'pending') choosingModel = modelCleanupFailed;
+        }
+      }
       if (command.type === 'models' || command.type === 'selectModel') {
         if (
           choosingModel ||
@@ -204,8 +276,11 @@ export default defineUnlistedScript(() => {
             provider,
             command.type === 'selectModel' ? command.key : undefined,
           );
+        } catch (failure) {
+          modelCleanupFailed ||= failedModelCleanup(failure);
+          throw failure;
         } finally {
-          choosingModel = false;
+          choosingModel = modelCleanupFailed;
         }
       }
       if (choosingModel) throw new Error('모델 설정이 끝난 뒤 시작하세요.');
@@ -288,6 +363,7 @@ export default defineUnlistedScript(() => {
           url: command.url,
           poll: Date.now(),
           start: Date.now(),
+          pickerPending: true,
         };
         readiness = job;
         // Cancellation must keep the picker locked until its asynchronous cleanup finishes.
@@ -309,15 +385,23 @@ export default defineUnlistedScript(() => {
           const result = await geminiReadiness(job.controller.signal);
           if (readiness !== job || location.href !== job.url || job.status !== 'pending')
             throw new Error('확인이 중단되었습니다.');
-          job.result = result;
+          job.result = { model: result.model };
+          job.modeId = result.modeId;
           job.reason = undefined;
-          job.status = 'done';
         })()
-          .catch(() => {
-            if (readiness === job) stopReadiness();
+          .catch((failure) => {
+            modelCleanupFailed ||= failedModelCleanup(failure);
+            if (readiness === job && job.status === 'pending') {
+              const cause = GeminiReadinessReason.safeParse(
+                failure instanceof Error ? failure.cause : undefined,
+              );
+              if (cause.success) job.reason = cause.data;
+              stopReadiness();
+            }
           })
           .finally(() => {
-            choosingModel = false;
+            job.pickerPending = false;
+            if (readiness === job && job.status !== 'pending') choosingModel = modelCleanupFailed;
           });
         return true;
       }

@@ -6,6 +6,27 @@ import type {
   GeminiReadinessResult,
 } from '../../application/gemini-readiness';
 
+const protectionReasons = {
+  'bootstrap-missing': '페이지 초기 설정을 찾지 못했습니다.',
+  'bootstrap-format': '페이지 초기 설정 형식을 지원하지 않습니다.',
+  'bootstrap-limit': '페이지 초기 설정이 읽기 한도를 초과했습니다.',
+  'configuration-format': '보안 설정의 데이터 형식을 지원하지 않습니다.',
+  'flag-missing': '필요한 보안 설정이 명시돼 있지 않습니다.',
+  'flag-ambiguous': '필요한 보안 설정이 중복되어 구분할 수 없습니다.',
+  'flag-format': '필요한 보안 설정 값을 확인할 수 없습니다.',
+} satisfies Record<NonNullable<GeminiReadinessResult['protectionReason']>, string>;
+const modelErrors = {
+  model:
+    'Gemini 모델 메뉴를 읽지 못했습니다. 사이트에서 모델을 확인하세요. 요청은 보내지 않았습니다.',
+  'model-trigger': 'Gemini 모델 선택 버튼을 확인하지 못했습니다. 요청은 보내지 않았습니다.',
+  'model-menu':
+    'Gemini 모델 메뉴의 연결·열린 상태를 확인하지 못했습니다. 요청은 보내지 않았습니다.',
+  'model-selection': 'Gemini에서 선택된 모델을 구분하지 못했습니다. 요청은 보내지 않았습니다.',
+  'model-cleanup': 'Gemini 모델 메뉴가 닫혔는지 확인하지 못했습니다. 요청은 보내지 않았습니다.',
+  'model-confirmation':
+    '마무리 단계에서 Gemini 모델 재확인이 실패했습니다. 요청은 보내지 않았습니다.',
+};
+
 export function GeminiReadiness({
   platform,
   disabled,
@@ -62,8 +83,8 @@ export function GeminiReadiness({
       else if (mounted.current) {
         const cause = failure instanceof Error ? failure.cause : undefined;
         setError(
-          cause === 'model'
-            ? 'Gemini 모델 메뉴를 읽지 못했습니다. 사이트에서 모델을 확인하세요. 요청은 보내지 않았습니다.'
+          typeof cause === 'string' && Object.hasOwn(modelErrors, cause)
+            ? modelErrors[cause as keyof typeof modelErrors]
             : cause === 'page'
               ? 'Gemini 페이지가 준비되지 않았습니다. 로그인·로딩 상태를 확인하세요. 요청은 보내지 않았습니다.'
               : 'Gemini 준비 상태를 확인하지 못했습니다. 요청은 보내지 않았습니다.',
@@ -109,11 +130,14 @@ export function GeminiReadiness({
           <p>선택된 모델: {result.model}</p>
           <p role="status">
             {result.protection === 'enabled'
-              ? '보안 검사 필요: 백그라운드 전송 준비가 완료되지 않았습니다.'
+              ? '페이지 설정에 추가 보안 검사가 켜져 있습니다. 백그라운드 전송은 아직 준비되지 않았습니다.'
               : result.protection === 'unknown'
                 ? '보안 검사 상태를 확인하지 못해 백그라운드 전송을 진행하지 않습니다.'
-                : '보안 검사 조건을 확인했습니다. 실제 응답과 대화 연결은 아직 검증하지 않았습니다.'}
+                : '페이지의 보안 설정값을 읽었습니다. 실제 전송 조건과 응답은 아직 검증하지 않았습니다.'}
           </p>
+          {result.protection === 'unknown' && result.protectionReason && (
+            <p className="hint">{protectionReasons[result.protectionReason]}</p>
+          )}
         </>
       )}
       {record?.status === 'done' && (

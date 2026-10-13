@@ -2,6 +2,27 @@
 
 These are dated observations, not permanent product guarantees. Durable working rules live in [AGENTS.md](../../AGENTS.md).
 
+## Gemini active-page metadata — 2026-10-13
+
+- Native diagnosis classified the initial unknown as multiple bootstrap mentions. Counting a symbol in scripts does not establish multiple definitions: the public client also reads it. Removing known accessor fragments is unsafe because later alias writes can change the live value without another symbol occurrence. No permissive substring exclusion was adopted.
+- The product instead uses one self-contained pure function in the exact provider document's MAIN world. It reads the current flag container locally and returns fixed metadata only. Synthetic serialization and installed Chrome execution verify the actual receiving context; development tools never read real bootstrap/authentication values.
+- The bridge's UUID and Chrome's native scripting document ID are separate namespaces. Exact bridge inspections surround acquisition of a native top-frame/home boolean receipt; MAIN targets that native document and accepts one matching frame/document result. A similarly named identifier cannot replace either check.
+- Initial model capture is not completion. The pending bridge receipt retains its private mode key and mutation lock through projection and explicit finish. Finish re-reads label/key; changed-key/same-label, page input, repeated finish, cancellation and delayed cleanup have regressions. Model keys do not enter RPC or session state.
+- Final re-review found that a real mouse or keyboard model selection during delayed cleanup emitted no input event. Two built-bridge cases accepted the old receipt before correction. Pending readiness now stops on trusted page pointer/keyboard interaction; its own synthetic control click and Escape remain supported.
+- Four built-bridge cleanup cases allowed a dependent send after the model reader failed to close its menu, including a cancelled finish and ordinary model inspection. Draining an asynchronous chain is not proof of successful cleanup. A page-local failure latch now blocks mutations until that page is reloaded and reconnected; manually closing the menu does not clear it. Cancel/page precedence stays intact, while a sanitized AggregateError preserves only the fixed cleanup failure for the latch. Original errors never cross this boundary.
+- Three more regressions showed that a control-validation exception thrown inside cleanup escaped with a trigger reason and released the same latch. Sanitize the entire owning cleanup block as cleanup failure; preserve earlier read errors only when cleanup actually succeeds.
+- The public dense decoder selects its first decoded configuration and permits string metadata outside the value oneof. Whole selected-configuration validation matters: an unrelated unsupported Any/unset/nested row can invalidate the official resolver even when the requested boolean is valid. Six source-grounded cases and additional numeric-key/duplicate/shape checks were red before correction. Sparse overrides and unsupported complex values remain unknown.
+- Bootstrap state and the consuming runtime state are different evidence. The public client may prefer injected byte configuration and cache the effective protection value; a parsed bootstrap false does not authorize omitting protection from a generation request. The readiness UI now describes page settings and explicitly leaves actual transport/response unverified.
+- A parameterized negative test passed accidentally when array data was spread as callback arguments instead of passed as one case. Type checking exposed the mismatch. Wrap whole array cases in named objects so each identity/metadata rejection receives the intended complete payload. The corrected cases cover empty/multiple frames, wrong documents, extra fields, arbitrary reasons and cancellation after projection.
+
+The actual Aside extension manager later displayed a blank surface while stale accessibility entries remained. Reloading or navigating the same tab did not repair it. Closing only the owned manager tab and opening the exact manager address in a new tab restored the real controls without restarting the browser or touching unrelated tabs. A panel-close accessibility snapshot also briefly retained the old panel; a fresh screenshot confirmed its disappearance. Treat the old entries as historical observations, not actionable controls.
+
+Composer readiness did not establish model-control readiness. A final native attempt returned a selection error; settled, menu-scoped DOM observations found exactly one enabled keyed model and one own visible label, with the separate effort row also selected. No backend key values were read. A required missing trigger was incorrectly reported as selection failure because the generic catalog returned its empty fallback. Its classification regression failed before correction; a new native attempt then returned the fixed trigger failure even without concurrent test browsers. Two delayed-control fixtures failed in initial and final capture. Gemini now reuses the existing bounded model-control wait without increasing its deadline, while permanent absence still fails and ordinary catalogs retain their fallback. Three fresh native homes subsequently completed the exact installed path without generation or foreground switching.
+
+The new wait exposed a cancellation edge: restoring the control after cancellation opened the picker once before the outer readiness check noticed the abort. The regression was red with one opening instead of zero. Pass the existing signal through the private model reader and check it immediately after the readiness wait, before any picker mutation; retain normal cleanup for a picker already opened. This changes no request, timeout, or public model command.
+
+Artifact-specific command/native results belong to [validation](../testing/validation.md). These lessons do not establish a Gemini response or permit an attestation-omission fallback.
+
 ## Imported-conversation Claude peer — 2026-10-13 final evidence
 
 ### Reconnect must preserve local ownership through snapshots and UI equality
@@ -377,13 +398,13 @@ For a new incident, record the observed failure, evidence, confirmed cause (or e
 ### Dense array positions do not prove effective security flags
 
 - Evidence: Google's public JSPB decoder lets a trailing numeric-field object override earlier dense entries. Four synthetic regressions showed the initial readiness reader reporting protection disabled when the effective value was enabled or the representation was unsupported.
-- Correction: reject unsupported sparse objects and unknown flag fields; do not implement an unnecessary general decoder or adopt a default-disabled assumption. Only an explicit, unambiguous supported false value establishes disabled protection. Missing, duplicated, conflicting and inaccessible values remain unknown.
+- Correction: reject unsupported sparse objects and unknown flag fields; do not implement an unnecessary general decoder or adopt a default-disabled assumption. Only an explicit, unambiguous supported false value establishes that bootstrap flag's false value; the effective runtime protection still needs separate evidence. Missing, duplicated, conflicting and inaccessible values remain unknown.
 - Verification: these four cases failed with the wrong disabled value before correction; all 31 focused provider unit checks passed afterward. Full checks and installed evidence belong to the validation document.
 
 ### Cancellation is not completed UI cleanup
 
 - Evidence: a readiness operation marked itself cancelled before its model reader finished delayed Escape cleanup. A built-bridge regression showed a new send being accepted while the old picker was still cleaning up.
-- Correction: retain the existing model-mutation lock through the reader's `finally` cleanup even when readiness status is already error. Only release the lock after the asynchronous chain drains. The regression requires zero sends during cleanup and successful model reading afterward.
+- Correction: retain the existing model-mutation lock through the reader's `finally` cleanup even when readiness status is already error. Release it only after the asynchronous chain drains with confirmed cleanup; the later failed-cleanup correction above keeps the page blocked when that confirmation fails. The original regression requires zero sends during successful delayed cleanup and successful model reading afterward.
 
 ### Synthetic injection must reproduce production's DOM footprint
 

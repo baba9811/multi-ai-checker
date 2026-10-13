@@ -2,7 +2,7 @@
 
 로그인한 ChatGPT·Claude·Gemini 웹 대화의 답변을 모아 검토하고, **원래 메인 대화에 재탐색·최종 종합 프롬프트를 보내는** Chrome 사이드패널 확장입니다. 사용자는 API 키, CLI, TUI 없이 웹 로그인과 확장 화면만 사용합니다.
 
-> **현재 상태: 실제 원본 대화·TXT·PNG의 Claude 백그라운드 검토를 확인한 개발 브랜치.** 2026-10-13 최종 설치 사이드패널에서 비민감 ChatGPT 대화 세 쌍과 원본 두 파일을 가져와 같은 새 Claude 대화의 독립 답변·교차 검토를 수집했습니다. 원래 대화와 선택 탭은 유지됐습니다. 세 서비스 전체 전환·메인 최종 반환은 아직 미검증입니다. 기존 [공개 0.4.0](https://chromewebstore.google.com/detail/crosscheck-%E2%80%94-multi-ai-che/jkffbjajcmbcobmgbcilenbpjfemapki?hl=ko)은 검색·설치 제공이 확인됐으며 이 로컬 실험 수정은 배포하지 않았습니다. [검증 기록](docs/testing/validation.md), [출시 기록](docs/release/release-checklist.md).
+> **현재 상태: Claude 원본 검토와 Gemini 준비 확인을 실제 설치에서 확인한 개발 브랜치.** 2026-10-13 최종 설치 사이드패널에서 비민감 ChatGPT 대화 세 쌍과 원본 두 파일을 가져와 같은 새 Claude 대화의 독립 답변·교차 검토를 수집했습니다. Task 11 최종 Gemini 시험은 새 비활성 탭의 자동 모드와 페이지 보안 설정만 읽었으며 응답 생성 시험은 아닙니다. 원래 대화와 선택 탭은 유지됐습니다. 세 서비스 전체 전환·메인 최종 반환은 아직 미검증입니다. 기존 [공개 0.4.0](https://chromewebstore.google.com/detail/crosscheck-%E2%80%94-multi-ai-che/jkffbjajcmbcobmgbcilenbpjfemapki?hl=ko)은 검색·설치 제공이 확인됐으며 이 로컬 실험 수정은 배포하지 않았습니다. [검증 기록](docs/testing/validation.md), [출시 기록](docs/release/release-checklist.md).
 
 스토어 설치본은 Chrome의 자동 업데이트를 사용합니다. 확장 하단에서 설치 버전과 업데이트 안내를 확인할 수 있습니다. 압축해제 설치본은 새 빌드로 교체·새로고침해야 합니다. 업데이트는 세션 기록을 지우므로 필요한 결과를 먼저 **기록 저장**으로 내려받으세요. [업데이트 안내](docs/release/updates.md).
 
@@ -18,7 +18,7 @@
 
 이 개발 브랜치에서는 비-Claude 대화를 가져오고 원본을 확인한 뒤 **검토 설정 → Claude 백그라운드 검토**를 사용할 수 있습니다. 현재 렌더된 전체 캡처 대화와 선택한 원본을 Claude의 독립 답변·교차 검토 두 요청에 공유하며, 탭을 전환하거나 원래 메인에 새 요청을 보내지 않습니다. TXT는 UTF-8 각 64 KiB 이하, PNG는 각 축 4096 이하이며 기존 10개·총 20 MiB 제한도 적용합니다. 두 원본은 처음에만 전달하고 후속 요청에서도 같은 대화의 원본 기록을 확인합니다. 미지원·누락·변경·불확실 상태를 파일 없는 전송으로 대체하지 않습니다. 기존 웹 로그인·구독만 사용하고 쿠키·토큰 값을 읽거나 복사하지 않습니다. 기본 자동 검토와 고정 연결/합성 문맥 진단은 그대로 유지합니다. [실험 범위와 증거](docs/research/background-web-transport.md).
 
-2026-10-13 현재 소스는 단위 340개·타입·빌드, 전체 합성 브라우저 151개와 설치 확장 11개를 통과했습니다. Task 9의 실제 native 텍스트·TXT/PNG 시험은 두 Claude 답변을 수집했습니다. 현재 **연결 → Gemini 준비 확인**은 실제 native 설치에서 자동 모드를 읽었지만 보호 상태가 unknown이어서 생성하지 않았습니다. 준비 확인은 응답 성공이 아닙니다. 설치 fixture의 테스트 전용 권한·탭 할당·일반 패널과 actual native 증거는 구분합니다. [검증 기록](docs/testing/validation.md)과 [개발 인계](docs/development/local-handoff.md)에 artifact별 결과·한계를 보존합니다.
+Task 9의 실제 native 텍스트·TXT/PNG 시험은 두 Claude 답변을 수집했습니다. **연결 → Gemini 준비 확인**은 모델과 페이지 보안 설정만 읽으며 실패 단계를 고정된 안내로 구분합니다. Task 11 최종 설치의 실제 native 사이드패널은 새 비활성 Gemini 홈에서 **자동 모드 + 페이지 추가 보안 검사 켜짐**을 읽었고 원래 선택 탭을 유지했습니다. 모델 제어 준비와 메뉴 정리·취소를 확인하며, 정리를 확인하지 못한 페이지는 새로고침·재연결 전까지 차단합니다. Gemini 생성·파일 전달·메인 반환은 아직 미검증이며, 페이지 설정값만으로 실제 전송에 필요한 보안 상태를 추정하지 않습니다. Task 12의 정상 client capability 확인은 계획 단계입니다. 단위·합성 브라우저·설치 fixture·actual native의 artifact별 결과와 한계는 [검증 기록](docs/testing/validation.md)과 [개발 인계](docs/development/local-handoff.md)가 소유합니다.
 
 **연결**에서 각 AI의 웹 모델 메뉴를 불러와 선택할 수 있습니다. 메뉴가 지원되지 않거나 선택지가 없는 계정은 웹에서 선택한 모델을 사용합니다. 검토 설정은 기본적으로 접혀 있습니다. 세 AI 기준 빠르게는 최대 4회, 꼼꼼하게는 최대 6회 요청하며 기존 메인 답변을 재사용합니다. 불러온 대화의 질문과 답변이 선택한 서비스에 공유되고 최종 프롬프트가 메인 대화에 보내진다는 안내를 시작 버튼 바로 아래에 표시합니다.
 

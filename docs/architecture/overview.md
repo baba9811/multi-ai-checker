@@ -77,6 +77,8 @@ application은 원본 재검사·저장된 전송 의도·단계와 완전한 �
 
 ## 확장 지점
 
+Gemini 준비 확인은 생성 없는 별도 metadata intent입니다. Chrome 인프라가 ID/status를 먼저 저장하고 새 비활성 홈의 ISOLATED bridge에 모델 capture를 요청합니다. bridge의 로컬 문서 UUID와 Chrome scripting의 native document ID를 각각 검사한 뒤 같은 top-frame MAIN에 self-contained 순수 보안 설정 함수만 실행합니다. 모델 표시·고정 enum만 일시적으로 반환하고 원문·인증값·private mode key는 페이지 밖으로 보내지 않습니다. 모델 receipt는 명시적 finish의 재확인과 cleanup까지 pending입니다. 사용자 조작·취소는 receipt를 무효화하고 실패한 cleanup은 페이지 reload/reconnect까지 mutation을 막습니다. 이 경로는 정상 클라이언트의 실제 보호 상태·생성·답변 수신을 증명하지 않습니다. [진단 경계](../development/gemini-protection-diagnostics-plan.md).
+
 새 공급자는 provider 도메인과 DOM 어댑터, 고정 origin 권한, 합성 fixture, 실로그인 검증 기록을 함께 추가합니다. API 모드를 넣는다면 `Platform`의 전송 구현을 분리하고 별도 키 저장/권한/비용 동의 설계를 먼저 수행합니다. 웹 로그인과 API 무료 크레딧은 서로 다른 기능입니다.
 
 모델 목록은 웹 메뉴에서 읽고 실제 선택 상태를 확인합니다. 자동 전송과 모델 메뉴 조작은 겹치지 않습니다. 메뉴 미지원은 빈 목록과 안내로 반환하며 가용 모델을 추측하지 않습니다. UI에는 연결된 탭과 입력란 확인 결과를 구별해 표시합니다.

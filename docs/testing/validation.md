@@ -1,5 +1,32 @@
 # 검증 기록
 
+## Task 11 active-page Gemini metadata — 2026-10-14 최종 수용
+
+동작은 실제 모델과 현재 페이지의 보안 설정을 읽는 metadata-only 진단입니다. Self-contained MAIN 함수가 owning provider 안에서만 설정을 해석하며 원문/인증값/모델 request key는 반환하지 않습니다. 고정 보호 상태/사유와 UI 모델만 transient 결과이며 session은 ID/status뿐입니다. 원래 bridge ID와 별도 Chrome native document ID를 검사하고 finish까지 pending/잠금·취소·모델 재확인을 유지합니다. Gemini 생성/원본/메인 반환 검증이 아닙니다.
+
+| 증거                                | 최종 결과                                                         | 한계                                                                                                                                                                                                            |
+| ----------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 단위·타입·빌드                      | 431개 통과                                                        | serialization, 독립 ID/frame, strict enum, 전체 첫 config rows, 고정 단계/취소 우선순위와 sanitized cleanup 실패 포함                                                                                           |
+| 집중 준비 확인 회귀                 | 31개 통과, 40.7초                                                 | 실제 built bridge의 model first-capture/finish, same-label key 변경, trusted interaction, cleanup 예외/실패 잠금, 지연된 제어와 취소 후 UI 변경 방지                                                            |
+| 전체 합성 브라우저                  | 174개 통과, 3.4분                                                 | 기존 전체 흐름과 공유 모델 메뉴 회귀. 로그인된 실제 서비스 결과와 별도                                                                                                                                          |
+| 전체 설치 확장                      | 13개 통과, 22.1초                                                 | actual ISOLATED bridge와 serialized MAIN/identity/RPC. Gemini true/false/missing cases는 test-only permission pregrant·inactive allocation shim·일반 extension-origin panel이며 native 권한/할당/UI 수용과 다름 |
+| 독립 리뷰·회귀                      | 모델 변경 경합과 cleanup 잠금/예외 문제를 red→green으로 확인      | 실제 runtime protection·normal generation은 별도 gate                                                                                                                                                           |
+| 실제 native, 최종 signal guard 이후 | 새 비활성 홈 하나에서 자동 모드 + 페이지 추가 보안 검사 켜짐 수집 | 현재 bootstrap 설정값만 확인. actual injected/cached runtime·생성·파일·완료/readback·메인 반환을 입증하지 않음                                                                                                  |
+
+최종 테스트/native artifact는 bridge SHA-256 `6c5b362bffe76f46f77d2b4641b268dae9e520d6f7332b037699695405855950`, `chunks/sidepanel-DLZml6vu.js` SHA-256 `15b18c12800c5ec63547c2fafdf6bfb9e6be1dcebc5a71c79dbdb371297336d6`입니다. 같은 0.4.0 version/path도 코드가 달라질 수 있으므로 이 해시로 구분합니다. 빌드·합성·설치 검사는 공유 output을 사용하는 순차 실행이었습니다.
+
+Native는 정확한 프로젝트 설치 ID/경로/버전과 reload 완료를 확인한 뒤 실제 extension action/sidepanel을 사용했습니다. 최종 한 번의 준비 확인 동안 manager 탭은 계속 선택됐고 새 소유 Gemini 홈은 비활성이었습니다. 성공 뒤 native close와 fresh absence로 그 홈의 폐쇄를 확인하고 manager 선택을 복원했습니다. 허가된 native helper PID `86001`을 종료한 뒤 실제 프로세스 부재도 확인했습니다. 개발 도구의 직접 생성 POST나 수동 provider 주입으로 대체하지 않았으며 사용자 원본·다른 탭·설정은 수정하지 않았습니다.
+
+최종 로컬 개발 ZIP `multi-ai-checker-0.4.0-chrome.zip`은 **175,780바이트**, SHA-256 `48b2508c851e53769ff1a965631deb42e9b5afc3a857051381401505b1567b9d`입니다. 내부 12개 파일이 테스트한 output과 모두 byte-identical하며 위 bridge 해시도 일치합니다. MV3/0.4.0 manifest, 기존 권한 네 개·optional HTTPS origin 세 개, CSP·아이콘·13,336바이트 라이선스를 확인했습니다. cookies 권한·추가 host 권한·web-accessible resource는 없습니다. 이 ZIP은 로컬 개발 artifact이며 push·store 업로드·심사·공개 배포는 없습니다.
+
+초기 projection/dense 검사의 420 단위·전체 synthetic160개(2.9분)·installed-origin13개(28.4초)는 역사적 결과입니다. Pre-dense native는 자동 모드/추가 보안 설정을 읽었으나 후속 generic 모델 오류, model-selection, model-trigger 실패는 해당 artifact의 native 완료로 기록하지 않았습니다. 고정 단계로 required trigger 부재를 분리하고 입력란 이후 모델 제어 준비에 기존 2.5초/80ms 대기를 적용했습니다. 그 대기 수정 artifact의 native 세 번 연속 성공은 최종 signal guard 이전의 증거입니다. 마지막 취소 회귀는 버튼 복원 후 picker opening 1회가 0회 기대를 어겨 red였으며, 대기 직후 기존 signal 재검사로 수정했습니다. 실패한 cleanup의 잠금은 실제 메뉴를 나중에 닫아도 해제하지 않고 페이지 새로고침·재연결을 요구합니다.
+
+Pre-dense/native 성공 artifact: bridge `ac45a4a20c619750d43f7cd60d9d4d37195e448f3bcf0bd8a6c7795af27c7d77`, `sidepanel-CjiaFwlD.js` SHA-256 `c2192f40faff8c418b1cf58ba2d26bca7429b8eb179a70e82e68d4c9693c634e`. Dense 최종 검사 artifact는 같은 bridge hash와 `sidepanel-DOU2PuNj.js` SHA-256 `d2be8d7d2335e3ff768cdbcc8991d4a820796546076a816e2b15e2b683c3b677`입니다. 같은 version/path도 다른 artifact이며 이후 model-stage 진단 수정은 이 검사의 범위가 아닙니다.
+
+앞선 두 projection 소유 홈도 native close와 fresh absence로 정리하고 당시 native helper 부재를 확인했습니다. 이 과거 정리는 위 최종 signal guard artifact의 한 번 수용과 구분합니다.
+
+전체 설정 decoder의 공공 소스 근거와 bootstrap/실제 runtime의 구분은 [전송 조사](../research/background-web-transport.md), 재현 교훈은 [verification lessons](../development/verification-lessons.md), 작업 범위는 [진단 설계](../development/gemini-protection-diagnostics-plan.md)에 둡니다. Task 12의 [정상 client capability 사전 확인](../development/gemini-client-capability-plan.md)은 계획 단계이며 새 prompt/file/generation 요청은 추가하지 않았습니다.
+
 ## Task 10 Gemini readiness — 2026-10-13
 
 현재 단계는 **현재 Gemini 모델 메뉴와 보안 상태를 읽는 준비 확인**입니다. Gemini generation, 파일 전달, 후속 대화, 메인 최종 반환은 구현·수용한 상태가 아닙니다. 확장 요청의 prompt/upload/authenticated fetch를 추가하지 않았으며 실제 서비스 자체의 일반 로딩 네트워크를 관찰·증명한 결과로 해석하지 않습니다.

@@ -1,20 +1,55 @@
 import { z } from 'zod';
-export const GeminiReadinessResult = z
+const modelLabel = z.string().min(1).max(160);
+export const GeminiReadinessModel = z.object({ model: modelLabel }).strict();
+export const GeminiProtectionStatus = z
   .object({
-    model: z.string().min(1).max(160),
     protection: z.enum(['disabled', 'enabled', 'unknown']),
+    protectionReason: z
+      .enum([
+        'bootstrap-missing',
+        'bootstrap-format',
+        'bootstrap-limit',
+        'configuration-format',
+        'flag-missing',
+        'flag-ambiguous',
+        'flag-format',
+      ])
+      .optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (result) =>
+      result.protection === 'unknown'
+        ? result.protectionReason !== undefined
+        : result.protectionReason === undefined,
+    {
+      message: 'A protection reason is required only for unknown protection.',
+      path: ['protectionReason'],
+    },
+  );
+export type GeminiProtectionStatus = z.infer<typeof GeminiProtectionStatus>;
+export const GeminiReadinessResult = GeminiProtectionStatus.safeExtend({ model: modelLabel });
 export type GeminiReadinessResult = z.infer<typeof GeminiReadinessResult>;
 export const GeminiReadinessRecord = z
   .object({ id: z.string().min(1).max(100), status: z.enum(['pending', 'done', 'uncertain']) })
   .strict();
 export type GeminiReadinessRecord = z.infer<typeof GeminiReadinessRecord>;
+export const GeminiReadinessReason = z.enum([
+  'page',
+  'model',
+  'model-trigger',
+  'model-menu',
+  'model-selection',
+  'model-cleanup',
+  'model-confirmation',
+  'interrupted',
+]);
+export type GeminiReadinessReason = z.infer<typeof GeminiReadinessReason>;
 export const GeminiReadinessProgress = z
   .object({
     status: z.enum(['pending', 'done', 'error']),
-    result: GeminiReadinessResult.optional(),
-    reason: z.enum(['page', 'model', 'interrupted']).optional(),
+    result: GeminiReadinessModel.optional(),
+    reason: GeminiReadinessReason.optional(),
   })
   .strict();
 export type GeminiReadinessProgress = z.infer<typeof GeminiReadinessProgress>;

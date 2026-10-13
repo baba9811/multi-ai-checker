@@ -364,52 +364,79 @@ test('installed Gemini readiness restores uncertain metadata without dispatch or
 
 test.describe('synthetic Gemini permission already granted', () => {
   test.use({ syntheticGeminiPermission: true });
-  test('installed origin panel reads Gemini model and protection through its isolated bridge without generation', async ({
-    extension,
-  }) => {
-    const { context, panel } = extension;
-    const gemini = await context.newPage();
-    let apiCalls = 0;
-    await gemini.route('https://gemini.google.com/**', (route) => {
-      if (['fetch', 'xhr'].includes(route.request().resourceType())) apiCalls++;
-      return route.fulfill({ contentType: 'text/html', body: geminiReadinessPage(true) });
-    });
-    await gemini.goto('https://gemini.google.com/app');
-    const tabIds = await panel.evaluate(async () =>
-      (await chrome.tabs.query({ url: 'https://gemini.google.com/app' })).map((t) => t.id!),
-    );
-    expect(tabIds).toHaveLength(1);
-    await panel.evaluate((tabId) => {
-      // Tests the isolated product bridge after allocation; initial navigation is substituted.
-      chrome.tabs.create = (async (options: chrome.tabs.CreateProperties) => {
-        if (options.url !== 'https://gemini.google.com/app' || options.active !== false)
-          throw new Error('Unexpected fixture allocation');
-        return chrome.tabs.get(tabId);
-      }) as typeof chrome.tabs.create;
-    }, tabIds[0]!);
-    const other = await context.newPage();
-    await other.goto('about:blank');
-    await other.bringToFront();
-    const activeBefore = await panel.evaluate(async () =>
-      (await chrome.tabs.query({ active: true, currentWindow: true })).map((t) => t.id),
-    );
-    await panel.getByRole('button', { name: '연결', exact: true }).first().click();
-    await panel.getByText('Gemini 준비 확인', { exact: true }).click();
-    await panel.getByRole('button', { name: 'Gemini 준비 상태 확인', exact: true }).click();
-    await expect(panel.getByText('선택된 모델: Automatic fixture', { exact: true })).toBeVisible();
-    await expect(panel.getByText(/보안 검사 필요:/)).toBeVisible();
-    expect(await gemini.evaluate(() => (window as any).fixtureNetworkCalls)).toBe(0);
-    expect(apiCalls).toBe(0);
-    expect(await gemini.evaluate(() => (window as any).fixtureSent)).toEqual([]);
-    const stored = (
-      await panel.evaluate(() => chrome.storage.session.get('crosscheck.gemini-readiness.v1'))
-    )['crosscheck.gemini-readiness.v1'];
-    expect(stored).toEqual({ id: expect.any(String), status: 'done' });
-    expect(
-      await panel.evaluate(async () =>
+  for (const protection of [true, false, undefined]) {
+    test(`installed origin panel reads Gemini ${String(protection)} protection through its isolated bridge without generation`, async ({
+      extension,
+    }) => {
+      const { context, panel } = extension;
+      const gemini = await context.newPage();
+      let apiCalls = 0;
+      await gemini.route('https://gemini.google.com/**', (route) => {
+        if (['fetch', 'xhr'].includes(route.request().resourceType())) apiCalls++;
+        return route.fulfill({ contentType: 'text/html', body: geminiReadinessPage(protection) });
+      });
+      await gemini.goto('https://gemini.google.com/app');
+      const tabIds = await panel.evaluate(async () =>
+        (await chrome.tabs.query({ url: 'https://gemini.google.com/app' })).map((t) => t.id!),
+      );
+      expect(tabIds).toHaveLength(1);
+      await panel.evaluate((tabId) => {
+        // Tests the isolated product bridge after allocation; initial navigation is substituted.
+        chrome.tabs.create = (async (options: chrome.tabs.CreateProperties) => {
+          if (options.url !== 'https://gemini.google.com/app' || options.active !== false)
+            throw new Error('Unexpected fixture allocation');
+          return chrome.tabs.get(tabId);
+        }) as typeof chrome.tabs.create;
+      }, tabIds[0]!);
+      const other = await context.newPage();
+      await other.goto('about:blank');
+      await other.bringToFront();
+      const activeBefore = await panel.evaluate(async () =>
         (await chrome.tabs.query({ active: true, currentWindow: true })).map((t) => t.id),
-      ),
-    ).toEqual(activeBefore);
-    expect(await other.evaluate(() => document.hasFocus())).toBe(true);
-  });
+      );
+      await panel.getByRole('button', { name: '연결', exact: true }).first().click();
+      await panel.getByText('Gemini 준비 확인', { exact: true }).click();
+      await panel.getByRole('button', { name: 'Gemini 준비 상태 확인', exact: true }).click();
+      await expect(
+        panel.getByText('선택된 모델: Automatic fixture', { exact: true }),
+      ).toBeVisible();
+      if (protection === true)
+        await expect(
+          panel.getByText(
+            '페이지 설정에 추가 보안 검사가 켜져 있습니다. 백그라운드 전송은 아직 준비되지 않았습니다.',
+            { exact: true },
+          ),
+        ).toBeVisible();
+      else if (protection === false)
+        await expect(
+          panel.getByText(
+            '페이지의 보안 설정값을 읽었습니다. 실제 전송 조건과 응답은 아직 검증하지 않았습니다.',
+            { exact: true },
+          ),
+        ).toBeVisible();
+      else {
+        await expect(
+          panel.getByText('보안 검사 상태를 확인하지 못해 백그라운드 전송을 진행하지 않습니다.', {
+            exact: true,
+          }),
+        ).toBeVisible();
+        await expect(
+          panel.getByText('필요한 보안 설정이 명시돼 있지 않습니다.', { exact: true }),
+        ).toBeVisible();
+      }
+      expect(await gemini.evaluate(() => (window as any).fixtureNetworkCalls)).toBe(0);
+      expect(apiCalls).toBe(0);
+      expect(await gemini.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+      const stored = (
+        await panel.evaluate(() => chrome.storage.session.get('crosscheck.gemini-readiness.v1'))
+      )['crosscheck.gemini-readiness.v1'];
+      expect(stored).toEqual({ id: expect.any(String), status: 'done' });
+      expect(
+        await panel.evaluate(async () =>
+          (await chrome.tabs.query({ active: true, currentWindow: true })).map((t) => t.id),
+        ),
+      ).toEqual(activeBefore);
+      expect(await other.evaluate(() => document.hasFocus())).toBe(true);
+    });
+  }
 });
