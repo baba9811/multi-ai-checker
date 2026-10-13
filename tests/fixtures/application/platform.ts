@@ -7,6 +7,7 @@ import {
 } from '../../../src/domains/providers/model';
 import type { Job } from '../../../src/domains/crosscheck/model';
 import type { AttachmentPayload } from '../../../src/domains/attachments/model';
+import type { GeminiClientCapability } from '../../../src/application/gemini-readiness';
 
 declare global {
   interface Window {
@@ -89,9 +90,18 @@ export const fixturePlatform: Platform = {
     const reason = protectionReason.find(
       (value) => value === new URL(location.href).searchParams.get('readiness'),
     );
+    const client: GeminiClientCapability =
+      new URL(location.href).searchParams.get('client') === 'prewarm'
+        ? { status: 'unsupported', reason: 'prewarm' }
+        : { status: 'candidate' };
     if (reason)
-      return { model: 'Automatic fixture', protection: 'unknown', protectionReason: reason };
-    return { model: 'Automatic fixture', protection: 'enabled' };
+      return {
+        model: 'Automatic fixture',
+        protection: 'unknown',
+        protectionReason: reason,
+        client,
+      };
+    return { model: 'Automatic fixture', protection: 'enabled', client };
   },
   async readClaudeProbe() {
     const status = sessionStorage.getItem('fixture-claude-probe');

@@ -4,7 +4,7 @@
 
 - Read `README.md`, `docs/development/local-handoff.md`, and the relevant architecture, security, and validation documents before continuing work. Check the branch, worktree, and local changes; preserve existing work.
 - Treat handoff notes and prior test results as historical evidence. Verify the current code, environment, installed extension, and browser state before relying on them.
-- Trace a reported failure from the UI through the application, Chrome messaging, and provider adapter. Inspect all callers of a shared function before changing it.
+- Trace a reported failure from the UI through the application, Chrome messaging, and provider adapter. Inspect all callers of a shared function before changing it. Trace later lifecycle mutations before using a creation-time field as persistent ownership evidence.
 - Reproduce the failure and identify its cause before editing. Add the smallest regression check that would fail without the fix. Reuse existing code and test infrastructure; avoid speculative abstractions or dependencies.
 
 ## Preserve the product contract
@@ -49,7 +49,7 @@
 - Preserve failure logs before rerunning a suite that cleans its output. Inspect the first meaningful failure and determine whether it occurred during setup, an assertion, or teardown.
 - For timeouts or missing artifacts, check process contention, overlapping runs, output cleanup, and browser availability before changing product logic or increasing time limits. Do not kill unrelated user processes.
 - After a fix, run the relevant regression check, then the required validation commands. Repeat broader checks only when new changes, failures, or unresolved concerns justify them.
-- Never bypass managed browser policy, CAPTCHA, provider quotas, login protections, or security checks to make a test pass. Reject unsupported or ambiguous representations of security controls and validate their entire owning configuration. A parsed bootstrap value or default does not prove the effective runtime protection state. Record blocked or unverified checks honestly.
+- Never bypass managed browser policy, CAPTCHA, provider quotas, login protections, or security checks to make a test pass. Reject unsupported or ambiguous representations of security controls and validate their entire owning configuration. A parsed bootstrap value, default or root cache does not prove the bound consumer's effective runtime state; verify its actual selected reference. Record blocked or unverified checks honestly.
 
 ## Privacy and release
 

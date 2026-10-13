@@ -4,6 +4,7 @@ import type { Platform } from '../../application/ports';
 import type {
   GeminiReadinessRecord,
   GeminiReadinessResult,
+  GeminiClientCapability,
 } from '../../application/gemini-readiness';
 
 const protectionReasons = {
@@ -26,6 +27,32 @@ const modelErrors = {
   'model-confirmation':
     '마무리 단계에서 Gemini 모델 재확인이 실패했습니다. 요청은 보내지 않았습니다.',
 };
+const clientReasons = {
+  page: '준비 확인에 사용한 페이지가 변경됐습니다.',
+  owner: '모델 선택 영역의 연결을 확인하지 못했습니다.',
+  'owner-context': '모델 영역의 페이지 연결 정보를 확인하지 못했습니다.',
+  'owner-view': '모델 영역의 현재 연결을 확인하지 못했습니다.',
+  'owner-slot': '모델 영역의 소유 관계를 확인하지 못했습니다.',
+  'owner-declaration-1': '모델 버튼의 첫 번째 화면 연결을 확인하지 못했습니다.',
+  'owner-declaration-2': '모델 버튼의 두 번째 화면 연결을 확인하지 못했습니다.',
+  'owner-declaration-3': '모델 버튼과 모델 영역의 연결을 확인하지 못했습니다.',
+  'owner-declaration-3-node': '모델 영역의 화면 구성을 확인하지 못했습니다.',
+  'owner-declaration-3-template':
+    '모델 버튼이 현재 모델 화면에 연결되어 있는지 확인하지 못했습니다.',
+  'owner-declaration-3-binding': '모델 버튼과 화면의 연결이 일치하지 않아 확인을 중단했습니다.',
+  'owner-component': '모델 영역을 확인하는 마지막 단계에서 멈췄습니다.',
+  'runtime-shape': '현재 웹 클라이언트의 구조를 지원하지 않습니다.',
+  'service-identity': '실제로 사용 중인 웹 클라이언트를 확인하지 못했습니다.',
+  protection: '정상 클라이언트의 추가 보안 검사 상태를 확인하지 못했습니다.',
+  'transport-session': '서비스 연결이 준비됐는지 확인하지 못했습니다.',
+  'transport-api': '응답을 받는 연결 경로를 확인하지 못했습니다.',
+  'transport-route': '세션 연결 경로의 설정을 확인하지 못했습니다.',
+  'transport-sse':
+    '스트리밍 응답 경로가 선택돼 있습니다. 이 시험에서는 해당 경로를 지원하지 않습니다.',
+  'transport-rpc': '기본 응답 경로가 선택돼 있습니다. 이 시험에서는 해당 경로를 지원하지 않습니다.',
+  prewarm: '이 시험에 필요한 새 전송 연결 상태를 확인하지 못했습니다.',
+  hook: '전송 경계를 확인하는 데 필요한 조건을 확인하지 못했습니다.',
+} satisfies Record<Extract<GeminiClientCapability, { status: 'unsupported' }>['reason'], string>;
 
 export function GeminiReadiness({
   platform,
@@ -104,7 +131,7 @@ export function GeminiReadiness({
         Gemini 준비 확인 <ChevronDown size={13} />
       </summary>
       <p className="hint">
-        별도 Gemini 탭에서 현재 모델과 보안 검사 상태만 읽습니다. 기존 대화와 파일은 보내지
+        별도 Gemini 탭에서 현재 모델과 웹 클라이언트 준비 상태를 읽습니다. 기존 대화와 파일은 보내지
         않습니다.
       </p>
       <p className="hint">요청을 보내거나 응답을 받은 시험은 아닙니다.</p>
@@ -137,6 +164,14 @@ export function GeminiReadiness({
           </p>
           {result.protection === 'unknown' && result.protectionReason && (
             <p className="hint">{protectionReasons[result.protectionReason]}</p>
+          )}
+          <p role="status">
+            {result.client.status === 'candidate'
+              ? '웹 클라이언트의 준비 조건을 확인했습니다. 요청·응답은 아직 검증하지 않았습니다.'
+              : '이 시험에서 웹 클라이언트의 전송 조건을 확인하지 못했습니다.'}
+          </p>
+          {result.client.status === 'unsupported' && (
+            <p className="hint">{clientReasons[result.client.reason]}</p>
           )}
         </>
       )}

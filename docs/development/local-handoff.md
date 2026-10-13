@@ -10,7 +10,19 @@ CrossCheck는 같은 Chrome 프로필에 웹 로그인한 ChatGPT·Claude·Gemin
 
 출시 작업의 2026-10-07 제출·심사 대기·미게시 기록은 과거 상태입니다. 2026-10-13 공개 조회에서는 **0.4.0 상세 페이지·설치 제공·CrossCheck와 Multi AI Checker 검색 노출**을 확인했습니다. 실제 사용자 설치와 대시보드 승인 시점·현재 심사/초안 상태는 확인하지 않았습니다. 이 로컬 실험 브랜치는 스토어에 배포하지 않았고 버전 번호만으로 공개 패키지와 같은 소스라고 판단하지 않습니다. 제출 당시 PR #2·릴리스 `37449257291`·CI ZIP 12개 파일 일치 등 역사와 최신 공개 근거는 [출시 체크리스트](../release/release-checklist.md)가 소유하며 배포 절차는 [배포 자동화](../release/automation.md)를 확인합니다.
 
-## 현재 Task 11: Gemini 실제 설정 projection — 2026-10-14, metadata 수용 완료
+## 현재 Task 12: Gemini 정상 클라이언트 metadata 분류 — 수용 완료
+
+순수 synchronous MAIN의 실제 consumer profile을 기존 모델/문서/finish receipt에 구현했습니다. 정확한 compact host/container와 정해진 declaration 관계를 통해 컴포넌트 자체의 selected service/API 참조만 읽습니다. Root cache lookup·hydration·provider factory/getter/메서드·DOM 변경·인증값 조회는 없고 strict enum만 일시적으로 반환하며 세션은 ID/status입니다. 상세 계약은 [소스 조사](../research/background-web-transport.md), artifact별 증거는 [검증 기록](../testing/validation.md)이 소유합니다.
+
+최종 source classifier는 순수190개와 전체 **630 단위·타입·빌드, installed-origin15개(23.6초), 전체 synthetic176개(3.4분)**를 순서대로 통과했습니다. 실제 native는 context/slot/container·세 declaration·original container[16]·최종 컴포넌트/선택된 서비스와 보호 활성 검사를 모두 통과하고 **`unsupported/transport-rpc`**를 반환했습니다. 자동 모드/페이지 보안 설정과 finish도 완료됐습니다. 현재 configured initial framework-stream 경로를 구분한 metadata 수용이며 요청/응답의 증거가 아닙니다. 실제 cold-native candidate는 현재 계정의 선택 경로에서 지원·확인한 상태가 아닙니다. Artifact별 상세 결과는 [검증 기록](../testing/validation.md)이 소유합니다.
+
+Classifier는 실제 API의 own Aa를 먼저 읽습니다. True면 실제 session.oa true만 요구하고 Nd는 읽지 않습니다. False일 때만 own Nd true를 SSE-first/fallback 가능 경로, false를 framework RPC로 고정 분류합니다. Unknown은 고정 오류이며 cold-native candidate의 prewarm/hook 검사는 해당 native 경로에서만 수행합니다. 값/flag/경로를 바꾸지 않습니다.
+
+이전592 artifact의 native `owner-declaration-3-binding` 실패 뒤 현재 페이지가 로드한 공개 정적 core/component를 credentials 없이 다시 읽었습니다. `k/ck`가 같아도 바이트 해시는 과거 source와 달랐으며 동일 source라는 주장은 하지 않습니다. 두 공개 버전 모두 정상 NgTemplateOutlet 삽입이 child[5]를 insertion TNode로 바꾸지만 child[16]의 원래 declaration container는 유지하는 경로를 확인했습니다. 세 번째 link만 이 원래 container의 정확한 parent81/marker/parent/node provenance로 검증했고 수정 전18 실패/150 통과를 재현했습니다. 첫 두 child[5]와 최종 owner/service 검사는 유지합니다. 608의 aggregate transport와615의 oa-first transport-session 결과는 최종 route classifier 이전의 역사적 증거입니다. [Task 12 계획](gemini-client-capability-plan.md).
+
+최근 exact 프로젝트 설치 ID/경로/버전과 reload 완료 후 실제 extension action/sidepanel을 사용했고 manager 선택과 새 소유 홈의 비활성을 유지했습니다. 홈은 native close/fresh absence로 닫고 manager 선택을 복원했으며 허가된 helper 종료 뒤 실제 부재를 확인했습니다. 이전585 artifact의 홈도 읽기 전용 public asset 확인 후 닫았습니다. 608 artifact의 ZIP은 역사적 패키지입니다. 최종630 로컬 ZIP도 테스트/native output과12개 파일·해시 일치를 확인했으며 [검증 기록](../testing/validation.md)에 보존했습니다. Task 12 metadata는 checkpoint 가능한 상태이고 Gemini 실제 응답 목표는 열려 있습니다. 정상 SDK의 request-owned `Uwa.setParam("rt") → own Rj.send` guard는 다음 소스 조사 후보이며 구현·증명하지 않았습니다. Global fetch patch·flag 강제·인증값 조회·새 Gemini 질문·push·store 업로드는 없습니다.
+
+## 이전 Task 11: Gemini 실제 설정 projection — 2026-10-14, metadata 수용 완료
 
 Task 10은 `65d1334`로 보존했습니다. 실제 unknown을 고정 이유로 분리한 첫 native 진단은 `bootstrap-ambiguous`였습니다. 문자열 언급을 정의로 취급하는 DOM scanner를 완화하지 않고, provider 페이지 안의 self-contained MAIN 함수가 현재 `TSDtV`를 읽고 고정 enum만 반환하도록 전환했습니다. 원문/인증값/모델 key는 RPC·storage·로그에 반환하지 않습니다. 세션은 ID/status만 유지합니다.
 
@@ -22,7 +34,7 @@ Task 10은 `65d1334`로 보존했습니다. 실제 unknown을 고정 이유로 �
 
 최종 소유 홈은 native close 뒤 fresh absence로 폐쇄를 확인했고 manager 선택을 복원했습니다. 허가된 native helper도 종료 뒤 실제 부재를 확인했습니다. 최종 로컬 개발 ZIP은 테스트한 output과 12개 파일이 모두 일치하며 패키지 검사 결과는 [검증 기록](../testing/validation.md)에 보존합니다. 사용자 원본·다른 탭·설정은 수정하지 않았고 push·store 업로드·심사·공개 배포는 없습니다.
 
-다음 Task 12의 [정상 client capability 사전 확인](gemini-client-capability-plan.md)은 계획 단계입니다. 보안 bootstrap 플래그를 실제 cached/injected 소비 상태와 같다고 추정하지 않습니다. 정상 transport·보호 경로·완료/readback과 Gemini 생성·원본 전달·메인 반환은 아직 미검증이며, 누락 attestation fallback이나 임의 직접 POST는 사용하지 않습니다. [진단 설계](gemini-protection-diagnostics-plan.md), [검증](../testing/validation.md), [실패 교훈](verification-lessons.md).
+Task 11 수용 당시 Task 12의 [정상 client capability 사전 확인](gemini-client-capability-plan.md)은 계획 단계였으며 현재 진행 상태는 위 Task 12가 소유합니다. 보안 bootstrap 플래그를 실제 cached/injected 소비 상태와 같다고 추정하지 않습니다. 정상 transport·보호 경로·완료/readback과 Gemini 생성·원본 전달·메인 반환은 아직 미검증이며, 누락 attestation fallback이나 임의 직접 POST는 사용하지 않습니다. [진단 설계](gemini-protection-diagnostics-plan.md), [검증](../testing/validation.md), [실패 교훈](verification-lessons.md).
 
 ## 이전 Task 10: Gemini 준비 확인 — 2026-10-13
 

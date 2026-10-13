@@ -698,6 +698,42 @@ test('readiness UI explains only the fixed failed stage without rendering raw pr
   await expect(page.getByText('SYNTHETIC_PRIVATE_MARKER', { exact: true })).toHaveCount(0);
 });
 
+test('client prerequisite evidence does not claim a send or response and is not restored', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: '연결', exact: true }).click();
+  await page.getByText('Gemini 준비 확인', { exact: true }).click();
+  await page.getByRole('button', { name: 'Gemini 준비 상태 확인', exact: true }).click();
+  await expect(
+    page.getByText(
+      '웹 클라이언트의 준비 조건을 확인했습니다. 요청·응답은 아직 검증하지 않았습니다.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+  expect(await page.evaluate(() => window.harness.sends)).toEqual([]);
+  await page.reload();
+  await page.getByRole('button', { name: '연결', exact: true }).click();
+  await page.getByText('Gemini 준비 확인', { exact: true }).click();
+  await expect(page.getByText(/웹 클라이언트의 준비 조건을 확인했습니다/)).toHaveCount(0);
+});
+
+test('unsupported cached client explains the fixed boundary without dispatch', async ({ page }) => {
+  await page.goto('/?client=prewarm');
+  await page.getByRole('button', { name: '연결', exact: true }).click();
+  await page.getByText('Gemini 준비 확인', { exact: true }).click();
+  await page.getByRole('button', { name: 'Gemini 준비 상태 확인', exact: true }).click();
+  await expect(
+    page.getByText('이 시험에서 웹 클라이언트의 전송 조건을 확인하지 못했습니다.', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText('이 시험에 필요한 새 전송 연결 상태를 확인하지 못했습니다.', {
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(await page.evaluate(() => window.harness.sends)).toEqual([]);
+});
+
 test('readiness preserves the exact failed-close stage from the built model adapter', async ({
   page,
 }) => {

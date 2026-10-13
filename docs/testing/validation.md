@@ -1,5 +1,41 @@
 # 검증 기록
 
+## Task 12 정상 클라이언트 metadata 분류 — 2026-10-14 수용 완료
+
+모델 receipt가 pending인 같은 native 문서에서 synchronous MAIN 함수가 실제 모델 consumer의 own selected service/API 참조를 확인하고 고정된 candidate/unsupported만 반환합니다. Exact compact host/context/container와 정해진 declaration/TNode 관계를 검사하며 root cache lookup·getter·hydration·provider 메서드·네트워크·DOM 변경·인증값 조회를 추가하지 않았습니다. 모델/문서/취소/finish 검사를 유지하고 client metadata는 세션에 보관하지 않습니다. Source-correct 초기 route classifier의 실제 native 수용을 완료했으며 현재 계정은 `unsupported/transport-rpc`입니다. 이는 cold-native candidate·전송·응답 성공의 증거가 아닙니다.
+
+| 증거               | 최종 source-classifier artifact                                            | 한계                                                                                                                                                                                                                                                                                 |
+| ------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 순수 provider 회귀 | 190개 통과                                                                 | invented source profile·정확한 serialized 함수·own descriptor/owner/service 거부와 호출 부재. Aa-first branch·native Nd unread·고정 SSE/RPC 분류 포함. 실제 계정 결과와 별도                                                                                                         |
+| 단위·타입·빌드     | 630개 통과                                                                 | 세 번째 link의 exact original container[16] provenance·첫 두 child[5]·최종 owner/service/protection guard를 유지한 source-correct route classifier                                                                                                                                   |
+| 전체 합성 브라우저 | 176개 통과, 3.4분                                                          | 공유 provider/controller 및 기존 전체 fixture 흐름. 로그인된 실제 서비스 결과와 별도                                                                                                                                                                                                 |
+| 설치 확장          | 15개 통과, 23.6초                                                          | invented namespace/services와 실제 serialized MAIN/ISOLATED bridge/controller. Candidate와 registered manager 거부는 provider/network 호출 0회. Permission pregrant·새 탭 allocation shim·일반 extension-origin panel은 실제 native와 별도                                           |
+| 실제 native        | 자동 모드/페이지 보안 설정·finish 완료, client `unsupported/transport-rpc` | Context/slot/container·세 declaration·original16·최종 consumer/정확한 selected services·protection 활성 검사를 통과. Configured initial framework-stream 경로 분류이며 실제 dispatch/response를 관찰하지 않음. Native candidate용 oa/prewarm/hook 검사는 이 branch에서 수행하지 않음 |
+
+최종630 artifact는 bridge SHA-256 `bfd3eb2e6054c11c2bc310e114e5da0a04226e87524a1f54dc9f03e1c082b42d`, `chunks/sidepanel-CbfgVsGt.js` SHA-256 `fb98481874e8eb0d3067f911c644ab5a863a6b6dc72a676484c9ab296acda2bc`입니다. 순차 검사 모두 exit0이었습니다. Exact 프로젝트 ID/경로/0.4.0 version과 reload 완료 뒤 실제 extension action/production sidepanel을 사용했습니다. Manager는 확인 중 계속 선택됐고 새 소유 홈은 비활성이었습니다. 이후 native close/fresh absence로 홈을 닫고 manager 선택을 복원했으며 helper PID `26851` 종료 뒤 실제 부재를 확인했습니다. 새 Gemini 질문·업로드·request·private object/인증값 조회 없이 metadata만 읽었습니다.
+
+Classifier는 실제 API own Aa를 먼저 읽습니다. True면 실제 session.oa true만 요구하고 Nd는 읽지 않으며 이후 own no-prewarm/hook 검사를 유지합니다. False일 때만 own Nd true를 `transport-sse`(SSE-first, 이후 fallback 가능), false를 `transport-rpc`로 고정 분류합니다. Unknown Aa/Nd는 고정 `transport-route`/`transport-api`이며 값을 바꾸지 않습니다. 현재 RPC 결과는 Aa false/Nd false의 configured initial branch를 뜻하며 관찰한 물리 dispatch·보호 실행·attestation·Rzc·응답이나 model entitlement를 증명하지 않습니다.
+
+최종630 artifact의 로컬 개발 ZIP은 **178,361바이트**, SHA-256 `51517ad13b7dc8f5a79b900c405c1a2c263e3d5702fbf129294ee220471b6009`입니다. 내부12개 파일이 테스트·native에서 사용한 output과 모두 byte-identical하며 위 bridge/sidepanel 해시도 일치합니다. MV3/0.4.0, 기존 권한 네 개·optional HTTPS origin 세 개·기존 CSP, PNG 네 개 크기와 13,336바이트 라이선스를 확인했습니다. 추가 host/cookies 권한·web-accessible resource는 없으며 이 패키지는 로컬 개발용입니다. Push·업로드·심사·공개 배포는 없습니다.
+
+이전 oa-first 진단 artifact는615 단위·타입·빌드, 설치15개(23.8초), 집중 synthetic33개(42.9초)를 통과했으나 native는 `unsupported/transport-session`이었습니다. 그 순서는 Aa/Nd를 확인하기 전이므로 최종 classifier의 route 증거로 쓰지 않습니다. 당시 helper PID `21734`도 소유 홈 폐쇄·manager 복원 뒤 종료·실제 부재를 확인했습니다.
+
+이전 original-container608 artifact는 순수168개(수정 전18 실패/150 통과),608 단위·타입·빌드, 설치15개(23.4초), 전체 synthetic176개(3.4분)를 통과했으며 native는 aggregate `unsupported/transport`였습니다. Bridge SHA-256은 `3a06458ba4c784ba793784b64b0f89ca01626084bada1cd5470afbfe57765dfe`, `chunks/sidepanel-DFx_-wQi.js` SHA-256은 `767c384d280f81acb45cd0ca1b2088b9e34d187ed01bb1e4488d54602cb89fc6`입니다. 이 과거 all-three-true 검사는 어떤 transport predicate가 실패했는지 증명하지 않습니다. 당시 소유 홈 폐쇄·manager 복원과 helper PID `17483` 종료·실제 부재를 확인했습니다.
+
+같은608 artifact의 로컬 개발 ZIP은 **178,179바이트**, SHA-256 `966049b2179b1f3a950167c985db12efacc9b0f15c2f8dd701f2b27c26e5996a`입니다. 내부12개 파일이 테스트한 output과 byte-identical하며 위 bridge/sidepanel 해시도 일치합니다. MV3/0.4.0, 기존 권한 네 개·optional HTTPS origin 세 개, PNG 네 개의 크기와 13,336바이트 라이선스를 확인했습니다. 추가 host/cookies 권한·web-accessible resource는 없으며 릴리스하지 않았습니다. 이 패키지는 다음 transport 진단 수정 전608 artifact의 기록입니다.
+
+수정 전 세부 진단 artifact는 pure152개/readiness111개·592 단위·타입·빌드·설치15개(23.3초)를 통과했으나 native는 `unsupported/owner-declaration-3-binding`이었습니다. 세 번째 parent/node/index/iB는 통과했고 child[5] node identity가 달랐습니다. Bridge는608 artifact와 같고 `chunks/sidepanel-B3cOBr_O.js` SHA-256은 `58526d409d90c32f504d175e406308ea3315f521dd09bc9b3846e837ea610d86`입니다. 당시 소유 홈 폐쇄·manager 복원과 helper PID `14548` 종료·실제 부재를 확인했습니다.
+
+그 전149 pure·589 단위·타입·빌드·설치15개(24.3초) artifact는 `unsupported/owner-declaration-3`였습니다. Bridge SHA-256 `281cceab4489ce3f251e4b68327110d1f925ad748d8314761cd86105dadfdc1d`, `chunks/sidepanel-3CG67bwd.js` SHA-256 `c11304732181b1781f747327197b9860ff4990e46f5925409428f4b0cdd7c99b`이며 소유 홈 폐쇄·manager 복원과 helper PID `12268` 종료·실제 부재를 확인했습니다.
+
+이전 actual-consumer artifact는 **585 단위·타입·빌드, 전체 synthetic176개(3.4분), installed-origin15개(23.2초)**를 통과했으나 actual native는 `unsupported/owner-view`였습니다. Bridge SHA-256 `02ed36caa42a1fce4444b29e0ab71563482193d4c33fdd850695883df5820b16`, `chunks/sidepanel-XDJ9KUZm.js` SHA-256 `3820ed2b02cc1023082ed6eeafd0d1ea9af59a9281b5e5bc156a471137787af7`입니다. 그 홈은 읽기 전용 public asset 확인 후 닫고 helper PID `7527` 종료·실제 부재를 확인했습니다. 585/608/630의 전체176개는 각각 별도 실행이며 중간589/592/615 artifact의 전체 검사 결과가 아닙니다.
+
+현재 로드된 `k/ck`는 이전과 같았으나 credentials 없이 읽은 공개 정적 core `LQaXg`의 SHA-256은 `b72fe32d1718c9acbacd850dddd985e45a755847c4ac351d9e181b7abb69ef63`, component `TRJwtb`는 `0b6087a4f2e34e0b6d07157dd02c043694b938246a0c7407c37d0f6dd3cb972a`로 과거 바이트와 달랐습니다. URL/profile 이름만으로 hash 일치나 source 동등성을 주장하지 않습니다. 두 공개 버전 모두 정상 `aSb` 삽입이 embedded child[5]를 insertion container[5]로 바꾸고 `ESb`가 기록한 child[16] original declaration container는 유지하는 경로를 확인했습니다. 세 번째 link만 정확한 original container[16]/parent81/marker/parent/node 관계를 사용하고 첫 두 child[5] 및 최종 owner/service guard를 유지한 수정은 위 순수/전체/설치/native 결과로 확인했습니다. 임의 insertion/ancestor/slot fallback·root cache 대체로 통과시키지 않습니다.
+
+초기 environment-cache profile의 **539 단위·타입·빌드, 집중 synthetic33개(43.1초), 전체176개(3.4분), 설치15개(23.3초)**와 native `unsupported/owner`, 고정 owner-stage profile의 **544 단위·타입·빌드, 집중33개(41.7초), 설치15개(23.3초)**와 native `unsupported/owner-slot`은 역사적 결과입니다. 당시 진단 artifact bridge는 `4fd878ac61771c85abeffda06f27c41307e95bafee5f4feab5e68e15b274e530`, `chunks/sidepanel-BfNfGj_H.js`는 `2f75263f20e7107f9cc166a62778340128d6edd5c947325924d1bfaec69478ac`입니다. 소유 홈과 helper PID94733/98109의 정리·부재도 당시 증거로 유지합니다. Source 재검토와 회귀 뒤 현재는 정확한 tooltip envelope·실제 consumer 참조 profile을 구현했으며 과거 root cache를 현재 선택의 증거로 쓰지 않습니다.
+
+Task 12 metadata classifier는 수용 완료·local checkpoint 가능한 상태이나 현재 계정의 cold-native candidate와 Gemini 실제 응답 목표는 열려 있습니다. 정상 SDK의 request-owned `Uwa.setParam("rt") → own Rj.send` guard는 다음 소스 조사 후보이며 구현/독립 증명 전입니다. Global fetch patch·flag 강제·생성·private 값/인증값 조회·push·store 업로드/심사/공개 배포는 없습니다. 최종630 ZIP의 검사 결과는 위에 기록했으며608 ZIP은 과거 artifact입니다. [계획](../development/gemini-client-capability-plan.md), [소스 조사](../research/background-web-transport.md).
+
 ## Task 11 active-page Gemini metadata — 2026-10-14 최종 수용
 
 동작은 실제 모델과 현재 페이지의 보안 설정을 읽는 metadata-only 진단입니다. Self-contained MAIN 함수가 owning provider 안에서만 설정을 해석하며 원문/인증값/모델 request key는 반환하지 않습니다. 고정 보호 상태/사유와 UI 모델만 transient 결과이며 session은 ID/status뿐입니다. 원래 bridge ID와 별도 Chrome native document ID를 검사하고 finish까지 pending/잠금·취소·모델 재확인을 유지합니다. Gemini 생성/원본/메인 반환 검증이 아닙니다.
@@ -25,7 +61,7 @@ Pre-dense/native 성공 artifact: bridge `ac45a4a20c619750d43f7cd60d9d4d37195e44
 
 앞선 두 projection 소유 홈도 native close와 fresh absence로 정리하고 당시 native helper 부재를 확인했습니다. 이 과거 정리는 위 최종 signal guard artifact의 한 번 수용과 구분합니다.
 
-전체 설정 decoder의 공공 소스 근거와 bootstrap/실제 runtime의 구분은 [전송 조사](../research/background-web-transport.md), 재현 교훈은 [verification lessons](../development/verification-lessons.md), 작업 범위는 [진단 설계](../development/gemini-protection-diagnostics-plan.md)에 둡니다. Task 12의 [정상 client capability 사전 확인](../development/gemini-client-capability-plan.md)은 계획 단계이며 새 prompt/file/generation 요청은 추가하지 않았습니다.
+전체 설정 decoder의 공공 소스 근거와 bootstrap/실제 runtime의 구분은 [전송 조사](../research/background-web-transport.md), 재현 교훈은 [verification lessons](../development/verification-lessons.md), 작업 범위는 [진단 설계](../development/gemini-protection-diagnostics-plan.md)에 둡니다. Task 11 수용 당시 Task 12의 [정상 client capability 사전 확인](../development/gemini-client-capability-plan.md)은 계획 단계였으며 현재 진행 상태는 위 Task 12가 소유합니다. 새 prompt/file/generation 요청은 추가하지 않았습니다.
 
 ## Task 10 Gemini readiness — 2026-10-13
 

@@ -2,6 +2,16 @@
 
 These are dated observations, not permanent product guarantees. Durable working rules live in [AGENTS.md](../../AGENTS.md).
 
+## Gemini selected-consumer provenance — 2026-10-14
+
+- A root cache can contain a healthy service while the actual model component consumes a node-local provider. Public source exposes this legitimate override; a failing regression rejected the wrong selected consumer even with a healthy cache. The product now follows the exact bound component's own selected reference, without calling injectors/factories or claiming transparent-proxy detection.
+- Normal tooltip setup can wrap an owned component slot in one LContainer. Public construction and insertion code establish that envelope; only its exact component, parent, TNode and native Comment relations are accepted. Generic array unwrapping, namespace enumeration and ancestor searches are not evidence of ownership.
+- The native result advanced from owner-slot to the third declaration binding. Fixed diagnostic refinement then confirmed that the first two declarations and the third node/template passed, while the third `child[5] === declarationNode` check failed. Public `ESb` initially sets slot 5, but normal `ngTemplateOutlet` insertion through `TWb → aSb` overwrites it with the insertion node. Declaration slots 14 and 16 remain intact. Creation-time fields must be traced through later lifecycle mutations before being used as persistent identity.
+- The source-grounded correction retains index 81, exact TView/template/native-owner/consumer checks, and uses the exact original declaration container in slot 16 for only that final link. It does not replace the declaration with whichever insertion location happens to match. Artifact-specific tests and native acceptance belong to [validation](../testing/validation.md); this cause analysis alone does not establish a response.
+- Prerequisites follow the branch that actually consumes them. Public `Oub` selects the session branch with Aa; that branch uses session.oa and never reads Nd. Nd belongs to the other branch's initial selector. Requiring all three flags unnecessarily rejected a healthy native fixture. Serialized regressions now leave an irrelevant Nd getter untouched, classify the configured legacy branches without calling them, and reject unknown relevant flags. The installed current account reports the initial framework branch as unsupported for the cold-native trial; this is route metadata, not an attempted request.
+
+All investigation above used public static code or fixed installed-product metadata. Development/browser tools did not inspect private runtime objects, bootstrap/authentication values or request bodies.
+
 ## Gemini active-page metadata — 2026-10-13
 
 - Native diagnosis classified the initial unknown as multiple bootstrap mentions. Counting a symbol in scripts does not establish multiple definitions: the public client also reads it. Removing known accessor fragments is unsafe because later alias writes can change the live value without another symbol occurrence. No permissive substring exclusion was adopted.

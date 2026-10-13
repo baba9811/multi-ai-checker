@@ -4,9 +4,14 @@ import type { GeminiReadinessResult } from '../../../src/application/gemini-read
 
 const home = 'https://gemini.google.com/app';
 const stored: Record<string, unknown> = {};
-let readiness: GeminiReadinessResult = { model: 'Automatic fixture', protection: 'enabled' };
+let readiness: GeminiReadinessResult = {
+  model: 'Automatic fixture',
+  protection: 'enabled',
+  client: { status: 'candidate' },
+};
 let identity: unknown[];
 let projection: unknown[];
+let clientProjection: unknown[];
 const browser = {
   permissions: { request: vi.fn(async () => true), contains: vi.fn(async () => true) },
   tabs: {
@@ -39,8 +44,14 @@ const browser = {
   windows: { update: vi.fn() },
   scripting: {
     executeScript: vi.fn(
-      async (options: { files?: string[]; world?: string }): Promise<unknown[]> =>
-        options.files ? [] : options.world === 'MAIN' ? projection : identity,
+      async (options: { files?: string[]; world?: string; func?: Function }): Promise<unknown[]> =>
+        options.files
+          ? []
+          : options.world === 'MAIN'
+            ? options.func?.name === 'readGeminiClientCapability'
+              ? clientProjection
+              : projection
+            : identity,
     ),
   },
   storage: {
@@ -56,10 +67,17 @@ beforeEach(() => {
   vi.clearAllMocks();
   for (const key of Object.keys(stored)) delete stored[key];
   browser.permissions.request.mockResolvedValue(true);
-  readiness = { model: 'Automatic fixture', protection: 'enabled' };
+  readiness = {
+    model: 'Automatic fixture',
+    protection: 'enabled',
+    client: { status: 'candidate' },
+  };
   identity = [{ frameId: 0, documentId: 'native-gemini-document', result: true }];
   projection = [
     { frameId: 0, documentId: 'native-gemini-document', result: { protection: 'enabled' } },
+  ];
+  clientProjection = [
+    { frameId: 0, documentId: 'native-gemini-document', result: { status: 'candidate' } },
   ];
   browser.storage.session.set.mockImplementation(async (value) => {
     Object.assign(stored, value);
@@ -74,9 +92,10 @@ it.each(['enabled', 'unknown'] as const)(
     readiness = {
       model: 'Automatic fixture',
       protection,
+      client: { status: 'candidate' },
       ...(protection === 'unknown' ? { protectionReason: 'configuration-format' } : {}),
     };
-    const { model: _model, ...protectionStatus } = readiness;
+    const { model: _model, client: _client, ...protectionStatus } = readiness;
     projection = [{ frameId: 0, documentId: 'native-gemini-document', result: protectionStatus }];
     expect(chromePlatform.checkGeminiReadiness).toBeTypeOf('function');
     expect(await chromePlatform.checkGeminiReadiness!(new AbortController().signal)).toEqual(
@@ -172,7 +191,7 @@ it('pins the pure page projection to the native document between exact bridge in
   });
   expect(
     browser.tabs.sendMessage.mock.calls.filter(([, command]) => command.type === 'snapshot'),
-  ).toHaveLength(4);
+  ).toHaveLength(5);
 });
 
 it.each(
@@ -247,6 +266,71 @@ it('cancellation after the MAIN projection prevents finishing and marks only unc
     browser.tabs.sendMessage.mock.calls.some(
       ([, command]) => command.type === 'finishGeminiReadiness',
     ),
+  ).toBe(false);
+  expect(stored['crosscheck.gemini-readiness.v1']).toMatchObject({ status: 'uncertain' });
+});
+
+it('checks client prerequisites in the same native document before finishing, without persisting them', async () => {
+  const result = await chromePlatform.checkGeminiReadiness!(new AbortController().signal);
+  expect(result).toMatchObject({ client: { status: 'candidate' } });
+  const calls = browser.scripting.executeScript.mock.calls.filter(
+    ([options]) => options.world === 'MAIN',
+  );
+  expect(calls).toHaveLength(2);
+  expect(calls[1]![0]).toMatchObject({
+    target: { tabId: 92, documentIds: ['native-gemini-document'] },
+  });
+  expect(JSON.stringify(stored)).not.toMatch(/candidate|client/);
+});
+
+it.each(
+  [
+    [],
+    [{ frameId: 1, documentId: 'native-gemini-document', result: { status: 'candidate' } }],
+    [{ frameId: 0, documentId: 'foreign', result: { status: 'candidate' } }],
+    [
+      {
+        frameId: 0,
+        documentId: 'native-gemini-document',
+        result: { status: 'candidate', token: 'SYNTHETIC_PRIVATE_MARKER' },
+      },
+    ],
+    [
+      {
+        frameId: 0,
+        documentId: 'native-gemini-document',
+        result: { status: 'unsupported', reason: 'SYNTHETIC_PRIVATE_MARKER' },
+      },
+    ],
+    [
+      { frameId: 0, documentId: 'native-gemini-document', result: { status: 'candidate' } },
+      { frameId: 0, documentId: 'native-gemini-document', result: { status: 'candidate' } },
+    ],
+  ].map((value) => ({ value })),
+)('rejects invalid client output %# before finish', async ({ value }) => {
+  clientProjection = value;
+  await expect(
+    chromePlatform.checkGeminiReadiness!(new AbortController().signal),
+  ).rejects.toMatchObject({ cause: 'page' });
+  expect(
+    browser.tabs.sendMessage.mock.calls.some(([, c]) => c.type === 'finishGeminiReadiness'),
+  ).toBe(false);
+  expect(stored['crosscheck.gemini-readiness.v1']).toMatchObject({ status: 'uncertain' });
+  expect(JSON.stringify(stored)).not.toMatch(/candidate|client|SYNTHETIC_PRIVATE/);
+});
+
+it('stops after client preflight when cancelled before final model confirmation', async () => {
+  const controller = new AbortController();
+  browser.scripting.executeScript.mockImplementation(async (options) => {
+    if (options.files) return [];
+    if (options.world !== 'MAIN') return identity;
+    if (options.func?.name !== 'readGeminiClientCapability') return projection;
+    controller.abort();
+    return clientProjection;
+  });
+  await expect(chromePlatform.checkGeminiReadiness!(controller.signal)).rejects.toThrow();
+  expect(
+    browser.tabs.sendMessage.mock.calls.some(([, c]) => c.type === 'finishGeminiReadiness'),
   ).toBe(false);
   expect(stored['crosscheck.gemini-readiness.v1']).toMatchObject({ status: 'uncertain' });
 });

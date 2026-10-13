@@ -3,12 +3,14 @@ import {
   GeminiReadinessResult,
   GeminiReadinessProgress,
   GeminiReadinessRecord,
+  GeminiClientCapability,
 } from '../../application/gemini-readiness';
 import { z } from 'zod';
 import { LIMITS } from '../../domains/crosscheck/model';
 import { providers, type Binding } from '../../domains/providers/model';
 import { inspect, prepareGeminiReadiness, rpc } from './provider-client';
 import { readGeminiPageProtection } from '../providers/gemini/readiness';
+import { readGeminiClientCapability } from '../providers/gemini/client-capability';
 
 const storageKey = 'crosscheck.gemini-readiness.v1';
 const failure = 'Gemini 준비 상태를 확인하지 못했습니다. 요청은 보내지 않았습니다.';
@@ -100,7 +102,32 @@ export async function checkGeminiReadiness(signal: AbortSignal): Promise<GeminiR
         signal.throwIfAborted();
         await inspect(target);
         signal.throwIfAborted();
-        const result = GeminiReadinessResult.parse({ ...progress.result, ...projection!.result });
+        const [client] = z
+          .array(
+            z
+              .object({
+                frameId: z.literal(0),
+                documentId: z.literal(identity!.documentId),
+                result: GeminiClientCapability,
+              })
+              .strict(),
+          )
+          .length(1)
+          .parse(
+            await chrome.scripting.executeScript({
+              target: { tabId: target.tabId, documentIds: [identity!.documentId] },
+              world: 'MAIN',
+              func: readGeminiClientCapability,
+            }),
+          );
+        signal.throwIfAborted();
+        await inspect(target);
+        signal.throwIfAborted();
+        const result = GeminiReadinessResult.parse({
+          ...progress.result,
+          ...projection!.result,
+          client: client!.result,
+        });
         reason = 'model-confirmation';
         z.literal(true).parse(
           await rpc(target.tabId, {

@@ -7,6 +7,7 @@ import {
   GeminiReadinessResult,
   GeminiReadinessRecord,
   GeminiReadinessProgress,
+  GeminiClientCapability,
 } from '../../../src/application/gemini-readiness';
 const mode = vi.hoisted(() => vi.fn());
 vi.mock('../../../src/infrastructure/providers/models', () => ({ readGeminiMode: mode }));
@@ -25,6 +26,47 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 describe('Gemini page protection readiness', () => {
+  it('accepts only fixed client prerequisites and never private provider metadata', () => {
+    expect(GeminiClientCapability.parse({ status: 'candidate' })).toEqual({ status: 'candidate' });
+    for (const reason of [
+      'page',
+      'owner',
+      'owner-context',
+      'owner-view',
+      'owner-slot',
+      'owner-declaration-1',
+      'owner-declaration-2',
+      'owner-declaration-3',
+      'owner-declaration-3-node',
+      'owner-declaration-3-template',
+      'owner-declaration-3-binding',
+      'owner-component',
+      'runtime-shape',
+      'service-identity',
+      'protection',
+      'transport-session',
+      'transport-api',
+      'transport-route',
+      'transport-sse',
+      'transport-rpc',
+      'prewarm',
+      'hook',
+    ])
+      expect(GeminiClientCapability.parse({ status: 'unsupported', reason })).toEqual({
+        status: 'unsupported',
+        reason,
+      });
+    for (const value of [
+      { status: 'unsupported' },
+      { status: 'unsupported', reason: 'transport' },
+      { status: 'unsupported', reason: 'SYNTHETIC_PRIVATE_MARKER' },
+      { status: 'candidate', reason: 'hook' },
+      { status: 'candidate', token: 'SYNTHETIC_PRIVATE_MARKER' },
+      { status: 'unsupported', reason: 'hook', context: 10 },
+      { status: 'ready' },
+    ])
+      expect(GeminiClientCapability.safeParse(value).success).toBe(false);
+  });
   it.each([
     [false, 'disabled'],
     [true, 'enabled'],
@@ -459,7 +501,7 @@ describe('Gemini page protection readiness', () => {
     ).toBe(false);
   });
   it('requires one fixed reason only for unknown protection', () => {
-    const unknown = { model: 'Test', protection: 'unknown' };
+    const unknown = { model: 'Test', protection: 'unknown', client: { status: 'candidate' } };
     expect(GeminiReadinessResult.safeParse(unknown).success).toBe(false);
     for (const protectionReason of [
       'bootstrap-missing',
