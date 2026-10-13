@@ -26,6 +26,7 @@ declare global {
       updateAvailable?: (version: string) => void;
       managerOpens: number;
       probeStarts: number;
+      probeKinds: Array<'context' | undefined>;
     };
   }
 }
@@ -43,6 +44,7 @@ window.harness = {
   },
   managerOpens: 0,
   probeStarts: 0,
+  probeKinds: [],
 };
 const bindings = Object.fromEntries(
   providerIds.map((provider, i) => [
@@ -60,11 +62,14 @@ export const fixturePlatform: Platform = {
     const status = sessionStorage.getItem('fixture-claude-probe');
     return status === 'done' ? { id: 'fixture', status: 'done' } : undefined;
   },
-  async startClaudeProbe(signal) {
+  async startClaudeProbe(signal, kind) {
     signal.throwIfAborted();
     window.harness.probeStarts++;
+    window.harness.probeKinds.push(kind);
     sessionStorage.setItem('fixture-claude-probe', 'done');
-    return 'CROSSCHECK_OK';
+    return kind === 'context'
+      ? 'First reply: CROSSCHECK_CONTEXT_OK/47\nFollow-up reply: 47/CROSSCHECK_CONTEXT_OK'
+      : 'CROSSCHECK_OK';
   },
   async extensionStatus() {
     const pendingVersion = sessionStorage.getItem('fixture-pending-update');

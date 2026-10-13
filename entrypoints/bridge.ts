@@ -171,7 +171,7 @@ export default defineUnlistedScript(() => {
           if (location.href !== job.url || job.status !== 'pending')
             throw new Error('테스트를 중단했습니다.');
           job.reason = undefined;
-          const answer = await claudeProbe(selectedModel, job.controller.signal);
+          const answer = await claudeProbe(selectedModel, job.controller.signal, command.kind);
           if (location.href !== job.url || job.status !== 'pending')
             throw new Error('테스트를 중단했습니다.');
           job.answer = answer;

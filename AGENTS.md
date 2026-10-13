@@ -42,7 +42,7 @@
 
 ## Verification discipline
 
-- Separate four kinds of evidence: unit tests, synthetic browser fixtures, installed-extension tests, and live logged-in service tests. Report each independently; success in one does not establish success in another.
+- Separate four kinds of evidence: unit tests, synthetic browser fixtures, installed-extension tests, and live logged-in service tests. Report each independently; success in one does not establish success in another. Disclose test-only permission or platform substitutions and the behavior they do not verify.
 - Run build and browser suites sequentially when they share `.output`, test results, reports, browser profiles, or installation state. Parallel execution requires disjoint writable paths and independent state first.
 - Use the repository's pinned dependencies and Playwright-managed browser by default. An explicit browser override must exist on the current host; never assume a Linux executable path on another OS.
 - Preserve failure logs before rerunning a suite that cleans its output. Inspect the first meaningful failure and determine whether it occurred during setup, an assertion, or teardown.

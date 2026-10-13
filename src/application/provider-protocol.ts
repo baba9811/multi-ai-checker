@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { ProviderId } from '../domains/providers/model';
 import { LIMITS, ConversationTurn } from '../domains/crosscheck/model';
 import { AttachmentBatch } from '../domains/attachments/model';
+import { ClaudeProbeKind } from './claude-probe';
 
 export const AdapterDiagnostics = z.object({
   adapterVersion: z.literal('2026-10-06'),
@@ -72,6 +73,7 @@ export const Command = z.discriminatedUnion('type', [
   z
     .object({
       type: z.literal('startClaudeProbe'),
+      kind: ClaudeProbeKind.optional(),
       id: z.string().min(1).max(100),
       documentId: z.string().max(100),
       url: z.string().max(3000),

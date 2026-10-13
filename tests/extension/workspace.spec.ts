@@ -1,6 +1,7 @@
 import { test, expect } from './extension';
 import { createRun } from '../../src/domains/crosscheck/workflow';
 import { providerPage } from '../fixtures/providers/pages';
+import { claudeProbeFixture } from '../fixtures/providers/claude-probe';
 
 test('production panel starts without permissions or manual stage controls', async ({
   extension,
@@ -70,30 +71,84 @@ test('production session recovery never resumes ambiguous sends or renders model
     .toEqual({ bindings: {} });
 });
 
-test('installed probe restores unfinished intent without opening a provider or requesting permission', async ({
-  extension,
-}) => {
-  const { panel } = extension;
-  await panel.evaluate(() =>
-    chrome.storage.session.set({
-      'crosscheck.claude-probe.v1': { id: 'fixture-attempt', status: 'pending' },
-    }),
-  );
-  await panel.reload();
-  await panel.getByRole('button', { name: '연결', exact: true }).first().click();
-  await panel.getByText('백그라운드 연결 시험', { exact: true }).click();
-  await expect(panel.getByText(/지난 요청의 완료 여부를 확인하지 못했습니다/)).toBeVisible();
-  await expect(panel.getByRole('button', { name: 'Claude 연결 시험 시작' })).toBeEnabled();
-  expect(
-    await panel.evaluate(async () =>
-      (await chrome.tabs.query({})).some((tab) => tab.url?.startsWith('https://claude.ai/')),
-    ),
-  ).toBe(false);
-  expect((await panel.evaluate(() => chrome.permissions.getAll())).origins ?? []).toEqual([]);
-});
+for (const kind of [undefined, 'context'] as const) {
+  test(`installed ${kind ?? 'connection'} probe restores unfinished intent without opening a provider or requesting permission`, async ({
+    extension,
+  }) => {
+    const { panel } = extension;
+    await panel.evaluate(
+      (kind) =>
+        chrome.storage.session.set({
+          'crosscheck.claude-probe.v1': {
+            id: 'fixture-attempt',
+            status: 'pending',
+            ...(kind ? { kind } : {}),
+          },
+        }),
+      kind,
+    );
+    await panel.reload();
+    await panel.getByRole('button', { name: '연결', exact: true }).first().click();
+    await panel.getByText('백그라운드 연결 시험', { exact: true }).click();
+    await expect(panel.getByText(/지난 요청의 완료 여부를 확인하지 못했습니다/)).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Claude 연결 시험 시작' })).toBeEnabled();
+    expect(
+      await panel.evaluate(async () =>
+        (await chrome.tabs.query({})).some((tab) => tab.url?.startsWith('https://claude.ai/')),
+      ),
+    ).toBe(false);
+    expect((await panel.evaluate(() => chrome.permissions.getAll())).origins ?? []).toEqual([]);
+  });
+}
 
 test.describe('synthetic Claude permission already granted', () => {
   test.use({ syntheticClaudePermission: true });
+
+  test('installed panel forwards the context kind and collects both verified replies through its isolated bridge', async ({
+    extension,
+  }) => {
+    const { context, panel } = extension;
+    const fixture = await claudeProbeFixture(context);
+    const claude = await context.newPage();
+    await claude.goto('https://claude.ai/new');
+    const tabIds = await panel.evaluate(async () =>
+      (await chrome.tabs.query({ url: 'https://claude.ai/new' })).map((tab) => tab.id!),
+    );
+    expect(tabIds).toHaveLength(1);
+    const tabId = tabIds[0]!;
+    // Chrome-created first navigations may precede Playwright routing. Allocation is not under test here.
+    await panel.evaluate((tabId) => {
+      chrome.tabs.create = (async (options: chrome.tabs.CreateProperties) => {
+        if (options.url !== 'https://claude.ai/new' || options.active !== false)
+          throw new Error('Unexpected fixture allocation');
+        return chrome.tabs.get(tabId);
+      }) as typeof chrome.tabs.create;
+    }, tabId);
+    const other = await context.newPage();
+    await other.goto('about:blank');
+    await other.bringToFront();
+    const activeBefore = await panel.evaluate(async () =>
+      (await chrome.tabs.query({ active: true, currentWindow: true })).map((t) => t.id),
+    );
+    await panel.getByRole('button', { name: '연결', exact: true }).first().click();
+    await panel.getByText('백그라운드 연결 시험', { exact: true }).click();
+    await panel.getByRole('button', { name: '문맥·후속 응답 시험 시작', exact: true }).click();
+    await expect(panel.getByText('문맥·후속 응답 시험 완료', { exact: true })).toBeVisible();
+    await expect(panel.getByText(/First reply: CROSSCHECK_CONTEXT_OK\/47/)).toBeVisible();
+    await expect(panel.getByText(/Follow-up reply: 47\/CROSSCHECK_CONTEXT_OK/)).toBeVisible();
+    expect(fixture.posts()).toBe(2);
+    expect(fixture.requests[0]?.conversation).toBe(fixture.requests[1]?.conversation);
+    const stored = (
+      await panel.evaluate(() => chrome.storage.session.get('crosscheck.claude-probe.v1'))
+    )['crosscheck.claude-probe.v1'];
+    expect(stored).toEqual({ id: expect.any(String), kind: 'context', status: 'done' });
+    expect(
+      await panel.evaluate(async () =>
+        (await chrome.tabs.query({ active: true, currentWindow: true })).map((t) => t.id),
+      ),
+    ).toEqual(activeBefore);
+    expect(await other.evaluate(() => document.hasFocus())).toBe(true);
+  });
 
   test('installed Claude model picker captures its choice before asynchronous cleanup without moving focus', async ({
     extension,

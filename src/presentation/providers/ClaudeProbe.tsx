@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Platform } from '../../application/ports';
-import { CLAUDE_PROBE_PROMPT, type ClaudeProbeRecord } from '../../application/claude-probe';
+import {
+  CLAUDE_PROBE_PROMPT,
+  CLAUDE_CONTEXT_PROBE_PROMPT,
+  CLAUDE_CONTEXT_PROBE_FOLLOWUP,
+  type ClaudeProbeKind,
+  type ClaudeProbeRecord,
+} from '../../application/claude-probe';
 
 export function ClaudeProbe({
   platform,
@@ -16,6 +22,7 @@ export function ClaudeProbe({
   const [record, setRecord] = useState<ClaudeProbeRecord>();
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState('');
+  const [kind, setKind] = useState<ClaudeProbeKind>();
   const controller = useRef<AbortController | undefined>(undefined);
   const mounted = useRef(false);
   useEffect(() => {
@@ -39,7 +46,7 @@ export function ClaudeProbe({
       }
     };
   }, [platform]);
-  async function start() {
+  async function start(nextKind?: ClaudeProbeKind) {
     if (!ready || disabled || controller.current || !platform.startClaudeProbe) return;
     const current = new AbortController();
     controller.current = current;
@@ -47,9 +54,10 @@ export function ClaudeProbe({
     setAnswer('');
     setError('');
     setRecord(undefined);
+    setKind(nextKind);
     onWorking(true);
     try {
-      const result = await platform.startClaudeProbe(current.signal);
+      const result = await platform.startClaudeProbe(current.signal, nextKind);
       if (mounted.current) setAnswer(result);
     } catch (failure) {
       if (mounted.current)
@@ -83,6 +91,22 @@ export function ClaudeProbe({
       >
         Claude 연결 시험 시작
       </button>
+      <p className="hint">
+        문맥 시험은 시험용 질문·답변 2쌍을 보내고, 같은 대화에서 후속 답변까지 확인합니다. 요청
+        2회이며 사용자의 기존 대화와 파일은 보내지 않습니다.
+      </p>
+      <details>
+        <summary>시험에 보내는 내용</summary>
+        <pre>{CLAUDE_CONTEXT_PROBE_PROMPT}</pre>
+        <pre>{CLAUDE_CONTEXT_PROBE_FOLLOWUP}</pre>
+      </details>
+      <button
+        className="secondary"
+        disabled={!ready || disabled || busy}
+        onClick={() => void start('context')}
+      >
+        문맥·후속 응답 시험 시작
+      </button>
       {busy && (
         <button className="text-button" onClick={() => controller.current?.abort()}>
           시험 중단
@@ -95,7 +119,7 @@ export function ClaudeProbe({
       )}
       {answer && (
         <>
-          <p role="status">연결 시험 완료</p>
+          <p role="status">{kind === 'context' ? '문맥·후속 응답 시험 완료' : '연결 시험 완료'}</p>
           <p>{answer}</p>
         </>
       )}
@@ -114,7 +138,8 @@ export function ClaudeProbe({
         </p>
       )}
       <p className="hint">
-        현재는 짧은 텍스트만 시험합니다. 전체 대화·첨부·최종 반환의 새 방식은 아직 검증 중입니다.
+        현재는 시험용 텍스트만 보냅니다. 기존 대화 가져오기·첨부·최종 반환의 새 방식은 아직 검증
+        중입니다.
       </p>
     </details>
   );

@@ -2,6 +2,7 @@ import {
   ClaudeProbeProgress,
   ClaudeProbeRecord,
   type ClaudeProbeReason,
+  type ClaudeProbeKind,
 } from '../../application/claude-probe';
 import { LIMITS } from '../../domains/crosscheck/model';
 import { providers, type Binding } from '../../domains/providers/model';
@@ -20,7 +21,7 @@ const reasons: Record<ClaudeProbeReason, string> = {
   'account-selection': '사용할 Claude 계정을 하나로 확인하지 못해 요청하지 않았습니다.',
   access: 'Claude 접근이 거부됐습니다. 사이트에서 로그인·접근 상태를 확인하세요.',
   catalog: '계정의 모델 목록과 현재 선택을 확인하지 못해 요청하지 않았습니다.',
-  'model-confirmation': '요청 직전의 모델 선택을 다시 확인하지 못해 요청하지 않았습니다.',
+  'model-confirmation': '모델 선택을 다시 확인하지 못해 시험을 중단했습니다.',
   send: 'Claude가 시험 요청을 수락했는지 확인하지 못했습니다.',
   response: '시험 응답의 완성을 확인하지 못했습니다.',
   'response-event': 'Claude 응답 이벤트의 형식을 확인하지 못했습니다.',
@@ -30,6 +31,7 @@ const reasons: Record<ClaudeProbeReason, string> = {
   'response-block': 'Claude 응답 내용의 형식을 확인하지 못했습니다.',
   'response-terminal': 'Claude 응답의 완료 표시를 확인하지 못했습니다.',
   'response-confirmation': '시험 대화와 최종 응답이 일치하는지 확인하지 못했습니다.',
+  'response-context': '시험 대화의 문맥을 기억하는 답변인지 확인하지 못했습니다.',
   interrupted: '연결 시험이 중단됐습니다.',
 };
 export async function readClaudeProbe(): Promise<ClaudeProbeRecord | undefined> {
@@ -38,10 +40,14 @@ export async function readClaudeProbe(): Promise<ClaudeProbeRecord | undefined> 
   const record = ClaudeProbeRecord.parse(raw);
   return record.status === 'pending' ? { ...record, status: 'uncertain' } : record;
 }
-export async function startClaudeProbe(signal: AbortSignal): Promise<string> {
+export async function startClaudeProbe(
+  signal: AbortSignal,
+  kind?: ClaudeProbeKind,
+): Promise<string> {
   if (running) throw new Error('이미 연결 시험이 진행 중입니다.');
   running = true;
   const id = crypto.randomUUID();
+  const intent = { id, ...(kind ? { kind } : {}) };
   let target: Binding | undefined;
   let persisted = false;
   let reason: ClaudeProbeReason | undefined;
@@ -53,7 +59,7 @@ export async function startClaudeProbe(signal: AbortSignal): Promise<string> {
     const access = chrome.permissions.request({ origins: [`${providers.claude.origin}/*`] });
     if (!(await access)) throw new Error(failure);
     signal.throwIfAborted();
-    await chrome.storage.session.set({ [storageKey]: { id, status: 'pending' } });
+    await chrome.storage.session.set({ [storageKey]: { ...intent, status: 'pending' } });
     persisted = true;
     signal.throwIfAborted();
     target = await prepareClaudeProbe(signal);
@@ -62,6 +68,7 @@ export async function startClaudeProbe(signal: AbortSignal): Promise<string> {
     await rpc(target.tabId, {
       type: 'startClaudeProbe',
       id,
+      ...(kind ? { kind } : {}),
       documentId: target.documentId,
       url: target.url,
     });
@@ -74,7 +81,7 @@ export async function startClaudeProbe(signal: AbortSignal): Promise<string> {
       signal.throwIfAborted();
       if (progress.status === 'done') {
         if (!progress.answer.trim()) throw new Error(failure);
-        await chrome.storage.session.set({ [storageKey]: { id, status: 'done' } });
+        await chrome.storage.session.set({ [storageKey]: { ...intent, status: 'done' } });
         signal.throwIfAborted();
         return progress.answer;
       }
@@ -89,7 +96,7 @@ export async function startClaudeProbe(signal: AbortSignal): Promise<string> {
     cancel();
     if (persisted)
       await chrome.storage.session
-        .set({ [storageKey]: { id, status: 'uncertain' } })
+        .set({ [storageKey]: { ...intent, status: 'uncertain' } })
         .catch(() => {});
     throw new Error(reason ? `${reasons[reason]} 자동 재시도하지 않습니다.` : failure);
   } finally {

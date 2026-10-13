@@ -91,6 +91,41 @@ it('restores unfinished intent as uncertain without creating or messaging a tab'
   expect(browser.tabs.sendMessage).not.toHaveBeenCalled();
 });
 
+it('persists the bounded context intent before creating its tab and forwards the kind', async () => {
+  await chromePlatform.startClaudeProbe!(new AbortController().signal, 'context');
+  const first = browser.storage.session.set.mock.calls[0]?.[0];
+  expect(first?.['crosscheck.claude-probe.v1']).toMatchObject({
+    kind: 'context',
+    status: 'pending',
+  });
+  expect(browser.storage.session.set.mock.invocationCallOrder[0]).toBeLessThan(
+    browser.tabs.create.mock.invocationCallOrder[0]!,
+  );
+  const starts = browser.tabs.sendMessage.mock.calls.filter(
+    ([, command]) => command.type === 'startClaudeProbe',
+  );
+  expect(starts).toHaveLength(1);
+  expect(starts[0]?.[1]).toMatchObject({ kind: 'context' });
+  expect(stored['crosscheck.claude-probe.v1']).toMatchObject({ kind: 'context', status: 'done' });
+  expect(browser.tabs.update).not.toHaveBeenCalled();
+  expect(JSON.stringify(stored)).not.toContain('CROSSCHECK_OK');
+});
+
+it('restores pending context as uncertain without resuming either request', async () => {
+  stored['crosscheck.claude-probe.v1'] = {
+    id: 'context-attempt',
+    kind: 'context',
+    status: 'pending',
+  };
+  expect(await chromePlatform.readClaudeProbe!()).toEqual({
+    id: 'context-attempt',
+    kind: 'context',
+    status: 'uncertain',
+  });
+  expect(browser.tabs.create).not.toHaveBeenCalled();
+  expect(browser.tabs.sendMessage).not.toHaveBeenCalled();
+});
+
 it('rejects overlapping starts without duplicating an attempt', async () => {
   expect(chromePlatform.startClaudeProbe).toBeTypeOf('function');
   let release!: (allowed: boolean) => void;

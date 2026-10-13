@@ -2,7 +2,7 @@ import type { Binding, ProviderId } from '../domains/providers/model';
 import type { Job, Run } from '../domains/crosscheck/model';
 import type { Snapshot, ModelCatalog } from './provider-protocol';
 import type { AttachmentPayload } from '../domains/attachments/model';
-import type { ClaudeProbeRecord } from './claude-probe';
+import type { ClaudeProbeKind, ClaudeProbeRecord } from './claude-probe';
 
 export type Workspace = { run?: Run; bindings: Partial<Record<ProviderId, Binding>> };
 export type Conversation = { binding: Binding; snapshot: Snapshot };
@@ -15,7 +15,7 @@ export type ExtensionStatus = {
 /** Browser implementation is injected at the entrypoint, never imported by the UI. */
 export interface Platform {
   readClaudeProbe?(): Promise<ClaudeProbeRecord | undefined>;
-  startClaudeProbe?(signal: AbortSignal): Promise<string>;
+  startClaudeProbe?(signal: AbortSignal, kind?: ClaudeProbeKind): Promise<string>;
   extensionStatus?(): Promise<ExtensionStatus>;
   watchExtensionUpdate?(available: (version: string) => void): () => void;
   openExtensionManager?(): Promise<void>;

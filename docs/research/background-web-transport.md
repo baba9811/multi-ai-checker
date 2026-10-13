@@ -1,8 +1,10 @@
 # 웹 구독을 유지하는 백그라운드 검토 방식
 
-조사일: 2026-10-12 KST. 기준 `9c7893b`에서 분리한 `codex/background-web-transport` 작업이며 기존 미커밋 문서는 보존했습니다. 사용자는 **기존 ChatGPT·Claude·Gemini 웹 로그인과 구독만 사용**하는 조건을 선택했습니다. 별도 유료 개발자 API나 OpenRouter를 기본 연결로 바꾸지 않습니다.
+조사일: 2026-10-12–13 KST. 기준 `9c7893b`에서 분리한 `codex/background-web-transport` 작업이며 기존 미커밋 문서는 보존했습니다. 사용자는 **기존 ChatGPT·Claude·Gemini 웹 로그인과 구독만 사용**하는 조건을 선택했습니다. 별도 유료 개발자 API나 OpenRouter를 기본 연결로 바꾸지 않습니다.
 
-**현재 실제 설치 패널에서 Claude 고정 텍스트의 백그라운드 완료 수집을 확인했습니다.** 2026-10-12 같은 검증 빌드의 정확한 설치 경로를 새로고침한 뒤 23번째 native 시험에서 `CROSSCHECK_OK`를 수집했습니다. 기존 확장 관리 탭 선택은 유지되고 새 Claude 탭은 비활성이었습니다. 기존 웹 로그인·구독만 사용하며 인증값 읽기·개발자 API·서버는 없습니다. MAIN-world 활성화 시도는 제거했고 닫힌 버튼/계정 모델 대응과 정확한 새 대화의 독립 readback을 사용합니다. 성공 범위는 비민감 고정 텍스트 한 요청이며 세 서비스 전체 문맥·파일·최종 반환은 미검증입니다. 기본 DOM 검토는 그대로이고 스토어 조회·업로드는 하지 않았습니다.
+**현재 Task 8의 첫 실제 합성 문맥·후속 응답 시험이 성공했습니다.** 2026-10-13 같은 production 경로를 새로고침한 Aside native 사이드패널에서 `CROSSCHECK_CONTEXT_OK/47`과 `47/CROSSCHECK_CONTEXT_OK`를 함께 수집했습니다. 기존 활성 탭 유지·Chrome이 새로 만든 Claude 홈 탭 비활성도 확인했습니다. 제품의 정확히 두 POST와 같은 새 대화의 엄격한 네 메시지 readback을 통과한 증거이며 수동 POST·어댑터 주입으로 대체하지 않았습니다. 단위 219개·타입·빌드, 관련 합성 14개·설치 7개와 live 뒤 같은 제품 소스의 전체 브라우저 회귀 130개를 통과했습니다. 기존 한 요청 시험·기본 DOM 검토는 유지하며 임의 기존 문맥·파일·메인 최종 반환·다른 공급자 내부 호출은 미해결입니다.
+
+**이전 Task 7 빌드의 성공은 별도 역사입니다.** 2026-10-12 실제 설치/native 패널의 23번째 시험에서 `CROSSCHECK_OK`, 기존 활성 탭 유지·새 탭 비활성을 확인했습니다. 이 한 요청 증거를 현재 두 요청 성공으로 쓰지 않습니다. 기존 웹 로그인·구독만 사용하고 인증값 읽기·개발자 API·서버·MAIN-world 제품 경로는 없습니다. 공개 스토어 0.4.0의 상세 페이지·설치 제공·두 검색어 노출은 2026-10-13 별도 확인했으며 로컬 실험 브랜치는 미배포입니다. [출시 기록](../release/release-checklist.md).
 
 ## 현재 불편의 코드 근거
 
@@ -28,7 +30,7 @@ Chrome은 콘텐츠 스크립트 요청이 주입된 페이지의 origin에서 �
 | 서비스  | 확인한 공개 구현                                                                                                                                                                                                                                                               | 아직 확인하지 못한 것                                                                                         |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | ChatGPT | ChatHub 공개 ref `a7a2bd6`는 `/api/auth/session`의 access token을 읽고 backend 호출·모델·파일 초기화에 Bearer 헤더를 사용. 브라우저 프록시도 인증 헤더를 확장 메시지로 전달. ChatGPTBox `df8ef92`도 Bearer를 사용. 조사한 생성 클라이언트의 자체 Sentinel 계산은 채택하지 않음 | 인증값을 페이지 밖으로 전달하지 않고 서비스 보호 검사를 우회하지 않는 현재 생성 경로, 파일·원래 대화 이어쓰기 |
-| Claude  | bootstrap 선택 상태/닫힌 모델 표시와 서버 응답 readback 대응을 구현. 실제 native 패널의 고정 답변 수집·기존 활성 탭 유지 확인                                                                                                                                                  | 비민감 고정 텍스트 한 요청만. TXT/PNG·후속 요청·전체 문맥·원래 대화 반환은 미검증                             |
+| Claude  | bootstrap 선택 상태/닫힌 모델 표시와 서버 응답 readback 대응을 구현. 선택적 합성 문맥/후속 진단의 두 예상 답변을 실제 native 패널에서 수집하고 활성 탭 유지 확인                                                                                                               | 고정 합성 두 Q/A 쌍과 그 새 대화의 후속 한 번만. TXT/PNG·임의 기존 문맥·원래 대화 반환은 미검증               |
 | Gemini  | 공개 웹 클라이언트는 StreamGenerate/batchexecute, 페이지별 요청 값과 별도 업로드를 사용. Gemini-API `1ad0d4a`는 최근 유지보수된 Python 구현                                                                                                                                    | 쿠키 추출 없이 현재 브라우저 문맥에서 작동하는지, 페이지 요청 값·첨부·RPC 완료를 안전하게 확인할 수 있는지    |
 
 근거: [ChatHub ChatGPT client](https://github.com/chathub-dev/chathub/blob/a7a2bd6e12050d6a39fcaf30868bdfd7ccf78f22/src/app/bots/chatgpt-webapp/client.ts), [ChatHub proxy](https://github.com/chathub-dev/chathub/blob/a7a2bd6e12050d6a39fcaf30868bdfd7ccf78f22/src/services/proxy-fetch.ts), [ChatGPTBox](https://github.com/ChatGPTBox-dev/chatGPTBox/blob/df8ef92c7495c5dde1f256216d1608e87d099cf6/src/services/apis/chatgpt-web.mjs), [Claude 사용량 확장 조사](https://github.com/dineshkruplani/Claude-Usage-Badge-Extension/blob/main/docs/PHASE1-FINDINGS.md), [Gemini-API](https://github.com/HanaokaYuzu/Gemini-API/blob/1ad0d4a93e505e77c79769d78ef2997641f973c8/README.md).
@@ -37,22 +39,38 @@ ChatHub 공개 소스에는 Claude 2.1과 예전 Bard 도메인도 남아 있어
 
 ## 구현한 Claude 시험의 범위
 
-**연결 → 백그라운드 연결 시험**을 직접 시작하면 확장이 비활성 새 Claude 홈 탭을 만듭니다. 검증된 실제 선택 모델로 `Reply with CROSSCHECK_OK only.` 한 요청만 보내는 실험입니다. 사용자 창·활성 탭을 바꾸는 `reveal()`은 이 경로에서 호출하지 않습니다. 쿠키는 브라우저가 같은-origin 요청에 부착하며 조직·모델 참조는 공급자 페이지 메모리에만 있습니다. 실제 23번째 시험은 시작 → 진행 중 → **연결 시험 완료 · CROSSCHECK_OK**까지 native 패널에서 확인됐습니다.
+연결의 접힌 진단에서 기존 **백그라운드 연결 시험**은 `Reply with CROSSCHECK_OK only.` 한 요청을 보냅니다. 선택적 **문맥·후속 응답 시험**은 고정 합성 질문·답변 두 쌍을 첫 요청으로 전달한 뒤 같은 새 테스트 대화에서 한 번의 후속 요청을 합니다. 정상 완료는 정확히 두 POST입니다. 두 동작은 비활성 새 Claude 홈 탭을 만들고 `reveal()`을 호출하지 않으며 브라우저가 같은-origin 요청에 쿠키를 부착합니다. 한 요청의 native 23은 이전 빌드 증거이고 현재 두 요청은 별도 첫 native 시험에서 완료까지 확인했습니다.
 
 Task 6은 닫힌 소유 버튼의 첫 표시 텍스트에서 모델명만 읽고 별도 effort 표시를 합치지 않습니다. `app_start`의 유일한 chat 선택 상태·그 모델의 활성 config 표시명·유효하고 중복 없는 available-model ID 목록을 정확히 대응시킨 뒤 POST 직전 UI 표시를 다시 확인합니다. 고정 시험은 메뉴 열기·닫기를 사용하지 않습니다. 누락·중복·비활성 사유·표시 불일치·UI 변경을 거부하고 응답 크기 제한을 유지합니다. 요청 키는 공급자 페이지 메모리에만 있으며 일반 모델 목록 RPC에 넣지 않습니다. 목록 tier를 계정 권한으로 해석하지 않습니다. 일반 모델 메뉴의 값 사전 캡처와 닫힘 확인은 별도로 유지합니다.
 
 - 요청/완료 검사는 `src/infrastructure/providers/claude/probe.ts`, 의도 저장·비활성 탭·취소는 `src/infrastructure/chrome/claude-probe.ts`와 `provider-client.ts`가 소유합니다. 좁은 시작·조회·중단 명령은 기존 bridge의 정확한 확장 발신자·문서·URL 검사로 연결합니다. UI는 주입된 Platform 포트만 사용합니다.
-- 세션에는 시험 ID와 상태만 저장합니다. 답변·조직·백엔드 모델 참조·인증정보는 저장하지 않습니다. 열린 패널에는 완결된 텍스트 답변만 전달합니다. 복원한 진행 상태는 불확실로 표시하며 자동 재개하지 않습니다.
+- 세션에는 `{ id, status, kind? }`만 저장합니다. 선택적 `kind: 'context'`는 시작 전에 공개한 두 요청 계획이며 답변·조직·모델·대화·메시지 backend 참조·인증정보는 저장하지 않습니다. 열린 패널에만 검증된 텍스트 답변을 전달하며 복원한 진행 상태는 불확실로 표시하고 자동 재개하지 않습니다.
 - 각 GET/POST 직전에 시작 시점의 정확한 페이지 주소를 확인합니다. 저장 실패·기존 초안·생성 중·대화 변경·중단·조회 단절이면 멈추며 재시도나 DOM 대체 전송을 하지 않습니다.
-- 서버 assistant/parent UUID는 유효하고 서로 다른 임시 대응값이며 텍스트 블록 종료·`end_turn`·`message_stop`을 확인합니다. 이후 정확한 새 대화 GET의 고정 human 문장·두 메시지·스트림 ID/답변·parent/leaf·요청 모델·authoritative text-only content·빈 첨부·잘림 없음·정상 종료를 확인해야 패널에 답변을 반환합니다. legacy `text`는 빈 값 또는 같은 content 값만 허용하고 명시된 stream model 불일치는 거부합니다. HTTP 200·스트림 EOF·일부 답변·UUID 형식만으로 완료를 인정하지 않습니다. 내용과 전송 크기를 제한하고 오류 원문은 확장으로 내보내지 않습니다. 오류 진단은 고정된 단계 사유만 허용합니다.
+- 서버 assistant/parent UUID는 유효하고 서로 다른 임시값이며 텍스트 블록 종료·`end_turn`·`message_stop`을 확인합니다. 정확한 새 대화 GET의 고정 human 문장·스트림 ID/답변·sender/parent/leaf·요청 모델·authoritative text-only content·빈 첨부·잘림 없음·정상 종료를 검증합니다. 한 요청은 두 메시지, 문맥 진단 최종 완료는 네 메시지가 필요합니다. legacy `text`는 빈 값 또는 같은 content만 허용하고 명시된 stream model 불일치를 거부합니다. HTTP 200·EOF·일부 답변·UUID 형식만으로 완료를 인정하지 않습니다. 크기와 내용을 제한하며 오류 원문 대신 고정 단계 사유만 내보냅니다.
 
-`chat` capability가 있는 조직이 정확히 하나이고 현재 모델 메타데이터가 명확할 때만 진행합니다. 계정에 API 전용 조직이 추가로 있어도 이를 채팅 대상으로 선택하지 않으며, 채팅 조직이 없거나 둘 이상이면 멈춥니다. 생각/도구 블록을 포함하는 응답과 확인하지 않은 이벤트 형식은 실패로 처리하므로 계정·모델에 따라 시험이 작동하지 않을 수 있습니다. 첨부 목록은 비어 있고 대화 가져오기·후속 생성·원래 메인 반환은 지원하지 않습니다. 새 테스트 대화는 Claude에 남을 수 있습니다.
+`chat` capability가 있는 조직이 정확히 하나이고 현재 모델 메타데이터가 명확할 때만 진행합니다. API 전용 조직은 선택하지 않으며 채팅 조직이 없거나 둘 이상이면 멈춥니다. 생각/도구 블록과 확인하지 않은 이벤트 형식은 실패로 처리하므로 계정·모델에 따라 작동하지 않을 수 있습니다. 첨부 목록은 비어 있고 실제 대화 가져오기·임의 후속 생성·원래 메인 반환은 지원하지 않습니다. 후속 요청은 아래의 고정 합성 진단에만 있으며 새 테스트 대화는 Claude에 남을 수 있습니다.
 
 Claude 요청 구조는 [OmniRoute payload](https://github.com/diegosouzapw/OmniRoute/blob/7f3cbb046b3706bf0bbc047b7eaa0cbada8d9e50/open-sse/executors/claude-web/payload.ts), [stream](https://github.com/diegosouzapw/OmniRoute/blob/7f3cbb046b3706bf0bbc047b7eaa0cbada8d9e50/open-sse/executors/claude-web/stream.ts), 모델 메타데이터는 [AIFuel](https://github.com/robertogogoni/aifuel/blob/de119ddd68e29adc23ad0d9abbd9ad14f087efb6/internal/installer/chrome-extension/background.js#L63-L97), UUID 관계는 [Claude2api 응답 정의](https://github.com/aurora-develop/Claude2api/blob/6a9ea135f41626cd335950c97ba290f42fa7dd64/models/response.go#L242-L289)를 참고했습니다. 이들의 서버 쿠키 저장·TLS 지문·보호 검사 해결 방식은 가져오지 않았습니다. 공개 구현을 읽었다는 사실이 현재 서비스 호환성이나 사용 허가를 증명하지 않습니다.
 
 조직의 API 전용·채팅 구분은 [Claude Usage Badge의 공급자 구현](https://github.com/dineshkruplani/Claude-Usage-Badge-Extension/blob/7b4262c9faff033a23791b41a483fa621a06701d/src/providers/claude-web.ts#L101-L104)과 [직접 조사 기록](https://github.com/dineshkruplani/Claude-Usage-Badge-Extension/blob/7b4262c9faff033a23791b41a483fa621a06701d/docs/PHASE1-FINDINGS.md#L78-L94)을 참고했습니다. `chat` capability의 유일성만 사용하며 첫 조직 선택·플랜 추정·계정 로깅은 채택하지 않습니다.
 
-### 이번 작업의 검증 기록
+### 현재 Task 8의 검증 기록 — 2026-10-13
+
+| 증거           | 확인한 범위                                                                                                        | 상태                                                                                                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 단위·타입·빌드 | `npm run check`, 단위 219개·타입·빌드 통과, 15:53 KST                                                              | 실제 두 요청 성공과 별도                                                                                                                                                              |
+| 합성 브라우저  | 관련 14개 통과, 12.8초. 전체 130개 통과, 3.1분·exit 0                                                              | 2026-10-13 live 뒤 같은 제품 소스로 재빌드. 이전 전체 126개와 구분                                                                                                                    |
+| 설치 확장      | fixture 수정 후 7개 통과, 최종 11.5초                                                                              | 주입/RPC/readback/session/UI/origin 검사. test-only `tabs.create`가 등록한 합성 탭을 반환하며 Claude 권한을 미리 허용. 실제 비활성 생성·권한 prompt·native side panel은 입증하지 않음 |
+| 실제 로그인    | 첫 native 문맥 시험의 시작·진행·완료, 두 예상 답변·같은 새 대화/네 메시지 검증·기존 활성 탭 유지·새 탭 비활성 확인 | 고정 합성 두 Q/A 쌍·그 대화 후속 한 번만. 원본 가져오기·파일·다른 공급자·메인 이어쓰기 미검증                                                                                         |
+| 리뷰·정리      | production 및 test-only 재리뷰에 중요한 결함 없음. 소유 탭·REPL·native helper 종료를 새 관찰로 확인                | 개인 사용자 탭은 변경하지 않음                                                                                                                                                        |
+
+초기 설치 fixture의 새 탭 탐색은 Playwright route를 벗어나 Cloudflare challenge에 도달했습니다. red trace/산출물은 Git 제외 로컬 증거로 보존했고 보안 검사를 우회하지 않았습니다. 테스트는 미리 연 합성 탭만 반환하도록 고쳤으며 이 shim은 생산 코드에 없습니다. 실제 native 탭 생성·패널 완료는 이 fixture와 별도로 위의 live 시험에서 확인했습니다.
+
+실제 `.output/chrome-mv3` 설치를 새로고침하고 새 진단 버튼을 확인한 뒤 첫 native 문맥 시험을 시작했습니다. 화면은 pending에서 완료로 바뀌어 `First reply: CROSSCHECK_CONTEXT_OK/47`과 `Follow-up reply: 47/CROSSCHECK_CONTEXT_OK`를 표시했습니다. 확장 관리 탭은 계속 선택됐고 실제 Chrome 새 Claude 홈 탭은 비활성이었습니다. 완료 뒤 소유한 홈 탭만 주소를 확인하고 닫았으며 새 native 관찰은 관리 탭 선택·완료 답변 유지·새 Claude 행 부재를 확인했습니다. 이전 Aside REPL은 사용자 입력 전환으로 끝났고 남은 REPL 프로세스가 없음을 확인했습니다. 조사 agent 탭은 native 시험 전에 이미 없어졌으며 허가된 native helper도 종료하고 정확한 프로세스 조건으로 부재를 확인했습니다. 관련 없는 개인 탭은 건드리지 않았고 새 업로드·심사 제출도 없습니다.
+
+live 이후 같은 제품 소스로 실행한 `npm run test:e2e`는 exit 0·130개·3.1분으로 통과했습니다. 제품 소스는 live 이후 변경하지 않았으며 재빌드의 bridge 표시 크기와 패널 청크 이름도 설치 전 빌드와 같았습니다. 별도 바이트 해시 비교로 이 결과를 확대하지 않습니다. 이 전체 합성 회귀는 실제 로그인 시험을 대신하지 않으며 고정 진단의 성공을 기존 원본·파일·다른 공급자·메인 반환으로 확대하지 않습니다.
+
+### 이전 Task 7의 검증 기록 — 2026-10-12
 
 | 증거                  | 확인한 범위                                                                                                                                                                              | 상태                                                                                                        |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -103,7 +121,17 @@ Task 7은 서로 다른 유효한 SSE ID를 임시값으로 받아들이고 기�
 
 개발 도구에서는 읽기 전용 요청과 UI 동작만 확인했고 인증값 읽기나 수동 생성 POST는 하지 않았습니다. 실제 전송 시도는 설치 확장의 고정 시험 버튼으로만 수행했고 이번에는 패널의 완결 답변까지 확인했습니다.
 
-현재 작업용 Claude 시험 탭은 순서대로 닫았고 새 목록에서 소유/열린 탭과 출처 불명 홈 탭이 0개임을 확인했습니다. 관련 없는 탭은 보존했고 확장 관리 탭 선택과 패널 완료 표시는 유지됐습니다. 작업용 브라우저 REPL은 정상 종료했으며 허가된 네이티브 helper도 종료해 실제 helper 프로세스 부재를 확인했습니다. 세 서비스 전체 문맥·첨부·최종 반환의 내부 호출 전환은 미검증이고 스토어 조회·새 업로드·새 심사 제출은 하지 않았습니다.
+Task 7 당시 작업용 Claude 시험 탭을 닫고 관련 없는 탭·확장 관리 탭 선택·패널 완료 표시를 보존했습니다. REPL 정상 종료와 허가된 helper 종료·프로세스 부재도 확인했습니다. 이 과거 정리 기록은 현재 Task 8 작업 종료를 뜻하지 않습니다. 당시 스토어 조회·새 업로드·새 심사 제출은 없었습니다.
+
+### Task 8: 고정 합성 문맥과 같은 대화의 후속 응답
+
+첫 고정 질문은 합성 질문·답변 두 쌍을 전달해 `CROSSCHECK_CONTEXT_OK/47`을 요구합니다. 첫 답변의 정확한 예상값, 완료 스트림과 정확한 새 대화의 두 메시지 readback을 모두 확인해야 합니다. 다음 고정 질문은 합성 원본이나 예상 검증 단어를 다시 포함하지 않고 두 답변의 역순을 요청해 `47/CROSSCHECK_CONTEXT_OK`를 확인합니다. 개인 대화 가져오기나 임의 prompt/URL/header 대리 호출은 제공하지 않습니다.
+
+후속 POST 직전 같은 대화를 한 번 더 GET해 첫 쌍의 identity·parent·content 표현·완료 상태, leaf와 모델이 그대로인지 검증하고 실제 닫힌 모델 표시·원래 문서/정확한 URL·중단도 다시 확인합니다. 첫 검증된 assistant만 `parent_message_uuid`로 사용하며 `create_conversation_params`는 첫 요청에만 포함합니다. 마지막 readback은 같은 대화·모델, 네 개의 고유 메시지, 불변인 첫 쌍, 두번째 human→첫 assistant와 두번째 assistant→그 human의 parent 관계, final leaf, 두 고정 prompt/예상 답변과 기존 content/첨부/완료 검사를 요구합니다. 재사용 ID·추가 분기·변경된 첫 쌍·부분 완료를 거부하며 정상 완료의 POST는 정확히 두 번이고 자동 재시도는 없습니다.
+
+2026-10-13 공개 asset의 `credentials: 'omit'` GET은 HTTP 200이었으며 현재 Qv 경로가 parent 값을 직접 전달하고 최초 생성 매개변수는 선택적임을 확인했습니다. [현재 parent 처리](https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/shared-1-DT-Mq-A-.js), [현재 생성 매개변수](https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/shared-0-Dsui6SsB.js), [pinned 첫 요청/후속 payload](https://github.com/diegosouzapw/OmniRoute/blob/7f3cbb046b3706bf0bbc047b7eaa0cbada8d9e50/open-sse/executors/claude-web/payload.ts#L297). 인증값을 읽은 요청이 아니며 공개 구현만으로 현재 계정의 실제 성공을 단정하지 않습니다.
+
+GET/readback과 다음 POST는 원자적이지 않습니다. 사이에 원격 변경이 생기면 최종 정확한 readback으로 실패를 탐지할 수 있어도 이미 보낸 후속 요청을 모두 예방하지는 못합니다. 따라서 새 비민감 테스트 대화의 고정 진단에만 적용하며 임의 기존 메인 대화 이어쓰기의 안전성을 입증하지 않습니다. 파일·실제 여러 턴 원본·메인 최종 반환·다른 공급자 내부 호출은 별도 미해결입니다. 현재 단위 219개·타입·빌드 통과와 실제 두 요청/포커스 수집 성공은 구분합니다.
 
 ## 제안하는 사용 흐름과 경계
 
@@ -130,7 +158,7 @@ Task 7은 서로 다른 유효한 SSE ID를 임시값으로 받아들이고 기�
 - 기존 `Platform`은 웹 탭/문서/URL을 생성과 함께 묶습니다. HTTP 성공을 가짜 `Binding`, `composer: true`, 기존 DOM 완료 상태로 위장하지 않습니다. 필요한 최소 계약만 분리하고 도메인·원본·오케스트레이션을 재사용합니다. [아키텍처](../architecture/overview.md).
 - 최초 탭 목록 조사에서는 지원 AI origin이 보이지 않았지만, 이 목록만으로 사용자의 전체 프로필이나 로그인 상태를 판단하지 않았습니다. 이후 별도 Claude 홈 탭의 안전한 GET을 확인했습니다. 구체적 설치·생성 결과는 위 증거 표에만 기록합니다.
 
-변경을 검증하기 전 제출한 0.4.0 패키지를 새 방식으로 바꾸거나 현재 스토어 상태를 추정하지 않습니다. 마지막 확인된 제출 상태는 [출시 기록](../release/release-checklist.md)이 소유합니다. 내부 호출도 제공자의 문서화된 호환성 계약은 아니며, 전송 방식을 바꾸는 것만으로 약관 문제가 해소되지는 않습니다.
+2026-10-13의 공개 0.4.0 상세 페이지·설치 제공·CrossCheck/Multi AI Checker 검색 노출은 [출시 기록](../release/release-checklist.md)이 소유합니다. 실제 사용자 설치·대시보드 승인 시점/현재 심사 상태는 미확인이고 현재 로컬 실험은 미배포입니다. 공개 버전 번호를 현재 실험 소스의 배포 증거로 사용하지 않습니다. 내부 호출도 제공자의 문서화된 호환성 계약은 아니며 전송 방식 변경만으로 약관 문제가 해소되지는 않습니다.
 
 ## 공식 대안의 현재 범위
 

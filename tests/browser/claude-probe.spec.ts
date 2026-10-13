@@ -1,6 +1,10 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
-import { providerPage } from '../fixtures/providers/pages';
+import {
+  claudeProbeFixture,
+  claudeProbeOrg as org,
+  claudeProbeBootstrap as bootstrap,
+} from '../fixtures/providers/claude-probe';
 
 async function command(
   page: Page,
@@ -17,119 +21,14 @@ async function command(
     { message, sender },
   );
 }
-const org = '11111111-1111-4111-8111-111111111111';
-const bootstrap = {
-  model_selector_state: [{ id: 'chat', model: 'claude-sonnet-fixture' }],
-  model_selector_config: [
-    {
-      id: 'chat',
-      models: [{ id: 'claude-sonnet-fixture', name: 'Sonnet fixture', section: 'main' }],
-    },
-  ],
-  claude_ai_available_models: {
-    models: [{ model_id: 'claude-sonnet-fixture', minimum_tier: 'free' }],
-  },
-};
-async function setup(page: Page, partial = false) {
-  let posts = 0;
-  let saved: object | undefined;
-  await page.route('https://claude.ai/**', async (route) => {
-    const pathname = new URL(route.request().url()).pathname;
-    if (pathname === '/api/organizations')
-      return route.fulfill({
-        json: [
-          { uuid: '33333333-3333-4333-8333-333333333333', capabilities: ['api'] },
-          { uuid: org, capabilities: ['chat'] },
-        ],
-      });
-    if (pathname === `/api/organizations/${org}`)
-      return route.fulfill({ json: { claude_ai_bootstrap_models_config: null } });
-    if (pathname === `/edge-api/bootstrap/${org}/app_start`)
-      return route.fulfill({
-        json: bootstrap,
-      });
-    if (
-      pathname.startsWith(`/api/organizations/${org}/chat_conversations/`) &&
-      !pathname.endsWith('/completion')
-    )
-      return route.fulfill({ json: saved ?? {} });
-    if (pathname.endsWith('/completion')) {
-      posts++;
-      const body = route.request().postDataJSON();
-      expect(body.prompt).toBe('Reply with CROSSCHECK_OK only.');
-      expect(body.model).toBe('claude-sonnet-fixture');
-      expect(body.attachments).toEqual([]);
-      expect(body.files).toEqual([]);
-      const human = '44444444-4444-4444-8444-444444444444';
-      const assistant = '55555555-5555-4555-8555-555555555555';
-      expect(human).not.toBe(body.turn_message_uuids.human_message_uuid);
-      expect(assistant).not.toBe(body.turn_message_uuids.assistant_message_uuid);
-      saved = {
-        uuid: pathname.split('/').at(-2),
-        current_leaf_message_uuid: assistant,
-        model: body.model,
-        chat_messages: [
-          {
-            uuid: human,
-            sender: 'human',
-            text: '',
-            content: [{ type: 'text', text: body.prompt }],
-            truncated: false,
-            attachments: [],
-            files: [],
-            sync_sources: [],
-          },
-          {
-            uuid: assistant,
-            sender: 'assistant',
-            parent_message_uuid: human,
-            text: '',
-            content: [{ type: 'text', text: 'CROSSCHECK_OK' }],
-            stop_reason: 'end_turn',
-            truncated: false,
-            attachments: [],
-            files: [],
-            sync_sources: [],
-          },
-        ],
-      };
-      const events = [
-        {
-          type: 'message_start',
-          message: {
-            uuid: assistant,
-            parent_uuid: human,
-          },
-        },
-        { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
-        {
-          type: 'content_block_delta',
-          index: 0,
-          delta: { type: 'text_delta', text: 'CROSSCHECK_OK' },
-        },
-        { type: 'content_block_stop', index: 0 },
-        { type: 'message_delta', delta: { stop_reason: 'end_turn' } },
-        ...(partial ? [] : [{ type: 'message_stop' }]),
-      ];
-      return route.fulfill({
-        contentType: 'text/event-stream',
-        body: events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join(''),
-      });
-    }
-    return route.fulfill({ contentType: 'text/html', body: providerPage('claude') });
-  });
+async function setup(page: Page, options: { partialTurn?: number; changedReadback?: number } = {}) {
+  const fixture = await claudeProbeFixture(page, options);
   await page.goto('https://claude.ai/new');
   await page.evaluate(() => {
     document.getElementById('messages')!.replaceChildren();
-    const button = document.createElement('button');
-    button.dataset.testid = 'model-selector-dropdown';
-    const base = document.createElement('span');
-    base.textContent = 'Sonnet fixture';
-    const effort = document.createElement('span');
-    effort.textContent = 'Medium';
-    button.append(base, effort);
-    button.setAttribute('aria-expanded', 'false');
-    document.body.append(button);
+    const button = document.querySelector<HTMLButtonElement>(
+      '[data-testid="model-selector-dropdown"]',
+    )!;
     button.onclick = () => {
       button.setAttribute('aria-expanded', 'true');
       const menu = document.createElement('div');
@@ -174,14 +73,14 @@ async function setup(page: Page, partial = false) {
   });
   await page.addScriptTag({ path: path.resolve('.output/chrome-mv3/bridge.js') });
   const snapshot = (await command(page, { type: 'snapshot' })).data;
-  return { target: { documentId: snapshot.documentId, url: snapshot.url }, posts: () => posts };
+  return { ...fixture, target: { documentId: snapshot.documentId, url: snapshot.url } };
 }
 
 test('fixed Claude probe verifies server-assigned message IDs without menu opening or repeat dispatch', async ({
   page,
   context,
 }) => {
-  const { target, posts } = await setup(page);
+  const { target, posts, requests } = await setup(page);
   const displayCatalog = (await command(page, { type: 'models', ...target })).data;
   expect(JSON.stringify(displayCatalog)).not.toContain('claude-sonnet-fixture');
   await page.evaluate(() => ((window as any).fixtureModelMenuOpens = 0));
@@ -203,6 +102,18 @@ test('fixed Claude probe verifies server-assigned message IDs without menu openi
     false,
   );
   expect(posts()).toBe(1);
+  expect(requests[0]?.body).toMatchObject({
+    prompt: 'Reply with CROSSCHECK_OK only.',
+    model: 'claude-sonnet-fixture',
+    attachments: [],
+    files: [],
+  });
+  expect(requests[0]?.body.turn_message_uuids.human_message_uuid).not.toBe(
+    '44444444-4444-4444-8444-444444444444',
+  );
+  expect(requests[0]?.body.turn_message_uuids.assistant_message_uuid).not.toBe(
+    '55555555-5555-4555-8555-555555555555',
+  );
   expect(await page.evaluate(() => (window as any).fixtureModelMenuOpens)).toBe(0);
   expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
   expect(await other.evaluate(() => document.hasFocus())).toBe(true);
@@ -257,7 +168,7 @@ test('probe refuses a changed selected model after bootstrap GET before sending'
 });
 
 test('EOF after text and end_turn remains an uncertain outcome', async ({ page }) => {
-  const { target, posts } = await setup(page, true);
+  const { target, posts } = await setup(page, { partialTurn: 1 });
   expect((await command(page, { type: 'startClaudeProbe', id: 'partial', ...target })).ok).toBe(
     true,
   );
@@ -306,6 +217,81 @@ test('probe rejects wrong document, non-panel sender, and injected proxy options
   expect(posts()).toBe(0);
 });
 
+test('context probe retains both synthetic pairs and follows the verified assistant without moving focus', async ({
+  page,
+  context,
+}) => {
+  const { target, posts, requests, readbacks } = await setup(page);
+  const other = await context.newPage();
+  await other.goto('about:blank');
+  await other.bringToFront();
+  expect(
+    (await command(page, { type: 'startClaudeProbe', kind: 'context', id: 'context', ...target }))
+      .ok,
+  ).toBe(true);
+  await expect
+    .poll(
+      async () => (await command(page, { type: 'pollClaudeProbe', id: 'context' })).data?.status,
+    )
+    .toBe('done');
+  expect((await command(page, { type: 'pollClaudeProbe', id: 'context' })).data?.answer).toBe(
+    'First reply: CROSSCHECK_CONTEXT_OK/47\nFollow-up reply: 47/CROSSCHECK_CONTEXT_OK',
+  );
+  expect(posts()).toBe(2);
+  expect(readbacks()).toBe(3);
+  expect(requests[0]?.conversation).toBe(requests[1]?.conversation);
+  expect(requests[0]?.body.prompt).toContain('Answer: CROSSCHECK_CONTEXT_OK');
+  expect(requests[0]?.body.prompt).toContain('Answer: 47');
+  expect(requests[0]?.body.prompt.match(/Question:/g)).toHaveLength(2);
+  expect(requests[1]?.body.prompt).not.toMatch(/CROSSCHECK_CONTEXT_OK|47|<conversation>/);
+  expect(requests[1]?.body.parent_message_uuid).toBe('55555555-5555-4555-8555-555555555555');
+  expect(requests[1]?.body).not.toHaveProperty('create_conversation_params');
+  expect(
+    (await command(page, { type: 'startClaudeProbe', kind: 'context', id: 'context', ...target }))
+      .ok,
+  ).toBe(false);
+  expect(posts()).toBe(2);
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  expect(await other.evaluate(() => document.hasFocus())).toBe(true);
+});
+
+test('changed first conversation prevents the context follow-up', async ({ page }) => {
+  const { target, posts } = await setup(page, { changedReadback: 2 });
+  await command(page, {
+    type: 'startClaudeProbe',
+    kind: 'context',
+    id: 'changed-context',
+    ...target,
+  });
+  await expect
+    .poll(
+      async () =>
+        (await command(page, { type: 'pollClaudeProbe', id: 'changed-context' })).data?.status,
+    )
+    .toBe('error');
+  expect(posts()).toBe(1);
+});
+
+test('incomplete second stream never completes or retries the context probe', async ({ page }) => {
+  const { target, posts } = await setup(page, { partialTurn: 2 });
+  await command(page, {
+    type: 'startClaudeProbe',
+    kind: 'context',
+    id: 'partial-context',
+    ...target,
+  });
+  await expect
+    .poll(
+      async () =>
+        (await command(page, { type: 'pollClaudeProbe', id: 'partial-context' })).data?.status,
+    )
+    .toBe('error');
+  expect(
+    (await command(page, { type: 'pollClaudeProbe', id: 'partial-context' })).data?.answer,
+  ).toBe('');
+  expect(posts()).toBe(2);
+});
+
 test('connection diagnostic discloses the fixed request and never resumes after reload', async ({
   page,
 }) => {
@@ -317,6 +303,28 @@ test('connection diagnostic discloses the fixed request and never resumes after 
   await expect(page.getByText('연결 시험 완료', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => window.harness.sends)).toEqual([]);
   expect(await page.evaluate(() => window.harness.probeStarts)).toBe(1);
+  await page.reload();
+  await page.getByRole('button', { name: '연결', exact: true }).first().click();
+  await page.getByText('백그라운드 연결 시험', { exact: true }).click();
+  expect(await page.evaluate(() => window.harness.probeStarts)).toBe(0);
+});
+
+test('context diagnostic discloses both fixed requests and passes only its bounded kind', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: '연결', exact: true }).first().click();
+  await page.getByText('백그라운드 연결 시험', { exact: true }).click();
+  const start = page.getByRole('button', { name: '문맥·후속 응답 시험 시작', exact: true });
+  await expect(start).toBeVisible({ timeout: 2500 });
+  await expect(page.getByText(/시험용 질문·답변 2쌍/)).toBeVisible();
+  await page.getByText('시험에 보내는 내용', { exact: true }).click();
+  await expect(page.getByText(/Answer: CROSSCHECK_CONTEXT_OK/)).toBeVisible();
+  await expect(page.getByText(/Using the synthetic conversation already provided/)).toBeVisible();
+  await start.click();
+  await expect(page.getByText('문맥·후속 응답 시험 완료', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => window.harness.probeKinds)).toEqual(['context']);
+  expect(await page.evaluate(() => window.harness.sends)).toEqual([]);
   await page.reload();
   await page.getByRole('button', { name: '연결', exact: true }).first().click();
   await page.getByText('백그라운드 연결 시험', { exact: true }).click();

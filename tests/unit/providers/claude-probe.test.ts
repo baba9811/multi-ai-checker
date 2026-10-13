@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  CLAUDE_CONTEXT_PROBE_PROMPT,
+  CLAUDE_CONTEXT_PROBE_FOLLOWUP,
+  CLAUDE_CONTEXT_PROBE_EXPECTED,
+} from '../../../src/application/claude-probe';
+import {
   collectClaudeProbeStream,
   claudeProbe,
   CLAUDE_PROBE_PROMPT,
@@ -659,4 +664,237 @@ describe('Claude page-local request', () => {
     );
     expect(fetch.mock.calls.filter(([, o]) => o.method === 'POST')).toHaveLength(1);
   });
+});
+
+describe('Claude bounded context probe', () => {
+  const org = '33333333-3333-4333-8333-333333333333';
+  const secondHuman = '44444444-4444-4444-8444-444444444444';
+  const secondAssistant = '55555555-5555-4555-8555-555555555555';
+  const root = '00000000-0000-4000-8000-000000000000';
+  type History = {
+    uuid: string;
+    model: string;
+    current_leaf_message_uuid: string;
+    chat_messages: Record<string, unknown>[];
+  };
+  function setup(
+    options: {
+      answers?: readonly [string, string];
+      partial?: number;
+      reuse?: 'human' | 'assistant';
+      onReadback?: (history: History, read: number) => void;
+      onPost?: (turn: number) => void;
+    } = {},
+  ) {
+    menu.mockReset().mockResolvedValue(choice);
+    vi.stubGlobal('location', { href: 'https://claude.ai/new', origin: 'https://claude.ai' });
+    const posts: { url: string; body: Record<string, any> }[] = [];
+    const order: string[] = [];
+    let reads = 0;
+    let conversation = '';
+    const messages: Record<string, unknown>[] = [];
+    const answers = options.answers ?? CLAUDE_CONTEXT_PROBE_EXPECTED;
+    const fetch = vi.fn(async (url: string, init: RequestInit) => {
+      if (url === '/api/organizations')
+        return Response.json([{ uuid: org, capabilities: ['chat'] }]);
+      if (url.startsWith('/edge-api/bootstrap/'))
+        return Response.json({
+          model_selector_state: [{ id: 'chat', model: 'claude-test' }],
+          model_selector_config: [{ id: 'chat', models: [{ id: 'claude-test', name: choice }] }],
+          claude_ai_available_models: { models: [{ model_id: 'claude-test' }] },
+        });
+      if (init.method === 'GET') {
+        order.push('readback');
+        const data: History = {
+          uuid: conversation,
+          model: 'claude-test',
+          current_leaf_message_uuid: String(messages.at(-1)!.uuid),
+          chat_messages: structuredClone(messages),
+        };
+        options.onReadback?.(data, ++reads);
+        return Response.json(data);
+      }
+      const body = JSON.parse(init.body as string);
+      posts.push({ url, body });
+      order.push('post');
+      const turn = posts.length;
+      options.onPost?.(turn);
+      conversation = url.split('/').at(-2)!;
+      const userId = turn === 1 || options.reuse === 'human' ? human : secondHuman;
+      const answerId = turn === 1 || options.reuse === 'assistant' ? assistant : secondAssistant;
+      const answer = answers[turn - 1]!;
+      const message = (uuid: string, sender: string, text: string, parent: string) => ({
+        uuid,
+        sender,
+        text: '',
+        parent_message_uuid: parent,
+        content: [{ type: 'text', text }],
+        truncated: false,
+        attachments: [],
+        files: [],
+        sync_sources: [],
+        ...(sender === 'assistant' ? { stop_reason: 'end_turn' } : {}),
+      });
+      messages.push(
+        message(userId, 'human', body.prompt, turn === 1 ? root : assistant),
+        message(answerId, 'assistant', answer, userId),
+      );
+      const frames = events();
+      frames[0] = event('message_start', { message: { uuid: answerId, parent_uuid: userId } });
+      frames[2] = event('content_block_delta', {
+        index: 0,
+        delta: { type: 'text_delta', text: answer },
+      });
+      return new Response((options.partial === turn ? frames.slice(0, -1) : frames).join(''), {
+        headers: { 'content-type': 'text/event-stream' },
+      });
+    });
+    vi.stubGlobal('fetch', fetch);
+    return { fetch, posts, order, readbacks: () => reads };
+  }
+  const run = (signal = new AbortController().signal) => claudeProbe(choice, signal, 'context');
+  it('sends two fixed prompts to one conversation only after exact first-pair revalidation', async () => {
+    const { posts, order } = setup();
+    const result = await run();
+    expect(result).toBe(
+      `First reply: ${CLAUDE_CONTEXT_PROBE_EXPECTED[0]}\nFollow-up reply: ${CLAUDE_CONTEXT_PROBE_EXPECTED[1]}`,
+    );
+    expect(result.length).toBeLessThanOrEqual(4096);
+    expect(order).toEqual(['post', 'readback', 'readback', 'post', 'readback']);
+    expect(posts).toHaveLength(2);
+    expect(posts[1]!.url).toBe(posts[0]!.url);
+    expect(posts[0]!.body.prompt).toBe(CLAUDE_CONTEXT_PROBE_PROMPT);
+    expect(posts[0]!.body).toHaveProperty('create_conversation_params');
+    expect(posts[1]!.body.prompt).toBe(CLAUDE_CONTEXT_PROBE_FOLLOWUP);
+    expect(posts[1]!.body.prompt).not.toContain('CROSSCHECK_CONTEXT_OK');
+    expect(posts[1]!.body.parent_message_uuid).toBe(assistant);
+    expect(posts[1]!.body).not.toHaveProperty('create_conversation_params');
+    const proposed = posts.flatMap(({ body }) => Object.values(body.turn_message_uuids));
+    expect(new Set(proposed).size).toBe(4);
+    expect(menu).toHaveBeenCalledTimes(2);
+  });
+  it.each([null, undefined, root])('retains an allowed first root parent (%s)', async (parent) => {
+    setup({
+      onReadback: (data) => {
+        data.chat_messages[0]!.parent_message_uuid = parent;
+      },
+    });
+    await expect(run()).resolves.toContain('Follow-up reply:');
+  });
+  it.each([1, 2])('does not complete or retry partial stream %i', async (turn) => {
+    const { posts } = setup({ partial: turn });
+    await expect(run()).rejects.toMatchObject({ cause: 'response-terminal' });
+    expect(posts).toHaveLength(turn);
+  });
+  it.each([0, 1])('rejects wrong expected answer %i without further sends', async (index) => {
+    const answers: [string, string] = [...CLAUDE_CONTEXT_PROBE_EXPECTED];
+    answers[index] = 'wrong';
+    const { posts } = setup({ answers });
+    await expect(run()).rejects.toMatchObject({ cause: 'response-context' });
+    expect(posts).toHaveLength(index + 1);
+  });
+  it.each(['model', 'navigation', 'abort'])('rejects %s between requests', async (change) => {
+    const controller = new AbortController();
+    const { posts } = setup({
+      onReadback: (_data, read) => {
+        if (read !== 2) return;
+        if (change === 'model') menu.mockResolvedValue('Other');
+        if (change === 'navigation') location.href = 'https://claude.ai/chat/changed';
+        if (change === 'abort') controller.abort();
+      },
+    });
+    await expect(run(controller.signal)).rejects.toMatchObject({
+      message: 'Claude probe failed.',
+      cause:
+        change === 'model'
+          ? 'model-confirmation'
+          : change === 'abort'
+            ? 'interrupted'
+            : 'response-confirmation',
+    });
+    expect(posts).toHaveLength(1);
+  });
+  it.each(['root', 'content', 'id', 'leaf', 'extra'])(
+    'rejects changed %s during follow-up preflight',
+    async (change) => {
+      const { posts } = setup({
+        onReadback: (data, read) => {
+          if (read !== 2) return;
+          if (change === 'root') data.chat_messages[0]!.parent_message_uuid = null;
+          if (change === 'content')
+            data.chat_messages[0]!.content = [{ type: 'text', text: 'changed' }];
+          if (change === 'id') data.chat_messages[0]!.uuid = secondHuman;
+          if (change === 'leaf') data.current_leaf_message_uuid = human;
+          if (change === 'extra') data.chat_messages.push({ ...data.chat_messages[0] });
+        },
+      });
+      await expect(run()).rejects.toThrow('Claude probe failed.');
+      expect(posts).toHaveLength(1);
+    },
+  );
+  it('rejects an unrelated first-human parent before follow-up', async () => {
+    const { posts } = setup({
+      onReadback: (data) => {
+        data.chat_messages[0]!.parent_message_uuid = secondAssistant;
+      },
+    });
+    await expect(run()).rejects.toThrow('Claude probe failed.');
+    expect(posts).toHaveLength(1);
+  });
+  it('rejects a changed initial readback before its follow-up preflight', async () => {
+    const { posts, readbacks } = setup({
+      onReadback: (data, read) => {
+        if (read === 1) data.chat_messages[1]!.parent_message_uuid = secondHuman;
+      },
+    });
+    await expect(run()).rejects.toThrow('Claude probe failed.');
+    expect(posts).toHaveLength(1);
+    expect(readbacks()).toBe(1);
+  });
+  it('rejects a reused proposed UUID before issuing a second POST', async () => {
+    const ids = [
+      '66666666-6666-4666-8666-666666666666',
+      '77777777-7777-4777-8777-777777777777',
+      '88888888-8888-4888-8888-888888888888',
+    ];
+    vi.stubGlobal('crypto', {
+      randomUUID: vi
+        .fn()
+        .mockReturnValueOnce(ids[0])
+        .mockReturnValueOnce(ids[1])
+        .mockReturnValueOnce(ids[2])
+        .mockReturnValueOnce(ids[1])
+        .mockReturnValueOnce('99999999-9999-4999-8999-999999999999'),
+    });
+    const { posts } = setup();
+    await expect(run()).rejects.toThrow('Claude probe failed.');
+    expect(posts).toHaveLength(1);
+  });
+  it.each(['human', 'assistant'] as const)(
+    'rejects reused returned %s ID on the second stream',
+    async (reuse) => {
+      const { posts } = setup({ reuse });
+      await expect(run()).rejects.toThrow('Claude probe failed.');
+      expect(posts).toHaveLength(2);
+    },
+  );
+  it.each(['first-content', 'first-parent', 'second-parent', 'leaf', 'extra', 'attachments'])(
+    'rejects %s in final four-message readback',
+    async (change) => {
+      const { posts } = setup({
+        onReadback: (data, read) => {
+          if (read !== 3) return;
+          if (change === 'first-content')
+            data.chat_messages[1]!.content = [{ type: 'text', text: 'changed' }];
+          if (change === 'first-parent') data.chat_messages[0]!.parent_message_uuid = null;
+          if (change === 'second-parent') data.chat_messages[2]!.parent_message_uuid = human;
+          if (change === 'leaf') data.current_leaf_message_uuid = assistant;
+          if (change === 'extra') data.chat_messages.push({ ...data.chat_messages[0] });
+          if (change === 'attachments') data.chat_messages[0]!.attachments = [{}];
+        },
+      });
+      await expect(run()).rejects.toThrow('Claude probe failed.');
+      expect(posts).toHaveLength(2);
+    },
+  );
 });

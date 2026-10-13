@@ -2,11 +2,11 @@
 
 > For agentic workers: use subagent-driven-development for the isolated provider adapter and review; root owns the sequential integration and browser validation.
 
-**Goal:** Verify one explicit, fixed, non-sensitive Claude text request without moving the user's foreground tab.
+**Goal:** Verify explicit, fixed, non-sensitive Claude connection and context diagnostics without moving the user's foreground tab.
 
-**Current acceptance:** native attempt 23 completed through the exact reloaded production side panel with `CROSSCHECK_OK`, retaining the selected tab and leaving the new Claude tab inactive. Final evidence is 190 unit/type/build, 20 related and 126 full synthetic browser cases, and five installed checks. The goal's scope is one fixed text request; the full multi-provider workflow remains unchanged. Independent final production/regression review reports no important findings, and current task-owned tabs/control cleanup is confirmed.
+**Current acceptance:** Task 8 native context attempt 1 completed through the exact reloaded production side panel with both expected replies, retaining the selected extension-manager tab and leaving the new Claude tab inactive. Current evidence is 219 unit/type/build, 14 related and 130 full synthetic browser cases, and seven installed-origin checks with their documented fixture substitutions. Independent implementation and test-adjustment review reports no important findings; owned native test tab and helper cleanup are confirmed. Scope is two fixed synthetic question/answer pairs plus one same-conversation follow-up; the default multi-provider workflow remains unchanged.
 
-**Architecture:** The existing isolated bridge performs same-origin requests using browser-managed cookies. Account references stay in that page; a separate metadata-only session record remembers the one-shot attempt. The default multi-provider workflow is unchanged pending full compatibility evidence.
+**Architecture:** The existing isolated bridge performs same-origin requests using browser-managed cookies. Account references stay in that page; a separate metadata-only session record remembers the bounded diagnostic intent and optional context kind. The default multi-provider workflow is unchanged pending full compatibility evidence.
 
 **Tech stack:** Existing TypeScript, Zod, WXT, Vitest, Playwright; no new dependencies or permissions.
 
@@ -126,3 +126,38 @@ A safe read-only check of the owned test conversation confirmed these readback-s
 Acceptance scope: one non-sensitive fixed text request using the existing Claude web login/subscription, without credential reads, developer API or developer server. ChatGPT/Gemini direct generation, files, multi-turn context and original-main synthesis remain unverified. No store query/upload/submission occurred. Current task-owned Claude test tabs were closed sequentially and fresh inventory confirmed no owned/open or unknown home tabs, with unrelated tabs preserved. The original extension-manager tab remained active and the native panel still displayed the completed marker. The task-owned browser REPL exited successfully and its authorized native helper was stopped; current observations confirm no actual helper process remains.
 
 Final formatting check: all changed files and diff whitespace passed. The repository-wide formatter still reports the unchanged baseline release/reference documents and ignored local red-test evidence; neither preserved evidence nor unrelated existing prose was rewritten.
+
+## Task 8: Verify synthetic multi-turn context and a bound follow-up
+
+**Goal:** Extend the explicit Claude diagnostic with a `context` kind that sends a declared synthetic two-pair transcript, collects the expected first answer, then verifies recall through one follow-up in the same newly created conversation. The existing single-request diagnostic and default review remain unchanged.
+
+**Architecture:** Keep `kind?: 'context'` in the strict application command, platform port and persisted metadata. Fixed prompts and expected words are application-owned; account/model/conversation/message references stay in the provider page. The initial persisted context intent authorizes exactly two requests; no partial completion, automatic retry, restoration or fallback is permitted.
+
+**Global constraints:** Existing web login/subscription only; no credential reads, extra permissions, dependencies or developer server. Use a fresh non-sensitive conversation, retain the bound home document/URL and inactive tab, and disclose exactly two requests before starting. Build/browser suites sharing output run sequentially. Unit, synthetic, installed and live results remain separate.
+
+### Provider task
+
+Files: `src/infrastructure/providers/claude/probe.ts`, `tests/unit/providers/claude-probe.test.ts`.
+
+Interface: `claudeProbe(initialLabel: string, signal: AbortSignal, kind?: 'context'): Promise<string>`. Existing omitted-kind behavior keeps exactly one POST. Context mode returns `First reply: <verified answer>\nFollow-up reply: <verified answer>` within the existing 4096-character boundary.
+
+- [x] Add failing unit checks for two bounded sends on one conversation, verified first-assistant parent, no second creation parameters, retained first pair, fresh proposed/returned IDs and expected recall. Save the red output before implementation.
+- [x] Use `CLAUDE_CONTEXT_PROBE_PROMPT` only on the first request and `CLAUDE_CONTEXT_PROBE_FOLLOWUP` only on the second. The second prompt contains neither the synthetic transcript nor the expected verification word. Verify exact first answer/readback before any follow-up.
+- [x] Immediately before follow-up, GET only that same conversation and require the first pair/leaf/content/relationships unchanged; reread the actual closed model label and check cancellation/document/URL. Use the confirmed assistant as `parent_message_uuid` and omit `create_conversation_params`. Never discover or append to an existing user conversation.
+- [x] After the second completed stream, require exactly four unique messages, the same conversation/model, unchanged first pair, the second human linked to the first verified assistant, second assistant linked to that human and final leaf. Verify all prompts, authoritative text blocks, roles, empty attachments/files/sync sources, no truncation and normal completion. Reject reused returned IDs, extra branches, mismatched expected recall or an altered first pair.
+- [x] Run the focused unit file. Cover incomplete first/second streams, first mismatch/readback changes, model/navigation change and abort between requests; failures before follow-up must retain exactly one POST. Keep original one-request regressions.
+
+### Application, installation and UI task
+
+Files: `src/application/claude-probe.ts`, `src/application/provider-protocol.ts`, `src/application/ports.ts`, `src/infrastructure/chrome/claude-probe.ts`, `entrypoints/bridge.ts`, `src/presentation/providers/ClaudeProbe.tsx`, `tests/unit/providers/claude-probe-session.test.ts`, `tests/fixtures/application/platform.ts`, `tests/browser/claude-probe.spec.ts`, installed extension tests and owning validation/privacy documents.
+
+- [x] Add failing session assertions that `kind: 'context'` is persisted before tab creation and reaches the strict bridge start command; restored pending context is uncertain with no dispatch. Preserve legacy records and the original request shape.
+- [x] Add application-owned fixed transcript/prompts and the optional context kind to the port, record and strict command; forward it through Chrome and bridge without accepting arbitrary prompt/URL/header options. Record the planned kind in all pending/done/uncertain writes; no answer is stored.
+- [x] Add one secondary `문맥·후속 응답 시험 시작` action within the existing collapsed diagnostic. Disclose the fixed synthetic transcript and two requests. Keep its busy/stop/unmount handling and indicate completion only after both verified replies. Failure text must not imply that an earlier request was never sent.
+- [x] Add synthetic browser success/failure checks through the actual compiled bridge and UI, preserving inactive focus and no repeat sends. Add an installed native-origin panel check of context-kind plumbing on the disposable provider fixture.
+- [x] Run focused regressions, `npm run check`, relevant browser checks and installed suite sequentially, then independently review the connected final source. Build/reload the exact production installation and start only through the actual native panel. Confirm both replies, same-conversation verification and unchanged foreground; remove task-owned tabs and stop native control afterward.
+- [x] Record actual evidence and remaining scope, including the non-atomic GET-to-POST race. This milestone does not prove arbitrary existing-main append, original conversation import, files, other providers or public release.
+
+Protocol evidence checked on 2026-10-13: publicly loaded Claude entrypoint `index-Bzztfoks.js` identified `shared-1-DT-Mq-A-.js`; safe browser GETs with `credentials: 'omit'` returned 200 and its Qv builder copies `parent_message_uuid` directly. A 200 public `shared-0-Dsui6SsB.js` GET exposes optional `create_conversation_params`. [Pinned payload implementation](https://github.com/diegosouzapw/OmniRoute/blob/7f3cbb046b3706bf0bbc047b7eaa0cbada8d9e50/open-sse/executors/claude-web/payload.ts#L297) corroborates first-only creation and follow-up parent behavior; current live acceptance remains required. GET/readback and POST are not atomic: concurrent remote edits must be detected by final exact readback, but cannot be prevented by this experiment.
+
+Task 8 live evidence (2026-10-13): actual reloaded production/native panel completed the first context attempt with `CROSSCHECK_CONTEXT_OK/47` and `47/CROSSCHECK_CONTEXT_OK`. The selected extension-manager tab remained active, and the new Chrome-created Claude home stayed inactive. After completion, only that owned home was selected and closed; a fresh native observation retained the manager selection and completed panel answers. The task-owned native helper was stopped and its absence confirmed. No manual request/injection or store upload/submission was performed. The independent production/spec and test-only adjustment reviews found no important issue. Initial installed-fixture routing failure is preserved as failure evidence; the corrected installed-origin case substitutes allocation to a registered synthetic tab and does not prove creation/native UI/permission grant. Those paths have separate live evidence as described above. Full synthetic regression subsequently passed all 130 cases in 3.1 minutes on the same rebuilt product source.
