@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { Snapshot } from '../../../src/application/provider-protocol';
 import { providerForUrl } from '../../../src/domains/providers/model';
 import {
   connect,
@@ -49,6 +50,56 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+});
+
+it.each([1, 2])(
+  'does not reuse %i retained background peers as an ordinary connection after new reviews',
+  async (count) => {
+    const peerHome = 'https://claude.ai/new';
+    candidates = Array.from({ length: count }, (_, index) => tab(index + 2, peerHome));
+    browser.tabs.get.mockImplementation(async (id) => tab(id, peerHome));
+    const binding = await preparePeer('claude', {
+      provider: 'claude',
+      tabId: count + 1,
+      documentId: 'doc',
+      url: peerHome,
+      threadId: crypto.randomUUID(),
+    });
+    expect(binding.tabId).toBe(9);
+    expect(binding.threadId).toBeUndefined();
+    expect(browser.tabs.create).toHaveBeenCalledWith({ url: peerHome, active: true });
+  },
+);
+
+it('prepares and retains an inactive thread without revealing it', async () => {
+  const peerHome = 'https://claude.ai/new';
+  browser.tabs.get.mockImplementation(async (id) => tab(id, peerHome));
+  const threadId = crypto.randomUUID();
+  const binding = await preparePeer('claude', undefined, threadId);
+  expect(binding.threadId).toBe(threadId);
+  expect(browser.tabs.create).toHaveBeenCalledWith({ url: peerHome, active: false });
+  expect(browser.tabs.update).not.toHaveBeenCalled();
+  expect(browser.windows.update).not.toHaveBeenCalled();
+  browser.tabs.create.mockClear();
+  expect(await preparePeer('claude', binding, threadId)).toEqual(binding);
+  expect(browser.tabs.create).not.toHaveBeenCalled();
+});
+
+it('cancels an inactive peer while readiness is pending without injection or reveal', async () => {
+  vi.useFakeTimers();
+  browser.tabs.get.mockImplementation(async (id) => ({
+    ...tab(id, 'https://claude.ai/new'),
+    status: 'loading',
+  }));
+  const controller = new AbortController();
+  const promise = preparePeer('claude', undefined, crypto.randomUUID(), controller.signal);
+  const outcome = expect(promise).rejects.toThrow();
+  await vi.advanceTimersByTimeAsync(200);
+  controller.abort();
+  await vi.advanceTimersByTimeAsync(200);
+  await outcome;
+  expect(browser.scripting.executeScript).not.toHaveBeenCalled();
+  expect(browser.tabs.update).not.toHaveBeenCalled();
 });
 
 it('opens and focuses a normal home when no provider tab exists, even without a composer', async () => {
@@ -272,4 +323,74 @@ it.each(['closed', 'login', 'loading'])('preparePeer fails closed for a %s tab',
   );
   expect(browser.scripting.executeScript).not.toHaveBeenCalled();
   expect(browser.tabs.create).not.toHaveBeenCalled();
+});
+
+it('preserves older reserved peer ownership on explicit reconnect so an ordinary review opens a fresh Claude home', async () => {
+  const peerHome = 'https://claude.ai/new';
+  const threadA = crypto.randomUUID();
+  active = [tab(2, peerHome)];
+  candidates = [tab(2, peerHome), tab(3, peerHome)];
+  browser.tabs.get.mockImplementation(async (id) => tab(id, peerHome));
+  const snap = await browser.tabs.sendMessage.getMockImplementation()!(2);
+  const reserved = { ...snap, data: { ...snap.data, threadId: threadA } };
+  browser.tabs.sendMessage.mockResolvedValueOnce(reserved);
+  const reconnected = await connect('claude');
+  expect(reconnected).toMatchObject({ tabId: 2, threadId: threadA });
+  expect(browser.tabs.create).not.toHaveBeenCalled();
+  const ordinary = await preparePeer('claude', reconnected);
+  expect(ordinary.tabId).toBe(9);
+  expect(ordinary.threadId).toBeUndefined();
+  expect(browser.tabs.create).toHaveBeenCalledOnce();
+  expect(browser.tabs.create).toHaveBeenCalledWith({ url: peerHome, active: true });
+});
+
+it.each([undefined, 'different'])(
+  'rejects contradictory snapshot ownership for a %s saved binding without rebinding',
+  async (ownership) => {
+    const peerHome = 'https://claude.ai/new';
+    candidates = [tab(2, peerHome)];
+    const snap = await browser.tabs.sendMessage.getMockImplementation()!(2);
+    const reserved = { ...snap, data: { ...snap.data, threadId: crypto.randomUUID() } };
+    browser.tabs.sendMessage.mockResolvedValueOnce(reserved);
+    const saved = {
+      provider: 'claude' as const,
+      tabId: 2,
+      documentId: 'doc',
+      url: peerHome,
+      ...(ownership ? { threadId: crypto.randomUUID() } : {}),
+    };
+    await expect(inspect(saved)).rejects.toThrow('검토 연결');
+    expect(browser.tabs.create).not.toHaveBeenCalled();
+    expect(browser.scripting.executeScript).not.toHaveBeenCalled();
+    expect(browser.tabs.update).not.toHaveBeenCalled();
+  },
+);
+
+it('permits a newly bound local thread before its first send establishes page ownership', async () => {
+  const peerHome = 'https://claude.ai/new';
+  candidates = [tab(2, peerHome)];
+  await expect(
+    inspect({
+      provider: 'claude',
+      tabId: 2,
+      documentId: 'doc',
+      url: peerHome,
+      threadId: crypto.randomUUID(),
+    }),
+  ).resolves.toMatchObject({ provider: 'claude', documentId: 'doc' });
+  expect(browser.tabs.create).not.toHaveBeenCalled();
+});
+
+it('validates snapshot ownership as a Claude-only opaque local UUID while retaining legacy snapshots', async () => {
+  const { data } = await browser.tabs.sendMessage.getMockImplementation()!(2);
+  expect(Snapshot.safeParse(data).success).toBe(true);
+  expect(
+    Snapshot.safeParse({ ...data, provider: 'claude', threadId: crypto.randomUUID() }).success,
+  ).toBe(true);
+  expect(
+    Snapshot.safeParse({ ...data, provider: 'gemini', threadId: crypto.randomUUID() }).success,
+  ).toBe(false);
+  expect(
+    Snapshot.safeParse({ ...data, provider: 'claude', threadId: 'not-a-local-uuid' }).success,
+  ).toBe(false);
 });

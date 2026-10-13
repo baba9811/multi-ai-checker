@@ -15,6 +15,7 @@ import {
 } from '../src/infrastructure/providers/dom';
 import { modelMenu, readClaudeProbeLabel } from '../src/infrastructure/providers/models';
 import { claudeProbe } from '../src/infrastructure/providers/claude/probe';
+import { createClaudePeer } from '../src/infrastructure/providers/claude/peer';
 import { ClaudeProbeReason, type ClaudeProbeProgress } from '../src/application/claude-probe';
 
 export default defineUnlistedScript(() => {
@@ -41,6 +42,28 @@ export default defineUnlistedScript(() => {
     canCreate: boolean;
   };
   let active: Active | undefined;
+  let peerThread:
+    { id: string; session?: ReturnType<typeof createClaudePeer>; failed: boolean } | undefined;
+  let peerJob:
+    | (Progress & {
+        id: string;
+        controller: AbortController;
+        poll: number;
+        start: number;
+        url: string;
+      })
+    | undefined;
+  const stopPeer = () => {
+    if (peerThread) peerThread.failed = true;
+    if (peerJob?.status !== 'pending') return;
+    peerJob.status = 'error';
+    peerJob.answer = '';
+    peerJob.error =
+      'Claude 검토를 완료하지 못했습니다. 이미 전송됐을 수 있으므로 자동 재전송하지 않습니다.';
+    peerJob.controller.abort();
+  };
+  window.addEventListener('beforeunload', stopPeer);
+  document.addEventListener('input', stopPeer, true);
   let probe:
     | (ClaudeProbeProgress & {
         id: string;
@@ -80,7 +103,10 @@ export default defineUnlistedScript(() => {
     const command = parsed.data;
     void (async () => {
       if (command.type === 'snapshot')
-        return settledSnapshot(provider, documentId, command.waitFor);
+        return {
+          ...(await settledSnapshot(provider, documentId, command.waitFor)),
+          ...(peerThread ? { threadId: peerThread.id } : {}),
+        };
       if (command.type === 'cancelClaudeProbe') {
         if (probe?.id === command.id) stopProbe();
         return true;
@@ -96,11 +122,22 @@ export default defineUnlistedScript(() => {
         } satisfies ClaudeProbeProgress;
       }
       if (command.type === 'cancel') {
+        if (peerJob?.id === command.id) stopPeer();
         if (active?.id === command.id)
           fail(active, '수집을 중단했습니다. 이미 시작된 AI 생성은 해당 탭에서 중지하세요.');
         return true;
       }
       if (command.type === 'poll') {
+        if (peerJob?.id === command.id) {
+          if (location.href !== peerJob.url) stopPeer();
+          peerJob.poll = Date.now();
+          return {
+            status: peerJob.status,
+            answer: peerJob.answer,
+            error: peerJob.error,
+            url: peerJob.url,
+          } satisfies Progress;
+        }
         if (!active || active.id !== command.id)
           throw new Error(
             '페이지가 새로고침되어 작업을 찾지 못했습니다. 답변을 수동으로 가져오세요.',
@@ -121,6 +158,7 @@ export default defineUnlistedScript(() => {
           choosingModel ||
           active?.status === 'pending' ||
           probe?.status === 'pending' ||
+          peerJob?.status === 'pending' ||
           isBusy(provider)
         )
           throw new Error('진행 중인 작업이 끝난 후 모델을 변경하세요.');
@@ -136,11 +174,72 @@ export default defineUnlistedScript(() => {
       }
       if (choosingModel) throw new Error('모델 설정이 끝난 뒤 시작하세요.');
       if (used.has(command.id)) throw new Error('이미 시도한 요청입니다. 중복 전송하지 않습니다.');
-      if (active?.status === 'pending' || probe?.status === 'pending')
+      if (
+        active?.status === 'pending' ||
+        probe?.status === 'pending' ||
+        peerJob?.status === 'pending'
+      )
         throw new Error('이 탭에서 다른 작업이 진행 중입니다.');
       if (used.size >= 30)
         throw new Error('이 탭의 실행 한도에 도달했습니다. 새로고침 후 다시 연결하세요.');
       used.add(command.id);
+      if (command.type === 'sendClaudePeer') {
+        if (provider !== 'claude' || !['/', '/new'].includes(location.pathname))
+          throw new Error('Claude의 새 검토 페이지가 필요합니다.');
+        if (
+          peerThread
+            ? peerThread.id !== command.threadId || peerThread.failed || !peerThread.session
+            : command.stage !== 'collect'
+        )
+          throw new Error('Claude 검토 연결을 잃었습니다. 새 대화를 만들거나 재전송하지 않습니다.');
+        if (!peerThread) peerThread = { id: command.threadId, failed: false };
+        const thread = peerThread;
+        const job = {
+          id: command.id,
+          status: 'pending' as const,
+          answer: '',
+          controller: new AbortController(),
+          poll: Date.now(),
+          start: Date.now(),
+          url: command.url,
+        };
+        peerJob = job;
+        void (async () => {
+          const snap = await settledSnapshot(provider, documentId, 'composer');
+          if (
+            !snap.composer ||
+            snap.busy ||
+            snap.draft ||
+            snap.context.turns.length ||
+            snap.lastQuestion ||
+            snap.lastAnswer
+          )
+            throw new Error('Claude 검토 페이지가 비어 있지 않습니다.');
+          if (thread.failed || job.controller.signal.aborted || location.href !== job.url)
+            throw new Error('검토가 중단되었습니다.');
+          if (!thread.session) thread.session = createClaudePeer(await readClaudeProbeLabel());
+          const answer = await thread.session.send(
+            command.prompt,
+            command.attachments,
+            command.approved,
+            command.stage,
+            job.controller.signal,
+          );
+          if (
+            thread.failed ||
+            peerJob !== job ||
+            peerJob.status !== 'pending' ||
+            location.href !== job.url
+          )
+            throw new Error('검토가 중단되었습니다.');
+          peerJob.answer = answer;
+          peerJob.status = 'done';
+        })().catch(() => {
+          if (peerJob === job) stopPeer();
+        });
+        return true;
+      }
+      if (peerThread) throw new Error('이 페이지는 Claude 백그라운드 검토에 연결되어 있습니다.');
       if (command.type === 'startClaudeProbe') {
         if (provider !== 'claude' || !['/', '/new'].includes(location.pathname))
           throw new Error('Claude의 새 테스트 페이지가 필요합니다.');
@@ -222,6 +321,13 @@ export default defineUnlistedScript(() => {
     return true;
   });
   setInterval(() => {
+    if (
+      peerJob?.status === 'pending' &&
+      (location.href !== peerJob.url ||
+        Date.now() - peerJob.poll > 15000 ||
+        Date.now() - peerJob.start > LIMITS.timeoutMs)
+    )
+      stopPeer();
     if (
       probe?.status === 'pending' &&
       (location.href !== probe.url ||

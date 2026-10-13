@@ -3,7 +3,7 @@ import { Binding, providerForUrl, providers, type ProviderId } from '../../domai
 import { LIMITS, type Job } from '../../domains/crosscheck/model';
 import { ModelCatalog, Progress, Snapshot } from '../../application/provider-protocol';
 import type { Collected, Conversation } from '../../application/ports';
-import type { AttachmentPayload } from '../../domains/attachments/model';
+import type { Attachment, AttachmentPayload } from '../../domains/attachments/model';
 
 export async function rpc(tabId: number, command: unknown): Promise<unknown> {
   const response = z
@@ -86,7 +86,13 @@ async function attach(provider: ProviderId, tabId: number, conversation = false)
     await rpc(tabId, { type: 'snapshot', waitFor: conversation ? 'conversation' : 'composer' }),
   );
   if (snap.provider !== provider) throw new Error('연결한 사이트가 바뀌었습니다.');
-  return { provider, tabId, documentId: snap.documentId, url: snap.url };
+  return {
+    provider,
+    tabId,
+    documentId: snap.documentId,
+    url: snap.url,
+    ...(snap.threadId ? { threadId: snap.threadId } : {}),
+  };
 }
 export async function currentConversation(
   requestAccess?: ProviderId[],
@@ -107,7 +113,28 @@ export async function currentConversation(
   const binding = await attach(provider, tab.id, true);
   return { binding, snapshot: await inspect(binding) };
 }
-export async function preparePeer(provider: ProviderId, saved?: Binding): Promise<Binding> {
+export async function preparePeer(
+  provider: ProviderId,
+  saved?: Binding,
+  threadId?: string,
+  signal?: AbortSignal,
+): Promise<Binding> {
+  if (threadId) {
+    signal?.throwIfAborted();
+    if (provider !== 'claude') throw new Error('Claude 검토 연결이 필요합니다.');
+    if (saved) {
+      if (saved.provider !== 'claude' || saved.threadId !== threadId)
+        throw new Error('Claude 검토 연결이 일치하지 않습니다.');
+      await inspect(saved);
+      return saved;
+    }
+    const tab = await chrome.tabs.create({ url: providers.claude.home, active: false });
+    if (!tab.id) throw new Error('Claude 검토 탭을 열지 못했습니다.');
+    await readyConnectionTab('claude', tab.id, signal);
+    signal?.throwIfAborted();
+    return Binding.parse({ ...(await attach('claude', tab.id)), threadId });
+  }
+  if (saved?.threadId) saved = undefined;
   if (saved) {
     try {
       // Resume preserves the exact document and conversation; reconnect is an explicit action.
@@ -123,10 +150,14 @@ export async function preparePeer(provider: ProviderId, saved?: Binding): Promis
       `${providers[provider].name} 연결 탭이 바뀌었습니다. 연결 화면에서 다시 연결하세요.`,
     );
   }
-  const tabs = await chrome.tabs.query({
-    currentWindow: true,
-    url: `${providers[provider].origin}/*`,
-  });
+  // Unbound Claude homes may own page-local background sessions from earlier runs.
+  const tabs =
+    provider === 'claude'
+      ? []
+      : await chrome.tabs.query({
+          currentWindow: true,
+          url: `${providers[provider].origin}/*`,
+        });
   const blank = tabs.find((tab) => tab.url === providers[provider].home);
   const tab = blank ?? (await chrome.tabs.create({ url: providers[provider].home, active: true }));
   if (!tab.id) throw new Error('AI 탭을 열지 못했습니다.');
@@ -157,6 +188,8 @@ export async function inspect(binding: Binding) {
   const snap = Snapshot.parse(await rpc(binding.tabId, { type: 'snapshot', waitFor: 'composer' }));
   if (snap.provider !== binding.provider || snap.documentId !== binding.documentId)
     throw new Error('페이지가 새로고침되었습니다. 다시 연결하세요.');
+  if (snap.threadId !== undefined && snap.threadId !== binding.threadId)
+    throw new Error('Claude 검토 연결이 바뀌었습니다. 다시 연결해주세요.');
   if (snap.url !== binding.url)
     throw new Error(
       '연결한 대화가 바뀌었습니다. 탭을 확인한 뒤 로그인 완료 · 다시 확인 또는 다시 연결을 눌러주세요.',
@@ -168,19 +201,26 @@ export async function sendAndCollect(
   target: Binding,
   signal: AbortSignal,
   attachments: AttachmentPayload[] = [],
+  approved: Attachment[] = [],
 ): Promise<Collected> {
+  if (
+    target.threadId &&
+    (target.provider !== 'claude' || job.provider !== 'claude' || job.stage === 'synthesize')
+  )
+    throw new Error('Claude 검토 대상이 일치하지 않습니다.');
   if (signal.aborted) throw new Error('중단됨');
   const snap = await inspect(target);
   if (snap.url !== target.url)
     throw new Error('연결한 대화가 변경되었습니다. 자동 전송을 멈췄습니다.');
   if (signal.aborted) throw new Error('중단됨');
   await rpc(target.tabId, {
-    type: 'send',
+    type: target.threadId ? 'sendClaudePeer' : 'send',
     id: job.id,
     documentId: target.documentId,
     url: target.url,
     prompt: job.prompt,
     attachments,
+    ...(target.threadId ? { threadId: target.threadId, stage: job.stage, approved } : {}),
   });
   const end = Date.now() + LIMITS.timeoutMs + 5000;
   while (Date.now() < end) {

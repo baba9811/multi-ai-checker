@@ -1,5 +1,7 @@
 import type { BrowserContext, Page } from '@playwright/test';
 import { providerPage } from './pages';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 export const claudeProbeOrg = '11111111-1111-4111-8111-111111111111';
 export const claudeProbeBootstrap = {
@@ -7,7 +9,14 @@ export const claudeProbeBootstrap = {
   model_selector_config: [
     {
       id: 'chat',
-      models: [{ id: 'claude-sonnet-fixture', name: 'Sonnet fixture', section: 'main' }],
+      models: [
+        {
+          id: 'claude-sonnet-fixture',
+          name: 'Sonnet fixture',
+          section: 'main',
+          capabilities: { mm_images: true },
+        },
+      ],
     },
   ],
   claude_ai_available_models: {
@@ -18,14 +27,39 @@ export const claudeProbeBootstrap = {
 /** Synthetic provider contracts shared by bridge and installed-origin tests. */
 export async function claudeProbeFixture(
   target: Page | BrowserContext,
-  options: { partialTurn?: number; changedReadback?: number } = {},
+  options: { partialTurn?: number; changedReadback?: number; originals?: boolean } = {},
 ) {
   const requests: Array<{ conversation: string; body: Record<string, any> }> = [];
   let saved: Record<string, any> | undefined;
   let readbacks = 0;
+  const uploads: { exactBytes: boolean }[] = [];
+  const imageBytes = options.originals
+    ? await readFile(path.resolve('tests/fixtures/attachments/crosscheck-icon.png'))
+    : undefined;
+  const imageUuid = '88888888-8888-4888-8888-888888888888';
+  const imageReceipt = {
+    success: true,
+    file_kind: 'image',
+    file_uuid: imageUuid,
+    file_name: 'crosscheck-icon.png',
+    size_bytes: imageBytes?.length,
+    preview_asset: { image_width: 128, image_height: 128 },
+  };
   const org = claudeProbeOrg;
   await target.route('https://claude.ai/**', async (route) => {
     const pathname = new URL(route.request().url()).pathname;
+    if (pathname === `/api/${org}/upload`) {
+      const body = route.request().postDataBuffer();
+      const exactBytes =
+        !!imageBytes &&
+        !!body?.includes(imageBytes) &&
+        body.includes(Buffer.from('filename="crosscheck-icon.png"'));
+      uploads.push({ exactBytes });
+      return route.fulfill({
+        status: exactBytes ? 200 : 400,
+        json: exactBytes ? imageReceipt : { type: 'error' },
+      });
+    }
     if (pathname === '/api/organizations')
       return route.fulfill({
         json: [
@@ -74,8 +108,17 @@ export async function claudeProbeFixture(
           text: '',
           content: [{ type: 'text', text: body.prompt }],
           truncated: false,
-          attachments: [],
-          files: [],
+          attachments: (body.attachments ?? []).map(
+            ({ origin: _origin, kind: _kind, ...attachment }: Record<string, unknown>) => ({
+              ...attachment,
+              id: '99999999-9999-4999-8999-999999999999',
+            }),
+          ),
+          files: (body.files ?? []).map((uuid: string) => ({
+            ...imageReceipt,
+            file_uuid: uuid,
+            uuid,
+          })),
           sync_sources: [],
         },
         {
@@ -124,5 +167,5 @@ export async function claudeProbeFixture(
     );
     return route.fulfill({ contentType: 'text/html', body: html });
   });
-  return { requests, posts: () => requests.length, readbacks: () => readbacks };
+  return { requests, posts: () => requests.length, readbacks: () => readbacks, uploads };
 }

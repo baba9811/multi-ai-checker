@@ -1,7 +1,7 @@
 import type { Binding, ProviderId } from '../domains/providers/model';
 import type { Job, Run } from '../domains/crosscheck/model';
 import type { Snapshot, ModelCatalog } from './provider-protocol';
-import type { AttachmentPayload } from '../domains/attachments/model';
+import type { Attachment, AttachmentPayload } from '../domains/attachments/model';
 import type { ClaudeProbeKind, ClaudeProbeRecord } from './claude-probe';
 
 export type Workspace = { run?: Run; bindings: Partial<Record<ProviderId, Binding>> };
@@ -23,13 +23,19 @@ export interface Platform {
   connect(provider: ProviderId): Promise<Binding>;
   refreshConnection?(binding: Binding): Promise<Binding>;
   currentConversation(requestAccess?: ProviderId[]): Promise<Conversation | undefined>;
-  preparePeer(provider: ProviderId, saved?: Binding): Promise<Binding>;
+  preparePeer(
+    provider: ProviderId,
+    saved?: Binding,
+    threadId?: string,
+    signal?: AbortSignal,
+  ): Promise<Binding>;
   inspect(binding: Binding): Promise<Snapshot>;
   sendAndCollect(
     job: Job,
     binding: Binding,
     signal: AbortSignal,
     attachments?: AttachmentPayload[],
+    approved?: Attachment[],
   ): Promise<Collected>;
   models(binding: Binding, key?: string): Promise<ModelCatalog>;
   reveal(binding: Binding): Promise<void>;

@@ -54,19 +54,44 @@ export const Evidence = z.object({
   verdict: z.enum(['supports', 'contradicts', 'unclear']),
 });
 export type Evidence = z.infer<typeof Evidence>;
-export const Run = z.object({
-  version: z.literal(1),
-  id: z.string(),
-  createdAt: z.string(),
-  question: z.string().min(1).max(LIMITS.question),
-  selected: z.array(ProviderId).min(2).max(3),
-  chair: ProviderId,
-  mode: z.enum(['economy', 'thorough']),
-  stage: Stage,
-  jobs: z.array(Job).max(7),
-  evidence: z.array(Evidence).max(LIMITS.evidence),
-  main: Binding.optional(),
-  context: ConversationContext.optional(),
-  attachments: z.array(Attachment).max(ATTACHMENT_LIMITS.count).default([]),
-});
+export const Run = z
+  .object({
+    version: z.literal(1),
+    kind: z.literal('claude-peer').optional(),
+    id: z.string(),
+    createdAt: z.string(),
+    question: z.string().min(1).max(LIMITS.question),
+    selected: z.array(ProviderId).min(2).max(3),
+    chair: ProviderId,
+    mode: z.enum(['economy', 'thorough']),
+    stage: Stage,
+    jobs: z.array(Job).max(7),
+    evidence: z.array(Evidence).max(LIMITS.evidence),
+    main: Binding.optional(),
+    context: ConversationContext.optional(),
+    attachments: z.array(Attachment).max(ATTACHMENT_LIMITS.count).default([]),
+  })
+  .refine(
+    (run) =>
+      run.kind !== 'claude-peer' ||
+      (run.chair !== 'claude' &&
+        run.mode === 'economy' &&
+        run.selected.length === 2 &&
+        new Set(run.selected).size === 2 &&
+        run.selected.includes(run.chair) &&
+        run.selected.includes('claude') &&
+        run.stage !== 'synthesize' &&
+        !!run.main &&
+        run.main.provider === run.chair &&
+        !run.main.threadId &&
+        !!run.context &&
+        run.jobs.every(
+          (job) =>
+            job.stage !== 'synthesize' &&
+            (job.stage === 'collect'
+              ? run.selected.includes(job.provider)
+              : job.provider === 'claude'),
+        )),
+    'Invalid Claude peer review intent.',
+  );
 export type Run = z.infer<typeof Run>;

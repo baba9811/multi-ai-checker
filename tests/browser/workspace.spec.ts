@@ -141,6 +141,31 @@ test('connections loads and changes available web models without sending a quest
   expect(await page.evaluate(() => window.harness.sends)).toHaveLength(0);
 });
 
+test('reconnecting preserves changed local peer ownership even on the same tab and document', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const threadId = crypto.randomUUID();
+  await page.evaluate((id) => {
+    window.harness.reconnectedThread = id;
+  }, threadId);
+  await page.getByRole('button', { name: '연결', exact: true }).click();
+  const card = page
+    .getByRole('article')
+    .filter({ has: page.getByRole('heading', { name: 'Claude', exact: true }) });
+  await card.getByRole('button', { name: '다시 연결', exact: true }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          JSON.parse(sessionStorage.getItem('fixture-workspace') ?? '{}').bindings?.claude
+            ?.threadId,
+      ),
+    )
+    .toBe(threadId);
+  expect(await page.evaluate(() => window.harness.sends)).toHaveLength(0);
+});
+
 test('narrow side panel stays readable and settings are optional', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 });
   await page.goto('/');

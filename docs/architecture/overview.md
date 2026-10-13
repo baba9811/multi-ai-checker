@@ -12,7 +12,7 @@ src/
   application/        자동 파이프라인, Platform 포트, 페이지 명령·응답 스키마
   infrastructure/
     chrome/           Chrome 권한/탭/메시지/세션 저장 구현
-    providers/        사이트별 DOM 선택자와 입력/완료 감지
+    providers/        사이트별 DOM 및 공급자 페이지의 내부 요청/완료 검증
   presentation/
     shell/            사이드패널 상태·내비게이션·디자인 토큰
     crosscheck/       답변 카드
@@ -46,7 +46,7 @@ flowchart TD
 
 `presentation`은 Chrome 구현을 import하지 않고 주입된 `Platform`만 사용합니다. 도메인은 브라우저, React, 인프라를 모릅니다. `tests/unit/architecture/boundaries.test.ts`가 역방향 import, 순환 import, 상위 계층의 직접 `chrome.*` 호출을 검사합니다. 네이티브 UI 기능인 클립보드·다운로드·Web Locks는 화면의 책임입니다.
 
-## 흐름과 장애 처리
+## 기본 DOM 흐름과 장애 처리
 
 1. 시작 클릭으로 선택한 origin 권한을 한 번 요청하고 각 대상 탭의 ISOLATED world에 bridge를 주입합니다. 항상 top frame만 사용합니다.
 2. 메인 대화 가져오기는 페이지에 불러온 완료된 질문·답변 쌍을 순서대로 캡처하고 탭/문서 ID/정확한 URL을 고정합니다. 마지막 메인 답변은 초기 수집에서 재사용하고 이전 턴의 맥락은 모든 단계의 JSON 자료에 포함합니다. 원본의 이전 턴 수정이나 사용자의 추가 대화는 이후 메인 대화 전송을 중단합니다.
@@ -62,6 +62,18 @@ flowchart TD
 Web Locks는 동일 확장의 패널 여러 개가 동시에 컨트롤러가 되는 것을 막습니다. service worker는 패널 열기, 세션 접근 수준 설정, Chrome이 내려받은 업데이트의 버전 안내만 담당하므로 AI 응답이나 업데이트를 기다리느라 강제로 유지하지 않습니다. 업데이트 확인·설치는 Chrome에 맡기며 패널은 수동 안내와 수동 확인 화면 진입만 제공합니다. [업데이트와 저장소 수명](../release/updates.md).
 
 연결 상태 자동 확인과 중단 후 재개는 저장된 탭·문서·정확한 URL을 변경하지 않습니다. 대상이 달라지면 명시적으로 다시 연결해야 하며, 상태 확인만으로 다른 대화에 전송 대상을 옮기지 않습니다.
+
+## 선택적 Claude 원본 검토
+
+`Run.kind: 'claude-peer'`는 현재 렌더된 비-Claude 원본과 선택한 TXT/PNG를 기존 collect/economy review 프롬프트로 보내는 별도 intent입니다. `importedRun`과 `promptFor`를 재사용하고 두 요청에 전체 승인 범위를 유지합니다. 원래 메인 답변은 재사용하며 원본에는 새 요청을 보내지 않습니다. 이 intent는 source+Claude만 허용하고 collect → review에서 끝나므로 복원·수동 답변도 synthesis나 일반 intent로 바꾸지 않습니다. 기본 DOM 파이프라인은 유지합니다.
+
+application은 원본 재검사·저장된 전송 의도·단계와 완전한 파일 manifest를 소유합니다. Chrome 인프라는 비활성 새 Claude 홈·문서/URL·정확한 sidepanel 발신자와 전용 RPC를 소유하고 presentation은 주입된 Platform을 사용합니다. provider의 `claude/session.ts`, `peer.ts`, `originals.ts`는 기존 진단과 계정/모델·SSE·정확한 history 검증을 공유합니다. 서버 대화/메시지/업로드 receipt는 그 페이지 closure에만 있으며 인증값은 읽지 않습니다.
+
+`Binding.threadId`는 확장이 만든 로컬 UUID로 서버 대화 ID가 아닙니다. snapshot → attach/reconnect → 연결 UI의 동등성 검사에서 이를 보존하고, inspect는 소유권 불일치를 거부합니다. 파일 delivery receipt 동등성에도 같은 소유권을 포함합니다. ordinary Claude 준비에서 정상 saved binding은 그대로 검사하지만 unbound인 경우 새 홈을 만들어 이전 예약 peer를 재사용하지 않습니다. 이미 시도한 peer의 페이지/session을 잃으면 대체 대화 할당·DOM fallback·재시도 없이 멈춥니다.
+
+원본은 기존 개수/총크기/해시 경계와 함께 provider에서 UTF-8 TXT 64 KiB 이하·PNG 각 축 4096 이하만 받습니다. TXT는 첫 생성의 inline attachment, PNG는 원본 multipart를 한 번 업로드해 확인한 receipt만 사용합니다. 모든 업로드를 기다리고 첫 human의 정확한 saved-history membership을 확인한 뒤 전달 완료로 기록합니다. review에는 새 바이트가 없어도 전체 승인 manifest가 같아야 하며 첫 history/receipt는 그대로여야 합니다. 이 검증은 로컬 바이트→업로드 receipt→history 참조의 대응이지 서버 바이트 해시의 독립 증명은 아닙니다.
+
+현재 수용 증거와 남은 범위는 [검증 기록](../testing/validation.md), 구현 계약은 [peer 계획](../development/claude-peer-review-plan.md)이 소유합니다. GET과 다음 POST의 검사는 원자적이지 않으므로 최종 readback은 경합을 탐지할 수 있어도 이미 수락된 요청을 되돌리지 않습니다. 임의 기존 메인 이어쓰기는 이 구조의 수용 범위가 아닙니다.
 
 ## 확장 지점
 

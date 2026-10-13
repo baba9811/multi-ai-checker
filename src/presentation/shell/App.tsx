@@ -20,6 +20,7 @@ import { budget, markdown, recoverRun, updateJob } from '../../domains/crosschec
 import {
   executeAutomatic,
   importedRun,
+  importedClaudePeerRun,
   assertSameSource,
 } from '../../application/automatic-workflow';
 import { matchAttachments, prepareAttachments } from '../../application/attachments';
@@ -154,7 +155,7 @@ export function App({ platform }: { platform: Platform }) {
     writer.current = writer.current.then(() => platform.save(value));
     return writer.current;
   }
-  async function start(resume = false) {
+  async function start(resume = false, peer = false) {
     if (
       !owner ||
       operation.current ||
@@ -172,19 +173,24 @@ export function App({ platform }: { platform: Platform }) {
     writer.current = writer.current.catch(() => {});
     try {
       // Keep the permission request in the initiating click before any other asynchronous work.
-      const access = platform.requestAccess?.(resume ? workspace.current.run!.selected : selected);
+      const participants = peer && source ? [source.binding.provider, 'claude' as const] : selected;
+      const access = platform.requestAccess?.(
+        resume ? workspace.current.run!.selected : participants,
+      );
       await access;
       let initial = resume ? workspace.current.run : undefined;
       if (!initial) {
         if (!source) throw new Error('메인 대화를 먼저 선택해주세요.');
-        await platform.reveal(source.binding);
+        if (!peer) await platform.reveal(source.binding);
         if (controller.signal.aborted) throw new Error('자동 검토를 중단했습니다.');
         const active = {
           binding: source.binding,
           snapshot: await platform.inspect(source.binding),
         };
         assertSameSource(source.snapshot, active.snapshot);
-        initial = importedRun(active, selected, mode, files.map(attachmentMetadata));
+        initial = peer
+          ? importedClaudePeerRun(active, files.map(attachmentMetadata))
+          : importedRun(active, selected, mode, files.map(attachmentMetadata));
         setSource(active);
       }
       if (!matchAttachments(initial.attachments, files))
@@ -281,7 +287,10 @@ export function App({ platform }: { platform: Platform }) {
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  const final = run?.jobs.find((job) => job.stage === 'synthesize' && job.status === 'done');
+  const peerRun = run?.kind === 'claude-peer';
+  const final = run?.jobs.find(
+    (job) => job.stage === (peerRun ? 'review' : 'synthesize') && job.status === 'done',
+  );
   const failed =
     run?.jobs.filter((job) => job.status === 'error' || job.status === 'interrupted') ?? [];
   const locked = !ready || !owner || busy || configuring || readingFiles || readingSource;
@@ -553,12 +562,36 @@ export function App({ platform }: { platform: Platform }) {
               <button className="text-button" onClick={() => setTab('connections')}>
                 <Link2 size={13} /> 연결·모델 설정
               </button>
+              {source?.binding.provider !== 'claude' && (
+                <div>
+                  <button
+                    className="secondary full"
+                    disabled={locked || !source || !originalsConfirmed}
+                    onClick={() => void start(false, true)}
+                  >
+                    Claude 백그라운드 검토
+                  </button>
+                  <p className="hint">
+                    탭을 전환하지 않고 가져온 대화·선택한 원본을 Claude에 공유해 2회 검토합니다.
+                    원래 대화에는 새 요청을 보내지 않습니다. TXT(UTF-8 · 64 KB 이하)·PNG(4096×4096
+                    이하)만 지원합니다.
+                  </p>
+                </div>
+              )}
             </details>
           </>
         ) : (
           <>
             <div className="run-top">
-              <h1>{final ? '검토 완료' : busy ? '검토 중' : '검토 멈춤'}</h1>
+              <h1>
+                {final
+                  ? peerRun
+                    ? 'Claude 검토 완료'
+                    : '검토 완료'
+                  : busy
+                    ? '검토 중'
+                    : '검토 멈춤'}
+              </h1>
               <button className="text-button" disabled={locked} onClick={reset}>
                 <RotateCcw size={16} />새 검토
               </button>
@@ -588,7 +621,10 @@ export function App({ platform }: { platform: Platform }) {
             {!final && (
               <>
                 <div className="auto-progress" role="status" aria-live="polite">
-                  {(['collect', 'review', 'synthesize'] as const).map((stage, index) => {
+                  {(peerRun
+                    ? (['collect', 'review'] as const)
+                    : (['collect', 'review', 'synthesize'] as const)
+                  ).map((stage, index) => {
                     const passed = index < ['collect', 'review', 'synthesize'].indexOf(run.stage);
                     const active = run.stage === stage;
                     return (
@@ -638,12 +674,14 @@ export function App({ platform }: { platform: Platform }) {
                     void platform.reveal(run.main!).catch((error) => setNotice(message(error)))
                   }
                 >
-                  원래 대화에서 보기 <ExternalLink size={14} />
+                  {peerRun ? '원래 대화로 돌아가기' : '원래 대화에서 보기'}{' '}
+                  <ExternalLink size={14} />
                 </button>
                 <div className="final-answer">
                   <div className="source-label">
-                    <ProviderLogo provider={run.chair} />
-                    {providers[run.chair].name} · 최종 답변
+                    <ProviderLogo provider={peerRun ? 'claude' : run.chair} />
+                    {providers[peerRun ? 'claude' : run.chair].name} ·{' '}
+                    {peerRun ? '교차 검토' : '최종 답변'}
                   </div>
                   <pre className="answer">{final.answer}</pre>
                 </div>
@@ -657,7 +695,7 @@ export function App({ platform }: { platform: Platform }) {
                     <p>
                       <strong>{providers[job.provider].name}</strong> · {job.error}
                     </p>
-                    {bindings[job.provider] && (
+                    {bindings[job.provider] && !bindings[job.provider]?.threadId && (
                       <button
                         className="text-button"
                         onClick={() =>

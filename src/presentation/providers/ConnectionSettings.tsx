@@ -60,7 +60,8 @@ export function ConnectionSettings({
         !saved ||
         binding.documentId !== saved.documentId ||
         binding.url !== saved.url ||
-        binding.tabId !== saved.tabId
+        binding.tabId !== saved.tabId ||
+        binding.threadId !== saved.threadId
       ) {
         onBinding(id, binding);
         setCatalogs((old) => ({ ...old, [id]: undefined }));

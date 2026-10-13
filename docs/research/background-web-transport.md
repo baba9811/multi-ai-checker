@@ -2,7 +2,9 @@
 
 조사일: 2026-10-12–13 KST. 기준 `9c7893b`에서 분리한 `codex/background-web-transport` 작업이며 기존 미커밋 문서는 보존했습니다. 사용자는 **기존 ChatGPT·Claude·Gemini 웹 로그인과 구독만 사용**하는 조건을 선택했습니다. 별도 유료 개발자 API나 OpenRouter를 기본 연결로 바꾸지 않습니다.
 
-**현재 Task 8의 첫 실제 합성 문맥·후속 응답 시험이 성공했습니다.** 2026-10-13 같은 production 경로를 새로고침한 Aside native 사이드패널에서 `CROSSCHECK_CONTEXT_OK/47`과 `47/CROSSCHECK_CONTEXT_OK`를 함께 수집했습니다. 기존 활성 탭 유지·Chrome이 새로 만든 Claude 홈 탭 비활성도 확인했습니다. 제품의 정확히 두 POST와 같은 새 대화의 엄격한 네 메시지 readback을 통과한 증거이며 수동 POST·어댑터 주입으로 대체하지 않았습니다. 단위 219개·타입·빌드, 관련 합성 14개·설치 7개와 live 뒤 같은 제품 소스의 전체 브라우저 회귀 130개를 통과했습니다. 기존 한 요청 시험·기본 DOM 검토는 유지하며 임의 기존 문맥·파일·메인 최종 반환·다른 공급자 내부 호출은 미해결입니다.
+**현재 Task 9의 렌더된 원본·TXT/PNG Claude collect/review 수용은 완료했습니다.** 최종 artifact/native panel에서 비민감 ChatGPT의 파일이 있는 실제 세 Q/A와 다시 선택한 두 원본을 공유해 같은 Claude 대화의 두 답변을 수집했고 원본/foreground를 유지했습니다. 이전 텍스트 두 Q/A 시험은 마지막 ownership 수정 전의 별도 증거입니다. 기본 DOM 전체 workflow는 그대로이고 원래 메인에 새 요청을 보내지 않습니다. 현재 공개 0.4.0과 이 로컬 실험의 소스는 구분합니다.
+
+**이전 Task 8의 고정 합성 문맥 성공은 별도 기록입니다.** native 두 예상 답변·비활성 새 탭, 219 단위·전체 합성 130·설치 7은 당시 artifact의 결과입니다. 현재 실제 원본과 파일 수용을 증명하지 않습니다. 기존 진단은 유지하며 인증값 읽기·개발자 API/서버·MAIN-world 제품 경로는 없습니다.
 
 **이전 Task 7 빌드의 성공은 별도 역사입니다.** 2026-10-12 실제 설치/native 패널의 23번째 시험에서 `CROSSCHECK_OK`, 기존 활성 탭 유지·새 탭 비활성을 확인했습니다. 이 한 요청 증거를 현재 두 요청 성공으로 쓰지 않습니다. 기존 웹 로그인·구독만 사용하고 인증값 읽기·개발자 API·서버·MAIN-world 제품 경로는 없습니다. 공개 스토어 0.4.0의 상세 페이지·설치 제공·두 검색어 노출은 2026-10-13 별도 확인했으며 로컬 실험 브랜치는 미배포입니다. [출시 기록](../release/release-checklist.md).
 
@@ -30,14 +32,44 @@ Chrome은 콘텐츠 스크립트 요청이 주입된 페이지의 origin에서 �
 | 서비스  | 확인한 공개 구현                                                                                                                                                                                                                                                               | 아직 확인하지 못한 것                                                                                         |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | ChatGPT | ChatHub 공개 ref `a7a2bd6`는 `/api/auth/session`의 access token을 읽고 backend 호출·모델·파일 초기화에 Bearer 헤더를 사용. 브라우저 프록시도 인증 헤더를 확장 메시지로 전달. ChatGPTBox `df8ef92`도 Bearer를 사용. 조사한 생성 클라이언트의 자체 Sentinel 계산은 채택하지 않음 | 인증값을 페이지 밖으로 전달하지 않고 서비스 보호 검사를 우회하지 않는 현재 생성 경로, 파일·원래 대화 이어쓰기 |
-| Claude  | bootstrap 선택 상태/닫힌 모델 표시와 서버 응답 readback 대응을 구현. 선택적 합성 문맥/후속 진단의 두 예상 답변을 실제 native 패널에서 수집하고 활성 탭 유지 확인                                                                                                               | 고정 합성 두 Q/A 쌍과 그 새 대화의 후속 한 번만. TXT/PNG·임의 기존 문맥·원래 대화 반환은 미검증               |
+| Claude  | 실제 렌더 원본 세 Q/A·TXT/PNG의 collect/review를 최종 native 설치에서 수집. 엄격한 stream/동일 대화 history·파일 receipt 검증, 원본/foreground 유지                                                                                                                            | 현재 지원 원본은 bounded UTF-8 TXT/PNG. 기존 메인 HTTP 이어쓰기/최종 반환·다른 공급자 전환은 미검증           |
 | Gemini  | 공개 웹 클라이언트는 StreamGenerate/batchexecute, 페이지별 요청 값과 별도 업로드를 사용. Gemini-API `1ad0d4a`는 최근 유지보수된 Python 구현                                                                                                                                    | 쿠키 추출 없이 현재 브라우저 문맥에서 작동하는지, 페이지 요청 값·첨부·RPC 완료를 안전하게 확인할 수 있는지    |
 
 근거: [ChatHub ChatGPT client](https://github.com/chathub-dev/chathub/blob/a7a2bd6e12050d6a39fcaf30868bdfd7ccf78f22/src/app/bots/chatgpt-webapp/client.ts), [ChatHub proxy](https://github.com/chathub-dev/chathub/blob/a7a2bd6e12050d6a39fcaf30868bdfd7ccf78f22/src/services/proxy-fetch.ts), [ChatGPTBox](https://github.com/ChatGPTBox-dev/chatGPTBox/blob/df8ef92c7495c5dde1f256216d1608e87d099cf6/src/services/apis/chatgpt-web.mjs), [Claude 사용량 확장 조사](https://github.com/dineshkruplani/Claude-Usage-Badge-Extension/blob/main/docs/PHASE1-FINDINGS.md), [Gemini-API](https://github.com/HanaokaYuzu/Gemini-API/blob/1ad0d4a93e505e77c79769d78ef2997641f973c8/README.md).
 
 ChatHub 공개 소스에는 Claude 2.1과 예전 Bard 도메인도 남아 있어 현재 호환성의 근거로 쓸 수 없습니다. Gemini-API의 쿠키 복사·브라우저 쿠키 추출·캐시 구현을 가져오지 않습니다. ChatALL도 웹 연동의 잦은 고장을 경고하며, Electron의 web security/SameSite 변경은 이 확장에 채택하지 않습니다. 라이선스가 다른 구현을 복사하지 않고 동작 구조만 참고합니다. [ChatALL 경고](https://github.com/ai-shifu/ChatALL#note-on-web-connected-bot-reliability).
 
-## 구현한 Claude 시험의 범위
+## 현재 Task 9: 승인된 원본의 Claude 검토
+
+명시적 **Claude 백그라운드 검토**는 불러온 비-Claude 원본과 선택한 UTF-8 TXT/PNG를 기존 collect·economy review 프롬프트로 공유합니다. 원래 답변을 재사용하고 두 프롬프트에 전체 캡처 scope와 full approved manifest를 유지합니다. `claude-peer` intent는 source+Claude 두 참여자·collect/review만 허용하며 main synthesis에 진입하지 않습니다. 새 비활성 소유 홈에서 두 답변을 패널에 반환하고 원래 메인에는 전송하지 않습니다.
+
+TXT 각 64 KiB 이하·BOM/NUL/변환 없는 UTF-8, PNG 각 축 4096 이하/native decode·현재 이미지 capability, 기존 10개/총 20 MiB와 바이트/해시를 확인한 원본만 허용합니다. TXT는 최초 생성의 inline attachment이고 PNG는 checked original multipart를 한 번 업로드해 성공 receipt를 기다립니다. 최초 human history의 exact file membership 뒤에만 전달 완료로 인정하고 후속 review에서도 전체 manifest·같은 first pair/receipt가 유지돼야 합니다. unsupported contract·추가/누락/중복/변경된 원본은 자동 fallback 없이 거부합니다.
+
+`claude/session.ts`가 기존 진단과 모델/request/SSE/authoritative history 검사를 공유하고 `peer.ts`/`originals.ts`가 bounded stages와 원본을 소유합니다. server conversation/message/model/receipt refs는 페이지 closure에만 둡니다. binding/snapshot의 `threadId`는 extension-local UUID이며 reconnect·UI equality·delivery receipt에 보존합니다. ordinary unbound Claude는 예약 peer를 재사용하지 않고 fresh home을 만들며 명시적 정상 saved binding은 정확히 유지합니다. 소유 session loss·문서/URL/모델/원본 변경·cancel·uncertain send에는 대체 할당/DOM fallback/retry가 없습니다.
+
+### 파일 protocol의 증거
+
+credential-omitted 공개 JS는 작은 TXT의 `{file_name,file_type,file_size,extracted_content,origin:'user_upload',kind:'file'}`, PNG의 같은-origin `/api/${org}/upload` multipart `file`, 완료 receipt의 UUID-only `files` projection을 확인했습니다. [upload handler](https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/shared-m-2-CMVAQFi7.js), [enum/UUID projection](https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/shared-l-p-m-1--E6c7YGn.js), [completion body](https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/shared-1-DT-Mq-A-.js), [최종 serialization](https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/shared-0-Dsui6SsB.js).
+
+이 outbound 형식은 saved-history schema를 증명하지 않습니다. 별도 소유한 합성 TXT/PNG를 일반 서비스 UI로 처리한 정제 history가 first-human TXT의 생성 identity/이름/타입/크기/내용과 PNG의 성공 image·`uuid === file_uuid`·원본 이름 및 관찰된 metadata를 확인했습니다. draft restoration validator, preview URL, 파일명이나 답변 인식을 history 검증으로 대신하지 않습니다. volatile URL/timestamp와 비동기 size 필드 등장 자체는 first-pair snapshot에서 제외하지만 나타난 size/dimension의 모순은 계속 거부합니다.
+
+증명은 local checked bytes→awaited successful receipt→exact saved-history refs이며 서버 바이트 SHA-256을 독립 확인하지 않습니다. 선택 범위 안의 JSON escaping을 감당하도록 peer history GET만 최대 8 MiB이며 진단/account/bootstrap/upload JSON과 SSE는 기존 1 MiB를 유지합니다. 전체 approved prompts/answers의 기존 100,000/14,000 문자 한도도 유지합니다. 모든 타입·크기·hash 검사는 업로드/생성 전이며 TXT conversion·PNG resizing·alternate upload·silent omission은 없습니다.
+
+### Task 9 최종 checkpoint — 2026-10-13
+
+최종 ownership 수정 후 304 단위·타입·빌드, 전체 합성132개/2.8분·installed-origin9개/20.0초를 통과했습니다. 독립 whole-change review가 발견한 reconnect P2는 snapshot/attach/inspect·UI equality의 red 회귀와 수정 재리뷰로 해결했습니다. fixture의 pregrant·allocation shim·일반 extension-origin panel은 실제 native 수용과 구분합니다. 최종 native 파일 시험은 실제 세 Q/A·TXT/PNG의 두 Claude 답변을 엄격한 완료/history 검사 뒤 수집했습니다. [최신 검증 기록](../testing/validation.md).
+
+두 native 시험 모두 실제 reloaded production panel에서 수행했습니다. source/foreground 유지와 peer 홈 비활성을 확인했고 수동 provider POST/injection은 없었습니다. 최종 파일 시험 뒤 소유한 Claude 홈·연구 탭만 정리하고 원래 source/완료 panel을 유지했으며 REPL 종료와 native helper 부재를 새로 확인했습니다. GET→POST는 원자적이지 않아 final history가 경합을 탐지해도 이미 수락된 요청/업로드를 되돌리지 못합니다. 원래 메인 새 요청·HTTP append·full migration·다른 공급자 background transport는 미검증이며 이 로컬 실험은 스토어에 업로드/제출하지 않았습니다.
+
+## 다음 Gemini 검증의 범위 — 2026-10-13 공개 소스 조사
+
+Gemini의 기존 DOM 회귀 통과는 background 생성의 증거가 아닙니다. 공개 [Gemini-API generation 구현](https://github.com/HanaokaYuzu/Gemini-API/blob/1ad0d4a93e505e77c79769d78ef2997641f973c8/src/gemini_webapi/client.py#L1468)은 nested JSON/form 요청과 framed JSON 응답을 사용하며 Claude의 SSE·UUID/parent 검증을 그대로 재사용할 수 없습니다. 계정 RPC의 모델 후보와 실제 선택 UI의 고유 대응, 정확한 conversation/response/candidate 및 raw history 완료 계약을 먼저 확인해야 합니다. 공개 Python의 cookie 추출·rotation·TLS impersonation·proxy·자동 retry/recovery는 채택하지 않습니다. 필요한 인증 처리는 허가된 product provider-page 메모리에만 한정하고 개발 도구로 실제 값을 읽거나 돌려주지 않습니다.
+
+[파일 업로드 구현](https://github.com/HanaokaYuzu/Gemini-API/blob/1ad0d4a93e505e77c79769d78ef2997641f973c8/src/gemini_webapi/utils/upload_file.py#L73)은 다른 origin의 Google upload endpoint를 사용합니다. 현재 browser CORS·헤더·receipt·saved-file identity는 미검증이며 이를 맞추려고 worker token proxy나 광범위한 권한을 추가하지 않습니다. [Google의 파일 안내](https://support.google.com/gemini/answer/14903178?hl=en)는 계정별 파일 지원을 설명하지만 내부 전송 계약은 제공하지 않습니다. 이 독립 공개 클라이언트는 공식 지원 계약이 아니며 현재 계정의 사용 가능 모델·구독·쿼타를 증명하지 않습니다.
+
+다음 최소 milestone은 실제 public web client 계약을 확인한 뒤 새 비활성 Gemini 탭에서 고정된 비민감 텍스트 한 요청을 보내는 별도 진단입니다. 의도 선저장, 모델/페이지/중단 가드, bounded framing과 정확한 단일 대화 readback, credential-free RPC/storage/diagnostics, 재전송 없음부터 unit → 합성 → 설치 → 실제 native로 각각 입증합니다. 그 뒤 같은 대화 후속 요청과 원본 파일을 별도로 검증합니다. 이 조사에서는 제품 구현·로그인된 Gemini 요청·파일 업로드를 실행하지 않았습니다.
+
+## 이전 고정 Claude 시험의 범위
 
 연결의 접힌 진단에서 기존 **백그라운드 연결 시험**은 `Reply with CROSSCHECK_OK only.` 한 요청을 보냅니다. 선택적 **문맥·후속 응답 시험**은 고정 합성 질문·답변 두 쌍을 첫 요청으로 전달한 뒤 같은 새 테스트 대화에서 한 번의 후속 요청을 합니다. 정상 완료는 정확히 두 POST입니다. 두 동작은 비활성 새 Claude 홈 탭을 만들고 `reveal()`을 호출하지 않으며 브라우저가 같은-origin 요청에 쿠키를 부착합니다. 한 요청의 native 23은 이전 빌드 증거이고 현재 두 요청은 별도 첫 native 시험에서 완료까지 확인했습니다.
 
@@ -54,7 +86,7 @@ Claude 요청 구조는 [OmniRoute payload](https://github.com/diegosouzapw/Omni
 
 조직의 API 전용·채팅 구분은 [Claude Usage Badge의 공급자 구현](https://github.com/dineshkruplani/Claude-Usage-Badge-Extension/blob/7b4262c9faff033a23791b41a483fa621a06701d/src/providers/claude-web.ts#L101-L104)과 [직접 조사 기록](https://github.com/dineshkruplani/Claude-Usage-Badge-Extension/blob/7b4262c9faff033a23791b41a483fa621a06701d/docs/PHASE1-FINDINGS.md#L78-L94)을 참고했습니다. `chat` capability의 유일성만 사용하며 첫 조직 선택·플랜 추정·계정 로깅은 채택하지 않습니다.
 
-### 현재 Task 8의 검증 기록 — 2026-10-13
+### 이전 Task 8의 검증 기록 — 2026-10-13
 
 | 증거           | 확인한 범위                                                                                                        | 상태                                                                                                                                                                                  |
 | -------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -6,9 +6,11 @@ import path from 'node:path';
 export const test = base.extend<{
   extension: { context: BrowserContext; panel: Page; id: string };
   syntheticClaudePermission: boolean;
+  syntheticPeerPermissions: boolean;
 }>({
   syntheticClaudePermission: [false, { option: true }],
-  extension: async ({ syntheticClaudePermission }, use) => {
+  syntheticPeerPermissions: [false, { option: true }],
+  extension: async ({ syntheticClaudePermission, syntheticPeerPermissions }, use) => {
     // Respect managed browser policy. Do not disable it or quietly skip this suite.
     if (process.env.CHROMIUM_PATH === '/usr/bin/chromium' || !process.env.CHROMIUM_PATH) {
       const policy = await readFile('/etc/chromium/policies/managed/extensions.json', 'utf8').catch(
@@ -23,7 +25,7 @@ export const test = base.extend<{
     let context: BrowserContext | undefined;
     try {
       let extensionPath = path.resolve('.output/chrome-mv3');
-      if (syntheticClaudePermission) {
+      if (syntheticClaudePermission || syntheticPeerPermissions) {
         // Tests activation after a grant, not the browser's interactive permission prompt.
         // Only this disposable copy changes; production artifacts and policy stay untouched.
         const copy = path.join(temporaryRoot, 'extension');
@@ -31,9 +33,11 @@ export const test = base.extend<{
         extensionPath = copy;
         const manifestPath = path.join(copy, 'manifest.json');
         const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
-        manifest.host_permissions = ['https://claude.ai/*'];
+        manifest.host_permissions = syntheticPeerPermissions
+          ? ['https://claude.ai/*', 'https://chatgpt.com/*']
+          : ['https://claude.ai/*'];
         manifest.optional_host_permissions = manifest.optional_host_permissions.filter(
-          (origin: string) => origin !== 'https://claude.ai/*',
+          (origin: string) => !manifest.host_permissions.includes(origin),
         );
         await writeFile(manifestPath, JSON.stringify(manifest));
       }

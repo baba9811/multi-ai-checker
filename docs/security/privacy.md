@@ -12,15 +12,27 @@
 
 쿠키·비밀번호·로그인 토큰을 조회하지 않습니다. 확장 백엔드, telemetry, 별도 개발자 API, remote code, web-accessible resource, `postMessage` 명령 채널이 없습니다. 확장 화면의 CSP는 외부 네트워크와 실행 코드를 막으며, 공급자 페이지에서 실행되는 bridge의 같은-origin 요청과는 구분합니다. 연결을 해제하면 해당 origin 권한을 제거합니다.
 
-MAIN-world에서 모델 메뉴를 활성화하는 Task 5는 폐기했고 제품 파일·명령·포트를 제거했습니다. 시험은 메뉴 자체를 열지 않고 ISOLATED bridge가 닫힌 소유 버튼의 고유 모델 표시와 같은-origin 계정 상태를 검증합니다. MAIN-world 제품 경로나 임의 코드/이벤트 대리 실행은 없습니다. 이전 Task 7의 한 요청 성공과 별도로 2026-10-13 실제 Aside native 패널에서 Task 8의 두 예상 답변 수집·기존 활성 탭 유지·새 Claude 탭 비활성을 확인했습니다. 고정 합성 두 Q/A 쌍과 그 새 대화의 후속 한 번만 검증한 결과입니다.
+MAIN-world에서 모델 메뉴를 활성화하는 Task 5는 폐기했고 제품 파일·명령·포트를 제거했습니다. 명시적 Claude 내부 요청은 ISOLATED bridge가 닫힌 모델 표시와 계정 상태를 검증하는 경로입니다. MAIN-world 제품 경로나 임의 요청 proxy는 없습니다. 이전 한 요청/고정 합성 문맥 진단과 현재 렌더된 원본 검토는 서로 다른 milestone입니다. 최종 Task 9 artifact는 실제 native panel의 세 Q/A·TXT/PNG collect/review 수용을 마쳤으며 artifact별 근거는 [검증 기록](../testing/validation.md)이 소유합니다.
 
 선택한 서비스에는 패널에서 공유 범위를 확인한 여러 턴의 질문과 답변·검토·근거 및 직접 선택한 원본 첨부파일을 보냅니다. 해당 서비스는 자신의 로그인 쿠키와 기존 대화 맥락을 사용하며, 그 서비스의 데이터 처리 정책이 적용됩니다. 확장은 서비스의 보관·학습 설정을 변경하지 않습니다.
 
 첨부 원본은 열린 패널의 메모리와 전송 대상 탭의 일시적인 업로드 처리에만 사용하며 저장소에 기록하지 않습니다. 세션에는 파일 이름·크기·형식·SHA-256 확인값을 보관합니다. 기존 대화의 파일 원본이나 썸네일을 자동 수집하지 않습니다. 패널을 닫거나 새로고침한 뒤 계속하려면 같은 원본을 다시 선택해야 합니다. 전송 경계에서 개수·합계 크기·인코딩을 검사하고, 업로드 전에 원본 해시를 검증합니다. 파일 업로드 자체로 대상 AI 서비스에 데이터가 전달되므로 전송이 실패해도 업로드된 파일은 해당 서비스에 남을 수 있습니다.
 
+## 선택적 Claude 원본 검토
+
+**Claude 백그라운드 검토**는 불러온 현재 렌더된 비-Claude 대화와 직접 고른 TXT/PNG 원본을 collect·economy review의 두 Claude 요청에 공유하는 별도 동작입니다. 원래 메인 답변을 재사용하고 두 프롬프트에 모든 승인된 캡처 내용·파일 metadata를 유지하며 원래 메인에는 새 요청이나 synthesis를 보내지 않습니다. 기본 전체 DOM 동작은 바꾸지 않습니다. `Run.kind: 'claude-peer'`와 각 sending job을 먼저 저장하며 복원 때도 이 intent를 일반 실행/메인 전송으로 바꾸지 않습니다.
+
+원본은 전체 승인 manifest·실제 크기·SHA-256을 확인한 뒤 전송합니다. 이 경로는 UTF-8 TXT 각 64 KiB 이하(변환/BOM/NUL 없이), PNG 각 축 4096 이하의 원본만 지원하고 기존 10개·총 20 MiB 한도를 유지합니다. 형식 밖·누락·변경된 원본은 업로드/생성 전에 거부합니다. TXT는 첫 요청의 정확한 inline attachment이며 PNG는 native 디코딩·현재 모델 이미지 capability를 확인하고 같은-origin multipart로 원본을 한 번만 업로드합니다. 모든 success/image receipt를 기다리고 첫 human saved-history에 정확한 TXT 내용/metadata와 PNG receipt가 들어간 것을 확인해야 전달 완료입니다. review에 새 바이트가 없어도 전체 manifest가 같아야 하고 첫 원본/receipt history가 그대로여야 합니다.
+
+서버 organization/model/conversation/message IDs, upload receipts와 검증한 history는 provider 페이지 closure에만 존재합니다. 쿠키/토큰 값은 읽지 않고 브라우저가 같은-origin 쿠키를 부착합니다. 확장이 만든 로컬 UUID `threadId`만 binding/snapshot/session receipt 동등성에 사용하며 backend 대화 ID가 아닙니다. 재연결·UI binding 갱신에서 소유권을 보존하고 불일치를 거부합니다. 정상 saved Claude 연결은 정확히 검사하며 unbound ordinary Claude는 예약 peer를 재사용하지 않고 새 홈을 만듭니다. 시도된 peer가 reload·문서/URL 변경·중단·heartbeat 상실로 session을 잃으면 새 대화 할당·DOM fallback·자동 retry 없이 멈춥니다.
+
+peer의 질문·검증된 두 답변·파일 metadata는 기존 Workspace의 Chrome 세션 수명 안에 저장하고 파일 바이트·backend 참조·인증값은 저장하지 않습니다. 아래 진단의 `{ id, status, kind? }` 기록과는 다릅니다. 원본 캡처는 매 요청 전 다시 일치해야 하며 same-conversation exact prompt/answer·sender/parent/leaf·모델·full file membership·잘림 없음·정상 완료를 확인합니다. peer history GET만 최대 8 MiB로 제한하고 진단/계정/업로드 JSON·SSE의 기존 1 MiB와 prompt 100,000/answer 14,000 문자 한도는 유지합니다. 데이터 경계와 현재 결과는 [아키텍처](../architecture/overview.md), [검증](../testing/validation.md)이 소유합니다.
+
+파일 증명은 확인한 로컬 바이트→업로드 receipt→정확한 history 참조의 연결입니다. 서버 바이트 해시를 독립 확인한 것은 아니고 signed preview URL을 가져오지 않습니다. 업로드가 수락되면 불확실한 생성/중단 뒤에도 파일은 Claude에 남을 수 있습니다. GET→POST는 원자적이지 않아 최종 history로 원격 변경을 탐지해도 이미 수락된 요청을 취소하지 못합니다. 임의 기존 메인 대화 이어쓰기와 다른 공급자 전환은 별도 미검증입니다.
+
 ## 실험용 Claude 연결 시험
 
-이 개발 브랜치는 명시적인 **백그라운드 연결 시험**과 선택적인 **문맥·후속 응답 시험**에만 Claude 내부 HTTP 경로를 사용합니다. 비활성 새 탭의 ISOLATED bridge가 `credentials: 'same-origin'`으로 요청하므로 브라우저가 인증 쿠키를 부착하며 JavaScript로 쿠키·토큰을 읽지 않습니다. 조직·모델·대화·메시지 참조는 공급자 페이지의 일시적인 메모리 안에서만 처리하고, 확장 메시지·저장소·진단·개발자 서버로 보내지 않습니다. 기존 origin 권한을 사용하며 쿠키 조회 권한을 추가하지 않습니다.
+기존 **백그라운드 연결 시험**과 선택적인 **문맥·후속 응답 시험**도 그대로 유지합니다. 비활성 새 탭의 ISOLATED bridge가 `credentials: 'same-origin'`으로 요청하므로 브라우저가 인증 쿠키를 부착하며 JavaScript로 쿠키·토큰을 읽지 않습니다. 조직·모델·대화·메시지 참조는 공급자 페이지의 일시적인 메모리 안에서만 처리하고, 확장 메시지·저장소·진단·개발자 서버로 보내지 않습니다. 기존 origin 권한을 사용하며 쿠키 조회 권한을 추가하지 않습니다.
 
 기존 시험은 고정된 비민감 문장 한 번과 빈 첨부 목록을 보냅니다. 선택적 문맥 진단은 공개된 합성 질문·답변 두 쌍을 첫 요청에 담고, 같은 새 테스트 대화에 원본이나 예상 답변을 포함하지 않는 고정 후속 질문을 한 번 보냅니다. 정상 완료는 정확히 두 POST이며 첫 검증 실패 시 후속 요청 없이 멈춥니다. 개인 대화·원본 파일을 가져오거나 임의 기존 대화에 이어쓰지 않습니다.
 
@@ -47,10 +59,10 @@ MAIN-world에서 모델 메뉴를 활성화하는 Task 5는 폐기했고 제품 
 
 Chrome `storage.session`의 검토 기록·연결 참조는 브라우저 재시작뿐 아니라 확장 비활성화·새로고침·업데이트 때도 사라집니다. 필요한 검토는 업데이트 전에 **기록 저장**으로 내려받습니다. 확장 화면의 새 검토는 질문·답변·근거를 지우고 탭 연결은 유지하며, 각 연결 카드에서 따로 권한을 해제할 수 있습니다. 이미 AI 사이트에 보낸 대화와 내보낸 파일은 별도로 삭제해야 합니다. 진단 내보내기에는 질문·답변·URL·계정값을 넣지 않습니다. [Chrome 세션 저장소 수명](https://developer.chrome.com/docs/extensions/reference/api/storage#property-session).
 
-실험의 상태 기록에도 같은 저장소 수명이 적용됩니다. 공개 0.4.0의 상세 페이지·설치 제공·두 검색어 노출은 2026-10-13 확인했지만 현재 문맥 진단을 담은 로컬 브랜치는 스토어에 배포하지 않았습니다. [출시 기록](../release/release-checklist.md). 이 문서는 개발 브랜치의 데이터 흐름이며 공개 개인정보처리방침을 변경했다는 뜻이 아닙니다. 기능 배포 전 해당 공개 문서·등록정보를 실제 패키지에 맞춰 다시 검토해야 합니다.
+실험의 상태 기록에도 같은 저장소 수명이 적용됩니다. 공개 0.4.0의 상세 페이지·설치 제공·두 검색어 노출은 2026-10-13 확인했지만 현재 진단/peer 검토를 담은 로컬 브랜치는 스토어에 배포하지 않았습니다. [출시 기록](../release/release-checklist.md). 이 문서는 개발 브랜치의 데이터 흐름이며 공개 개인정보처리방침을 변경했다는 뜻이 아닙니다. 기능 배포 전 해당 공개 문서·등록정보를 실제 패키지에 맞춰 다시 검토해야 합니다.
 
 ## 잔여 위험
 
 실제 사이트의 UI/언어/실험군에 따라 선택자가 달라질 수 있습니다. 내부 HTTP 경로도 문서화된 호환성 계약이 아니며 계정별 모델·응답 형식 변경으로 시험이 실패할 수 있습니다. 문맥 진단의 GET과 다음 POST는 원자적이지 않아 그 사이의 원격 변경을 최종 readback으로 탐지할 수 있어도 전송 자체를 모두 예방하지는 못합니다. 새 비민감 테스트 대화에만 적용하며 임의 기존 메인 대화의 안전한 이어쓰기 근거로 사용하지 않습니다.
 
-현재 단위 219개·타입·빌드, 관련 합성 14개·설치 7개와 별도 실제 native 문맥 시험은 통과했습니다. 2026-10-13 live 뒤 같은 제품 소스의 전체 130개 브라우저 회귀도 exit 0·3.1분으로 통과했습니다. 설치 문맥 case의 미리 등록한 합성 탭·test-only 생성 shim·권한 미리 허용·extension-origin 일반 탭은 실제 비활성 생성·권한 prompt·native side panel의 증거가 아닙니다. 실제 native 완료는 별도 제품 경로로 확인했고 임의 기존 대화 가져오기·파일·다른 공급자·메인 이어쓰기는 미검증입니다. 초기 fixture의 Cloudflare challenge는 우회하지 않고 실패 증거를 보존했으며 production/test-only 독립 재리뷰에는 중요한 결함이 없습니다. 소유 테스트 탭은 완료 뒤 닫았습니다. 이전 REPL은 사용자 입력 전환으로 끝났고 남은 REPL 프로세스가 없음을 확인했으며 조사 agent 탭은 native 시험 전에 이미 없어졌습니다. 허가된 native helper 종료도 새 프로세스 관찰로 확인했고 개인 사용자 탭은 변경하지 않았습니다. 검증 fixture는 실서비스의 정확한 복제가 아닙니다. 출처가 모델의 허구일 수 있으며 합의율을 진실 확률로 제공하지 않습니다. 최신 서비스 약관과 스토어 정책 검토, 실계정 E2E는 출시 조건입니다.
+이전 Task 8의 고정 문맥 진단은 단위 219·전체 합성 130·설치 7 및 native 성공 기록입니다. Task 9의 첫 299/type/build·전체 합성 131·설치 8과 실제 렌더된 원본의 텍스트 두 답변 성공은 최종 reconnect ownership 수정 전 artifact입니다. 최종 수정 뒤 304/type/build·전체 합성132·설치9와 실제 native 세 Q/A·TXT/PNG 두 Claude 답변 수용을 확인했습니다. source/foreground를 유지하고 소유 테스트 탭·helper 종료를 새로 확인했습니다. permission pregrant·allocation shim·extension-origin panel fixture는 실제 native sidepanel/file 수용을 대신하지 않습니다. source와 history schema를 확인해도 계정/모델별 실제 지원을 보장하지 않으며 [최신 결과](../testing/validation.md)를 따릅니다. 출처가 모델의 허구일 수 있으며 합의율을 진실 확률로 제공하지 않습니다. 최신 서비스 약관과 스토어 정책 검토, 해당 실제 E2E는 출시 조건입니다.

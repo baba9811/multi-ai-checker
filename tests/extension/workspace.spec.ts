@@ -2,6 +2,7 @@ import { test, expect } from './extension';
 import { createRun } from '../../src/domains/crosscheck/workflow';
 import { providerPage } from '../fixtures/providers/pages';
 import { claudeProbeFixture } from '../fixtures/providers/claude-probe';
+import path from 'node:path';
 
 test('production panel starts without permissions or manual stage controls', async ({
   extension,
@@ -253,4 +254,86 @@ test.describe('synthetic Claude permission already granted', () => {
     ).toEqual(activeBefore);
     expect(await other.evaluate(() => document.hasFocus())).toBe(true);
   });
+});
+
+test.describe('synthetic imported-source peer permissions already granted', () => {
+  test.use({ syntheticPeerPermissions: true });
+  for (const originals of [false, true])
+    test(`installed panel imports fixture turns ${originals ? 'with TXT and PNG' : 'without originals'} and collects peer review without main send or focus change`, async ({
+      extension,
+    }) => {
+      const { context, panel } = extension;
+      const fixture = await claudeProbeFixture(context, { originals });
+      const claude = await context.newPage();
+      await claude.goto('https://claude.ai/new');
+      const ids = await panel.evaluate(async () =>
+        (await chrome.tabs.query({ url: 'https://claude.ai/new' })).map((t) => t.id!),
+      );
+      expect(ids).toHaveLength(1);
+      await panel.evaluate((tabId) => {
+        chrome.tabs.create = (async (options: chrome.tabs.CreateProperties) => {
+          if (options.url !== 'https://claude.ai/new' || options.active !== false)
+            throw new Error('Unexpected fixture allocation');
+          return chrome.tabs.get(tabId);
+        }) as typeof chrome.tabs.create;
+      }, ids[0]!);
+      const main = await context.newPage();
+      await main.route('https://chatgpt.com/**', (route) =>
+        route.fulfill({ contentType: 'text/html', body: providerPage('chatgpt') }),
+      );
+      await main.goto('https://chatgpt.com/c/synthetic-peer-source');
+      await main.bringToFront();
+      await expect(panel.locator('.source-preview')).toContainText('공유할 대화 전체 보기');
+      if (originals)
+        await panel
+          .getByLabel('원본 파일 선택')
+          .setInputFiles([
+            path.resolve('tests/fixtures/attachments/crosscheck-facts.txt'),
+            path.resolve('tests/fixtures/attachments/crosscheck-icon.png'),
+          ]);
+      await panel
+        .getByRole('checkbox', {
+          name: originals
+            ? '원래 대화의 파일·이미지를 모두 선택했습니다'
+            : '원래 대화에 첨부파일이 없습니다',
+        })
+        .check();
+      await panel.getByText('검토 설정', { exact: true }).click();
+      const activeBefore = await panel.evaluate(async () =>
+        (await chrome.tabs.query({ active: true, currentWindow: true })).map((t) => t.id),
+      );
+      await panel.getByRole('button', { name: 'Claude 백그라운드 검토', exact: true }).click();
+      await expect(
+        panel.getByRole('heading', { name: 'Claude 검토 완료', exact: true }),
+      ).toBeVisible();
+      expect(fixture.posts()).toBe(2);
+      expect(fixture.requests[0]!.body.prompt).toContain('기존 질문');
+      expect(fixture.requests[1]!.body.prompt).toContain('과거 답변');
+      if (originals) {
+        expect(fixture.uploads).toEqual([{ exactBytes: true }]);
+        expect(fixture.requests[0]!.body.attachments[0].extracted_content).toContain('CC-4729');
+        expect(fixture.requests[0]!.body.files).toEqual(['88888888-8888-4888-8888-888888888888']);
+        expect(fixture.requests[1]!.body.attachments).toEqual([]);
+        expect(fixture.requests[1]!.body.files).toEqual([]);
+      }
+      expect(await main.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+      expect(await claude.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+      expect(
+        await panel.evaluate(async () =>
+          (await chrome.tabs.query({ active: true, currentWindow: true })).map((t) => t.id),
+        ),
+      ).toEqual(activeBefore);
+      const value = (
+        await panel.evaluate(() => chrome.storage.session.get('crosscheck.workspace.v1'))
+      )['crosscheck.workspace.v1'] as any;
+      expect(value.run.kind).toBe('claude-peer');
+      expect(value.run.jobs.some((job: any) => job.stage === 'synthesize')).toBe(false);
+      expect(value.bindings.claude.threadId).toBe(value.run.id);
+      expect(JSON.stringify(value)).not.toContain('base64');
+      await panel.reload();
+      await expect(
+        panel.getByRole('heading', { name: 'Claude 검토 완료', exact: true }),
+      ).toBeVisible();
+      expect(fixture.posts()).toBe(2);
+    });
 });

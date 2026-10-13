@@ -10,6 +10,7 @@
 ## Preserve the product contract
 
 - Keep the existing one-start, bounded review workflow unless the user requests a change. Preserve the full approved sharing scope through every stage, reuse the main answer, and send the final synthesis only to the original bound conversation.
+- Preserve the complete conversation ownership identity across inspection, reconnection, messaging, persistence, and delivery receipts. A shared document or URL alone does not establish that two operations belong to the same conversation.
 - Keep provider DOM behavior in provider adapters, Chrome APIs in infrastructure, orchestration in application, and business rules in domains. Presentation uses the injected platform port.
 - Associate upload and completion controls with the intended composer or response before checking uniqueness. Reuse the owning region; never resolve ambiguity by choosing the first global match. Keep provider-specific portal associations explicit.
 - Fail closed on ambiguous editors, changed captured context, existing drafts, incomplete answers, or uncertain sends. Validate completeness against the messages actually captured; hidden or omitted messages must not make a partial transcript appear complete. Never overwrite a draft or automatically retry a request that may already have been sent. Use provider-confirmed response identities; verify substituted IDs against the exact bound conversation and approved input before accepting a reply.

@@ -98,6 +98,8 @@ export function nextStage(run: Run): Run {
   if (run.jobs.some((j) => j.status === 'sending'))
     throw new Error('응답 수집이 끝난 후 진행하세요.');
   if (run.stage === 'synthesize') throw new Error('마지막 단계입니다.');
+  if (run.kind === 'claude-peer' && run.stage === 'review')
+    throw new Error('Claude 검토의 마지막 단계입니다. 원래 대화에는 전송하지 않습니다.');
   if (completed(run, 'collect').length < 2)
     throw new Error('서로 다른 AI의 답변이 2개 이상 필요합니다. 수동 입력도 가능합니다.');
   if (run.stage === 'review' && !completed(run, 'review').length)

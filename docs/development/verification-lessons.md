@@ -2,6 +2,29 @@
 
 These are dated observations, not permanent product guarantees. Durable working rules live in [AGENTS.md](../../AGENTS.md).
 
+## Imported-conversation Claude peer — 2026-10-13 final evidence
+
+### Reconnect must preserve local ownership through snapshots and UI equality
+
+- Observation: independent review reproduced reconnecting older reserved peer A while B was saved. Snapshot/attach discarded A's local thread marker, so the UI saved a healthy-looking normal binding and ordinary preparation reused a page whose bridge correctly refused normal sending. This was a failed-closed workflow regression.
+- Cause: ownership existed in the page but was omitted from the public snapshot/binding transition. A same-tab repair could also be dropped because UI equality compared only tab/document/URL.
+- Correction contract: expose only the extension's local UUID in a Claude-only snapshot, preserve it in attach/refresh/reconnect and compare it in the connection UI. Reject contradictory ownership during inspect; normal unbound Claude allocates a fresh home rather than selecting retained peers, while an explicit normal saved connection remains exact. Server IDs/receipts remain provider-local.
+- Evidence: focused connection regressions and ownership-only UI equality were red before the fix and green afterward. Final corrected code passed 304 unit/type/build, 132 synthetic browser checks, nine installed-origin cases and native original-file acceptance. The earlier text-only native success predates this correction.
+
+### Rendered evidence must come from the actual production path
+
+- Observation: an inactive research stub can expose a different rendered state from a regular service tab controlled through the native browser. Treating it as the user's actual source or native sidepanel can misstate readiness and captured scope.
+- Decision: reacquire actual ordinary-tab/native state and load the exact production panel. Import the rendered source there and verify all captured Q/A pairs, unchanged source and foreground through returned peer answers. Do not substitute a stub, manual provider POST or injected adapter for native acceptance.
+- Evidence: the initial native text run imported two actual rendered pairs. Final artifact acceptance imported three actual pairs and reselected the known original TXT/PNG through the native picker; both Claude stages retained context, text token and image description while the original three pairs and selected tab remained unchanged.
+
+### Outbound file shape is not authoritative saved-file shape
+
+- Evidence: credential-omitted public client assets establish inline small TXT objects, awaited multipart PNG receipt UUIDs and completion projection. Draft-restoration validators do not establish saved history. Sanitized task-owned synthetic normal-UI history supplied the stable first-message TXT metadata/content and PNG identity representation before implementing exact membership checks.
+- Contract: bind checked local bytes to awaited upload receipts and exact history, preserve the full manifest even when review sends no new bytes, and reject missing/extra/duplicate/changed receipts. Do not use thumbnails, a filename or the model's recognition as a substitute for identity; do not claim a server-side byte-hash check when none is exposed.
+- Bounds: peer history alone uses an 8 MiB cap for accepted escaped TXT/prompts/answers; fixed diagnostics/metadata/upload JSON/SSE retain existing bounds. There is no conversion, image transform, silent omission or upload retry fallback.
+
+Current final evidence: 304 unit/type/build, 132 full synthetic cases (2.8 minutes), nine installed-origin cases (20.0 seconds), independent re-review and native original-file acceptance. Owned Claude homes and research tabs were closed, original source/completed panel retained, REPL exited and authorized native helper absence confirmed. AGENTS.md now states the reusable complete ownership invariant across snapshots, reconnection, messaging, persistence and delivery receipts; changing field names and evidence stay here.
+
 ## Page-local transport investigation — 2026-10-12 KST
 
 ### Model controls can contain settings beyond the model name

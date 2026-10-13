@@ -27,6 +27,7 @@ declare global {
       managerOpens: number;
       probeStarts: number;
       probeKinds: Array<'context' | undefined>;
+      reconnectedThread?: string;
     };
   }
 }
@@ -114,7 +115,9 @@ export const fixturePlatform: Platform = {
     };
   },
   async connect(provider) {
-    return bindings[provider];
+    return provider === 'claude' && window.harness.reconnectedThread
+      ? { ...bindings[provider], threadId: window.harness.reconnectedThread }
+      : bindings[provider];
   },
   async inspect(binding) {
     return {
