@@ -84,3 +84,17 @@ Task 12 preflight는 정확한 compact model host의 own numeric context와 AGk 
 새 공급자는 provider 도메인과 DOM 어댑터, 고정 origin 권한, 합성 fixture, 실로그인 검증 기록을 함께 추가합니다. API 모드를 넣는다면 `Platform`의 전송 구현을 분리하고 별도 키 저장/권한/비용 동의 설계를 먼저 수행합니다. 웹 로그인과 API 무료 크레딧은 서로 다른 기능입니다.
 
 모델 목록은 웹 메뉴에서 읽고 실제 선택 상태를 확인합니다. 자동 전송과 모델 메뉴 조작은 겹치지 않습니다. 메뉴 미지원은 빈 목록과 안내로 반환하며 가용 모델을 추측하지 않습니다. UI에는 연결된 탭과 입력란 확인 결과를 구별해 표시합니다.
+
+## Gemini 버튼 준비 관찰
+
+준비 확인 화면의 명시적 관찰은 기존 Gemini 권한으로 새 비활성 홈 하나를 만들고 ISOLATED bridge에서 DOM만 읽습니다. 페이지와 빈 입력란 준비 후 별도의 15초 구간에서 실제 모델 헤더 구조를 관찰하며, 초기 표시 상태와 변화 여부를 함께 검증합니다. 준비 시점의 유한 분류와 탭 정리 결과만 패널 메모리에 반환합니다. 모델 메뉴·MAIN/private preflight·생성·세션 저장을 호출하지 않습니다. bridge 문서 예약은 종료 후에도 다른 모델/생성 작업을 막고, 탭을 닫기 직전에 같은 문서·빈 입력란·사용자 변경 없음·비활성 상태를 다시 확인합니다. 불확실하면 탭을 유지합니다. 관찰 결과는 고정 응답이나 저장 기록의 수용 증거가 아니며 실제 시험의 준비 제한 시간을 바꾸지 않습니다. [검증 기록](../testing/validation.md).
+
+## Gemini 고정 SDK 응답 시험
+
+별도 `Gemini 응답 시험`은 새 비활성 홈에 고정된 비민감 문장 한 번만 보내는 실험입니다. Application은 문장·결과·유한 실패 사유와 Platform 포트를 소유하고 Chrome 인프라는 의도 선저장, 문서 확인, ISOLATED 예약, 로컬 MAIN 번들 실행과 정리를 담당합니다. Provider 어댑터는 실제 소유 클라이언트·모델 catalog·요청 packet·정상 SDK 전송·완료 상태·동일 대화의 한 번의 history 조회를 검증합니다. 전체 검토·파일·원래 메인 반환을 대체하지 않습니다.
+
+Provider 내부의 RPC와 cold WebChannel 경로는 서로 다른 guard를 사용하며 한 intent가 경로를 바꾸지 않습니다. Cold 경로는 원래 observable의 한 번의 구독에서만 정상 factory·설정·논리 query를 허용합니다. 같은 메시지의 source-owned 전송 복구는 새 생성 허가가 아니며 물리 전송 횟수나 과금 한 번을 보장하지 않습니다. 실제 raw 수신·정규화·현재 projected event의 대응은 원래 dispatch 안에서 확인하고, 더 넓은 수신 깊이는 안전한 취소 지연에 사용합니다. 기존 health poll은 guard의 실패도 전달합니다. 공개 준비 metadata는 계속 unsupported이며 이 내부 경로를 성공으로 표시하지 않습니다. 좁은 소스·소유권·정리 계약은 [cold 경로 계획](../development/providers/gemini/cold-webchannel-fixed-trial-plan.md)이 소유합니다.
+
+MAIN 번들은 처음에는 요청하지 않습니다. 동일 native 문서의 trusted scripting 결과로 일회성 무작위 handle/capability를 받아 고정 `lease`/`stop`만 호출합니다. registry는 불변이며 임의 URL·헤더·문장·모델·함수 실행 명령이 없습니다. capability는 공급자 인증값과 별개이고 세션에 저장하지 않습니다. lease 만료·중단·사용자 입력·문서 이동 뒤 재시작하지 않으며 종료한 문서는 계속 격리합니다. 원래 stream에 묶어 확인한 대화만 provider-local 소유권 검사에 사용하고 대화 ID는 확장으로 내보내지 않습니다. 첫 valid lease의 exact-home 확인, 진행 중 SDK의 실제 current 검사와 종료 후 safe-retirement 검사는 각각 별개입니다. 닫을 수 없는 상태를 진행 실패로 바꾸거나 원래 terminal 사유를 덮지 않습니다.
+
+외부 구현 비교와 공개 source 리뷰 뒤 수신 경계를 축소했습니다. 완료 기준은 실제 원래 요청에 묶인 full final 또는 source terminal marker, 원래 stream의 정상 종료·같은 요청의 downstream 성공 acknowledgement와 exact raw server history입니다. Full final의 live/saved 비교는 유지하며 marker-only에서 보이지 않은 live 필드를 추정하지 않습니다. 모든 관측된 partial candidate와 continuation/action 대응을 검사하고 완료 뒤에도 nested request scope를 검사합니다. 처리된 IId/선택 화면 DTO의 전체 동일성은 성공 증거에서 제외하며, 해당 context·오류·중단 관찰과 현재 store CID의 blank/owned 경계는 유지합니다. 생성 허가는 terminal 응답을 downstream으로 전달하기 전에 닫고, 이미 전송했을 수 있는 요청은 재시도하지 않습니다. 탭 삭제 직전 같은 native 문서의 새로운 소유권 결과·실제 active store의 Ae/CID·빈 composer·사용자 조작 없음·비활성 상태를 요구하며 불확실하면 탭을 남깁니다. 실제 SDK 취소가 서버 생성 중단을 보장하지는 않습니다. 검사 종류별 결과는 [검증 기록](../testing/validation.md), 좁은 계약과 source 근거는 [시험 계획](../development/gemini-sdk-fixed-text-trial-plan.md)이 소유합니다.

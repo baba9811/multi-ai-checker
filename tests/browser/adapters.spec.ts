@@ -1812,6 +1812,84 @@ test('Gemini compact model menu uses its unique inner control and local owning p
   expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
 });
 
+for (const phase of ['await-inner', 'await-host', 'after-click'] as const)
+  test(`Gemini compact menu respects the capture boundary during ${phase} replacement`, async ({
+    page,
+  }) => {
+    const target = await setupCompactGeminiModes(page, 'normal');
+    await page.evaluate((phase) => {
+      const owner = document.querySelector(
+        'bard-mode-switcher[data-test-id="bard-mode-switcher"]',
+      )!;
+      const host = owner.querySelector<HTMLElement>(
+        'gem-button[data-test-id="bard-mode-menu-button"]',
+      )!;
+      const stale = host.querySelector<HTMLButtonElement>('button')!;
+      const originalClick = host.onclick;
+      (window as any).fixtureStaleClicks = 0;
+      (window as any).fixtureFreshClicks = 0;
+      const replace = () => {
+        const fresh = stale.cloneNode(true) as HTMLButtonElement;
+        fresh.onkeydown = stale.onkeydown;
+        fresh.addEventListener('click', () => {
+          (window as any).fixtureFreshClicks++;
+        });
+        let freshHost = host;
+        if (phase === 'await-host') {
+          freshHost = host.cloneNode(false) as HTMLElement;
+          freshHost.append(fresh);
+          host.replaceWith(freshHost);
+        } else stale.replaceWith(fresh);
+        freshHost.onclick = (event) => {
+          originalClick?.call(freshHost, event);
+          fresh.focus();
+        };
+        fresh.focus();
+        (window as any).fixtureReplacementOwnerSame = fresh.closest('bard-mode-switcher') === owner;
+        (window as any).fixtureStaleConnected = stale.isConnected;
+      };
+      stale.addEventListener('click', () => {
+        (window as any).fixtureStaleClicks++;
+        if (phase === 'after-click') replace();
+      });
+      if (phase !== 'after-click') {
+        const read = document.querySelectorAll;
+        let queued = false;
+        document.querySelectorAll = function (this: Document, selector: string) {
+          const found = read.call(this, selector);
+          if (!queued && selector === '[data-test-id="bard-mode-menu-button"]') {
+            queued = true;
+            queueMicrotask(replace);
+          }
+          return found;
+        } as typeof document.querySelectorAll;
+      }
+    }, phase);
+    const catalog = await command(page, { type: 'models', ...target });
+    if (phase === 'after-click') {
+      expect(catalog.ok).toBe(false);
+      expect(catalog.error).toBe('Gemini 모델 메뉴의 연결이 변경되었습니다.');
+    } else {
+      expect(catalog.ok).toBe(true);
+      expect(catalog.data.current).toBe('Automatic fixture');
+    }
+    expect(
+      await page.evaluate(() => ({
+        stale: (window as any).fixtureStaleClicks,
+        fresh: (window as any).fixtureFreshClicks,
+        sameOwner: (window as any).fixtureReplacementOwnerSame,
+        staleConnected: (window as any).fixtureStaleConnected,
+      })),
+    ).toEqual({
+      stale: phase === 'after-click' ? 1 : 0,
+      fresh: phase === 'after-click' ? 0 : 1,
+      sameOwner: true,
+      staleConnected: false,
+    });
+    await expect(page.locator('[data-test-id="gem-mode-menu"]')).not.toBeVisible();
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  });
+
 test('Gemini compact model menu closes its own visible popover when Escape is ignored', async ({
   page,
 }) => {

@@ -3,7 +3,15 @@ import type { Job, Run } from '../domains/crosscheck/model';
 import type { Snapshot, ModelCatalog } from './provider-protocol';
 import type { Attachment, AttachmentPayload } from '../domains/attachments/model';
 import type { ClaudeProbeKind, ClaudeProbeRecord } from './claude-probe';
-import type { GeminiReadinessRecord, GeminiReadinessResult } from './gemini-readiness';
+import type {
+  GeminiHeaderObservationResult,
+  GeminiReadinessRecord,
+  GeminiReadinessResult,
+} from './gemini-readiness';
+import type {
+  GeminiFixedTextTrialRecord,
+  GeminiFixedTextTrialResult,
+} from './gemini-fixed-text-trial';
 
 export type Workspace = { run?: Run; bindings: Partial<Record<ProviderId, Binding>> };
 export type Conversation = { binding: Binding; snapshot: Snapshot };
@@ -15,6 +23,9 @@ export type ExtensionStatus = {
 };
 /** Browser implementation is injected at the entrypoint, never imported by the UI. */
 export interface Platform {
+  observeGeminiHeaderReadiness?(signal: AbortSignal): Promise<GeminiHeaderObservationResult>;
+  readGeminiSdkTrial?(): Promise<GeminiFixedTextTrialRecord | undefined>;
+  startGeminiSdkTrial?(signal: AbortSignal): Promise<GeminiFixedTextTrialResult>;
   readGeminiReadiness?(): Promise<GeminiReadinessRecord | undefined>;
   checkGeminiReadiness?(signal: AbortSignal): Promise<GeminiReadinessResult>;
   readClaudeProbe?(): Promise<ClaudeProbeRecord | undefined>;

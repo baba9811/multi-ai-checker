@@ -62,6 +62,24 @@ export const ModelCatalog = z.object({
 });
 export type ModelCatalog = z.infer<typeof ModelCatalog>;
 export const Command = z.discriminatedUnion('type', [
+  z
+    .object({ type: z.literal('startGeminiHeaderObservation'), id: z.string().min(1).max(100) })
+    .strict(),
+  z
+    .object({
+      type: z.literal('pollGeminiHeaderObservation'),
+      id: z.string().min(1).max(100),
+      documentId: z.string().min(1).max(100),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('cancelGeminiHeaderObservation'),
+      id: z.string().min(1).max(100),
+      documentId: z.string().min(1).max(100),
+    })
+    .strict(),
+
   z.object({
     type: z.literal('snapshot'),
     waitFor: z.enum(['composer', 'conversation']).optional(),
@@ -110,6 +128,28 @@ export const Command = z.discriminatedUnion('type', [
     .strict(),
   z.object({ type: z.literal('pollGeminiReadiness'), id: z.string().min(1).max(100) }).strict(),
   z.object({ type: z.literal('cancelGeminiReadiness'), id: z.string().min(1).max(100) }).strict(),
+  z
+    .object({
+      type: z.literal('reserveGeminiSdkTrial'),
+      id: z.string().min(1).max(100),
+      documentId: z.string().min(1).max(100),
+      url: z.literal('https://gemini.google.com/app'),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('checkGeminiSdkTrial'),
+      id: z.string().min(1).max(100),
+      documentId: z.string().min(1).max(100),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('cancelGeminiSdkTrial'),
+      id: z.string().min(1).max(100),
+      documentId: z.string().min(1).max(100),
+    })
+    .strict(),
   z
     .object({
       type: z.literal('finishGeminiReadiness'),

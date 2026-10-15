@@ -76,13 +76,43 @@ export async function prepareClaudeProbe(signal: AbortSignal): Promise<Binding> 
   signal.throwIfAborted();
   return attach('claude', tab.id);
 }
-export async function prepareGeminiReadiness(signal: AbortSignal): Promise<Binding> {
+export async function prepareGeminiReadiness(
+  signal: AbortSignal,
+  allocated?: (tabId: number) => void,
+): Promise<Binding> {
   signal.throwIfAborted();
   const tab = await chrome.tabs.create({ url: providers.gemini.home, active: false });
   if (!tab.id) throw new Error('Gemini 준비 확인 탭을 열지 못했습니다.');
+  allocated?.(tab.id);
   await readyConnectionTab('gemini', tab.id, signal);
   signal.throwIfAborted();
   return attach('gemini', tab.id);
+}
+/** Allocates and injects only: never attaches or exports a conversation snapshot. */
+export async function prepareGeminiHeaderObservation(
+  signal: AbortSignal,
+  allocated: (tabId: number) => void,
+  loaded: () => void,
+): Promise<number> {
+  signal.throwIfAborted();
+  const tab = await chrome.tabs.create({ url: providers.gemini.home, active: false });
+  if (!tab.id) throw new Error('Gemini 관찰 탭을 열지 못했습니다.');
+  allocated(tab.id);
+  signal.throwIfAborted();
+  await readyConnectionTab('gemini', tab.id, signal);
+  signal.throwIfAborted();
+  loaded();
+  const current = await chrome.tabs.get(tab.id);
+  signal.throwIfAborted();
+  if (current.active || current.url !== providers.gemini.home)
+    throw new Error('Gemini 관찰 페이지가 바뀌었습니다.');
+  await chrome.scripting.executeScript({
+    target: { tabId: tab.id, frameIds: [0] },
+    files: ['bridge.js'],
+    world: 'ISOLATED',
+  });
+  signal.throwIfAborted();
+  return tab.id;
 }
 async function attach(provider: ProviderId, tabId: number, conversation = false): Promise<Binding> {
   await chrome.scripting.executeScript({

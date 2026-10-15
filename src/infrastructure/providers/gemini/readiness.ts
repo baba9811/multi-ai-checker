@@ -3,6 +3,7 @@ import {
   type GeminiProtectionStatus as Protection,
 } from '../../../application/gemini-readiness';
 import { readGeminiMode } from '../models';
+import { readGeminiMenuDiagnostic, readGeminiTriggerDiagnostic } from './menu-diagnostic';
 
 export function readGeminiPageProtection(): Protection {
   const unknown = (protectionReason: NonNullable<Protection['protectionReason']>): Protection => ({
@@ -148,6 +149,7 @@ export function readGeminiPageProtection(): Protection {
 
 export async function geminiReadiness(
   signal?: AbortSignal,
+  requireHeaderGlow = false,
 ): Promise<{ model: string; modeId: string }> {
   const check = () => {
     const cause = signal?.aborted
@@ -160,9 +162,10 @@ export async function geminiReadiness(
   check();
   let selected: Awaited<ReturnType<typeof readGeminiMode>>;
   try {
-    selected = await readGeminiMode(signal);
+    selected = await readGeminiMode(signal, requireHeaderGlow);
   } catch (error) {
-    const cause = error instanceof Error ? error.cause : undefined;
+    const cause =
+      error instanceof Error ? Object.getOwnPropertyDescriptor(error, 'cause')?.value : undefined;
     try {
       check();
     } catch (failure) {
@@ -174,13 +177,22 @@ export async function geminiReadiness(
         );
       throw failure;
     }
-    throw new Error('Gemini readiness failed.', {
+    const failure = new Error('Gemini readiness failed.', {
       cause:
         typeof cause === 'string' &&
         ['model-trigger', 'model-menu', 'model-selection', 'model-cleanup'].includes(cause)
           ? cause
           : 'model',
     });
+    const diagnostic = cause === 'model-menu' ? readGeminiMenuDiagnostic(error) : undefined;
+    if (diagnostic) Object.assign(failure, { geminiMenuDiagnostic: diagnostic });
+    const triggerDiagnostic =
+      requireHeaderGlow && cause === 'model-trigger'
+        ? readGeminiTriggerDiagnostic(error)
+        : undefined;
+    if (triggerDiagnostic)
+      Object.defineProperty(failure, 'geminiTriggerDiagnostic', { value: triggerDiagnostic });
+    throw failure;
   }
   check();
   const result = GeminiReadinessModel.safeParse({ model: selected.label });

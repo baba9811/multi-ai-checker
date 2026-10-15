@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { Platform } from '../../application/ports';
 import type {
+  GeminiHeaderObservationOutcome,
+  GeminiHeaderObservationResult,
   GeminiReadinessRecord,
   GeminiReadinessResult,
   GeminiClientCapability,
@@ -32,6 +34,12 @@ const clientReasons = {
   owner: '모델 선택 영역의 연결을 확인하지 못했습니다.',
   'owner-context': '모델 영역의 페이지 연결 정보를 확인하지 못했습니다.',
   'owner-view': '모델 영역의 현재 연결을 확인하지 못했습니다.',
+  'owner-view-registry': '모델 영역의 현재 연결을 확인하지 못했습니다. 확인 코드 V1.',
+  'owner-view-missing': '모델 영역의 현재 연결을 확인하지 못했습니다. 확인 코드 V2.',
+  'owner-view-shape': '모델 영역의 현재 연결을 확인하지 못했습니다. 확인 코드 V3.',
+  'owner-view-id': '모델 영역의 현재 연결을 확인하지 못했습니다. 확인 코드 V4.',
+  'owner-view-metadata': '모델 영역의 현재 연결을 확인하지 못했습니다. 확인 코드 V5.',
+  'owner-view-flags': '모델 영역의 현재 연결을 확인하지 못했습니다. 확인 코드 V6.',
   'owner-slot': '모델 영역의 소유 관계를 확인하지 못했습니다.',
   'owner-declaration-1': '모델 버튼의 첫 번째 화면 연결을 확인하지 못했습니다.',
   'owner-declaration-2': '모델 버튼의 두 번째 화면 연결을 확인하지 못했습니다.',
@@ -52,7 +60,24 @@ const clientReasons = {
   'transport-rpc': '기본 응답 경로가 선택돼 있습니다. 이 시험에서는 해당 경로를 지원하지 않습니다.',
   prewarm: '이 시험에 필요한 새 전송 연결 상태를 확인하지 못했습니다.',
   hook: '전송 경계를 확인하는 데 필요한 조건을 확인하지 못했습니다.',
+  'transport-webchannel':
+    '웹 채널 경로가 선택돼 있습니다. 이 시험에서는 해당 경로를 지원하지 않습니다.',
 } satisfies Record<Extract<GeminiClientCapability, { status: 'unsupported' }>['reason'], string>;
+
+const observationMessages = {
+  'ready-early':
+    '비활성 탭에서 초기 구간에 버튼 구조를 관찰했습니다. 요청·응답 성공은 확인하지 않았습니다.',
+  'ready-late':
+    '비활성 탭에서 초기 제한 이후의 준비되지 않은 구조와 이후 준비된 구조를 관찰했습니다. 정확한 준비 시점과 원인은 확인하지 않았습니다.',
+  'not-observed':
+    '관찰 구간에서 준비된 버튼 구조를 보지 못했습니다. 계속 없었거나 지원되지 않는다는 뜻은 아닙니다.',
+  inconclusive: '실행 간격 때문에 준비 시점을 판정할 증거가 부족합니다.',
+  'visibility-changed': '페이지 표시 상태가 바뀌어 관찰을 중단했습니다.',
+  page: '관찰 페이지의 연결이 바뀌어 중단했습니다.',
+  'not-empty': '관찰 페이지가 비어 있지 않아 중단했습니다.',
+  unsupported: '이 페이지의 버튼 구조를 관찰하지 못했습니다.',
+  interrupted: '버튼 관찰을 중단했습니다. 요청은 보내지 않았습니다.',
+} satisfies Record<GeminiHeaderObservationOutcome, string>;
 
 export function GeminiReadiness({
   platform,
@@ -69,6 +94,8 @@ export function GeminiReadiness({
   const [result, setResult] = useState<GeminiReadinessResult>();
   const [error, setError] = useState('');
   const [stopped, setStopped] = useState(false);
+  const [observing, setObserving] = useState(false);
+  const [observation, setObservation] = useState<GeminiHeaderObservationResult>();
   const controller = useRef<AbortController | undefined>(undefined);
   const mounted = useRef(false);
   useEffect(() => {
@@ -92,23 +119,45 @@ export function GeminiReadiness({
       }
     };
   }, [platform]);
-  async function check() {
-    if (!ready || disabled || controller.current || !platform.checkGeminiReadiness) return;
+  async function check(observe = false) {
+    if (
+      !ready ||
+      disabled ||
+      controller.current ||
+      (observe ? !platform.observeGeminiHeaderReadiness : !platform.checkGeminiReadiness)
+    )
+      return;
     const current = new AbortController();
     controller.current = current;
     setBusy(true);
+    setObserving(observe);
+    setObservation(undefined);
     setError('');
     setStopped(false);
     setResult(undefined);
     setRecord(undefined);
     onWorking(true);
     try {
-      const value = await platform.checkGeminiReadiness(current.signal);
-      if (mounted.current) setResult(value);
+      if (observe) {
+        const value = await platform.observeGeminiHeaderReadiness!(current.signal);
+        if (mounted.current) {
+          if (current.signal.aborted) setObservation({ ...value, outcome: 'interrupted' });
+          else setObservation(value);
+        }
+      } else {
+        const value = await platform.checkGeminiReadiness!(current.signal);
+        if (mounted.current && !current.signal.aborted) setResult(value);
+      }
     } catch (failure) {
       if (mounted.current && current.signal.aborted) setStopped(true);
       else if (mounted.current) {
         const cause = failure instanceof Error ? failure.cause : undefined;
+        if (observe) {
+          setError(
+            'Gemini 버튼을 관찰하지 못했습니다. Gemini 연결 권한과 페이지를 확인하세요. 요청은 보내지 않았습니다.',
+          );
+          return;
+        }
         setError(
           typeof cause === 'string' && Object.hasOwn(modelErrors, cause)
             ? modelErrors[cause as keyof typeof modelErrors]
@@ -142,13 +191,47 @@ export function GeminiReadiness({
       >
         Gemini 준비 상태 확인
       </button>
+      {platform.observeGeminiHeaderReadiness && (
+        <>
+          <p className="hint">
+            새 비활성 탭을 엽니다. 페이지와 입력란 준비 후 최대 15초 동안 버튼 구조만 확인합니다.
+            메뉴를 열거나 요청을 보내지 않습니다.
+          </p>
+          <button
+            className="secondary"
+            disabled={!ready || disabled || busy}
+            onClick={() => void check(true)}
+          >
+            Gemini 버튼 준비만 관찰
+          </button>
+        </>
+      )}
+      {observation && (
+        <p className="hint" role="status">
+          {observationMessages[observation.outcome]}{' '}
+          {observation.visibility === 'unobserved'
+            ? '초기 페이지 표시 상태를 관찰하지 못했습니다.'
+            : !['ready-early', 'ready-late', 'not-observed'].includes(observation.outcome)
+              ? observation.visibility === 'hidden'
+                ? '초기 페이지는 숨김 상태였습니다.'
+                : '초기 페이지는 표시 상태였습니다.'
+              : observation.visibility === 'hidden'
+                ? '관찰 페이지는 계속 숨김 상태였습니다.'
+                : '관찰 페이지는 계속 표시 상태였습니다. 숨김 상태의 증거는 아닙니다.'}{' '}
+          {observation.retirement === 'closed'
+            ? '관찰 탭을 닫았습니다.'
+            : '관찰 탭을 유지했습니다. 탭에서 확인하세요.'}
+        </p>
+      )}
       {busy && (
         <>
           <button className="text-button" onClick={() => controller.current?.abort()}>
             확인 중단
           </button>
           <p className="hint" role="status">
-            Gemini 준비 상태를 확인하고 있습니다.
+            {observing
+              ? 'Gemini 버튼 구조만 관찰하고 있습니다.'
+              : 'Gemini 준비 상태를 확인하고 있습니다.'}
           </p>
         </>
       )}
@@ -185,7 +268,9 @@ export function GeminiReadiness({
       )}
       {stopped && (
         <p className="hint" role="status">
-          Gemini 준비 확인을 중단했습니다. 요청은 보내지 않았습니다.
+          {observing
+            ? '버튼 관찰을 중단했습니다. 요청은 보내지 않았습니다.'
+            : 'Gemini 준비 확인을 중단했습니다. 요청은 보내지 않았습니다.'}
         </p>
       )}
       {error && (

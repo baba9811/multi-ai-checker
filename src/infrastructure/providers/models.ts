@@ -1,6 +1,7 @@
 import type { ProviderId } from '../../domains/providers/model';
 import type { ModelCatalog } from '../../application/provider-protocol';
 import { visible } from './dom-utils';
+import type { GeminiMenuDiagnostic, GeminiTriggerDiagnostic } from './gemini/menu-diagnostic';
 
 const triggers: Record<ProviderId, string[]> = {
   chatgpt: [
@@ -25,19 +26,26 @@ const families: Record<ProviderId, RegExp> = {
   claude: /(?:Claude|Sonnet|Opus|Haiku)/i,
   gemini: /(?:Gemini|Flash|Pro|Thinking|빠른|사고|생각|Fast)/i,
 };
-function triggerControl(provider: ProviderId, element: HTMLElement): HTMLElement {
+function triggerFailure(diagnostic?: GeminiTriggerDiagnostic) {
+  const error = new Error('Gemini 모델 선택 버튼을 확인하지 못했습니다.', {
+    cause: 'model-trigger',
+  });
+  if (diagnostic) Object.defineProperty(error, 'geminiTriggerDiagnostic', { value: diagnostic });
+  return error;
+}
+function triggerControl(provider: ProviderId, element: HTMLElement, diagnose = false): HTMLElement {
   if (provider !== 'gemini' || element.tagName !== 'GEM-BUTTON') return element;
   const buttons = [...element.querySelectorAll('button')].filter(
     (button) => visible(button) && button.closest('gem-button') === element,
   );
   if (buttons.length !== 1 || disabled(element) || disabled(buttons[0]!))
-    throw new Error('Gemini 모델 선택 버튼을 확인하지 못했습니다.', { cause: 'model-trigger' });
+    throw triggerFailure(diagnose ? 'compact-control' : undefined);
   return buttons[0]!;
 }
-function trigger(provider: ProviderId): HTMLElement | undefined {
+function trigger(provider: ProviderId, diagnose = false): HTMLElement | undefined {
   for (const selector of triggers[provider]) {
     const found = [...document.querySelectorAll(selector)].filter(visible);
-    if (found.length === 1) return triggerControl(provider, found[0]!);
+    if (found.length === 1) return triggerControl(provider, found[0]!, diagnose);
     if (found.length > 1) return;
   }
   const found = [
@@ -49,7 +57,7 @@ function trigger(provider: ProviderId): HTMLElement | undefined {
         !el.closest('nav, aside, [data-turn-key], [data-message-author-role]') &&
         families[provider].test(el.innerText.trim()),
     );
-  return found.length === 1 ? triggerControl(provider, found[0]!) : undefined;
+  return found.length === 1 ? triggerControl(provider, found[0]!, diagnose) : undefined;
 }
 const optionSelector = '[role="menuitemradio"], [role="option"], [role="menuitem"]';
 const geminiModeSelector = 'gem-menu-item[role="menuitem"][data-mode-id]';
@@ -117,12 +125,58 @@ function selectedGeminiMode(options: HTMLElement[]): HTMLElement {
     });
   return selected[0]!;
 }
-async function readyTrigger(provider: ProviderId) {
-  let button = trigger(provider);
-  const deadline = Date.now() + 2500;
+type GeminiHeaderReadiness = {
+  document: Document;
+  url: string;
+  deadline: number;
+  signal?: AbortSignal;
+};
+function headerTriggerReady(
+  button: HTMLElement | undefined,
+  readiness: GeminiHeaderReadiness,
+): GeminiTriggerDiagnostic | undefined {
+  readiness.signal?.throwIfAborted();
+  if (document !== readiness.document || location.href !== readiness.url) return 'header-context';
+  if (Date.now() >= readiness.deadline) return 'header-deadline';
+  return headerStructure(button, readiness);
+}
+function headerStructure(
+  button: HTMLElement | undefined,
+  readiness: Pick<GeminiHeaderReadiness, 'document'>,
+): GeminiTriggerDiagnostic | undefined {
+  const host = button?.closest('gem-button[data-test-id="bard-mode-menu-button"]');
+  const owner = host?.closest('bard-mode-switcher[data-test-id="bard-mode-switcher"]');
+  const content = owner?.parentElement;
+  const glow = content?.parentElement;
+  const header = glow?.parentElement;
+  return !!button &&
+    !!host &&
+    !!owner &&
+    !!content &&
+    !!glow &&
+    !!header &&
+    [button, host, owner, content, glow, header].every(
+      (member) => member.isConnected && member.ownerDocument === readiness.document,
+    ) &&
+    button.closest('bard-mode-switcher') === owner &&
+    content.matches('div.glow-content') &&
+    glow.matches('new-model-picker-glow.header-model-picker-glow') &&
+    header.matches('chat-app-side-nav-menu-button') &&
+    triggerControl('gemini', host as HTMLElement, true) === button
+    ? undefined
+    : 'header-association';
+}
+async function readyTrigger(provider: ProviderId, header?: GeminiHeaderReadiness) {
+  const resolve = () => {
+    header?.signal?.throwIfAborted();
+    const button = trigger(provider, !!header);
+    return header && headerTriggerReady(button, header) !== undefined ? undefined : button;
+  };
+  let button = resolve();
+  const deadline = header?.deadline ?? Date.now() + 2500;
   while (!button && (provider === 'claude' || provider === 'gemini') && Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 80));
-    button = trigger(provider);
+    button = resolve();
   }
   return button;
 }
@@ -131,8 +185,11 @@ export async function modelMenu(provider: ProviderId, selectKey?: string): Promi
   return (await readModelMenu(provider, selectKey)).catalog;
 }
 /** The mode key stays in the provider page; public model catalogs contain visible labels only. */
-export async function readGeminiMode(signal?: AbortSignal): Promise<GeminiMode> {
-  const result = await readModelMenu('gemini', undefined, true, signal);
+export async function readGeminiMode(
+  signal?: AbortSignal,
+  requireHeaderGlow = false,
+): Promise<GeminiMode> {
+  const result = await readModelMenu('gemini', undefined, true, signal, requireHeaderGlow);
   if (!result.geminiMode)
     throw new Error('현재 선택된 Gemini 모델을 확인하지 못했습니다.', {
       cause: 'model-selection',
@@ -144,12 +201,22 @@ async function readModelMenu(
   selectKey?: string,
   requireGeminiMode = false,
   signal?: AbortSignal,
+  requireHeaderGlow = false,
 ): Promise<{ catalog: ModelCatalog; geminiMode?: GeminiMode }> {
-  const button = await readyTrigger(provider);
+  const menuFailure = (message: string, diagnostic: GeminiMenuDiagnostic) => {
+    const error = new Error(message, { cause: 'model-menu' });
+    if (provider === 'gemini') Object.assign(error, { geminiMenuDiagnostic: diagnostic });
+    return error;
+  };
+  const header = requireHeaderGlow
+    ? { document, url: location.href, deadline: Date.now() + 2500, signal }
+    : undefined;
+  const ready = await readyTrigger(provider, header);
   signal?.throwIfAborted();
-  if (!button) {
-    if (requireGeminiMode)
-      throw new Error('Gemini 모델 선택 버튼을 확인하지 못했습니다.', { cause: 'model-trigger' });
+  const button = provider === 'gemini' ? trigger(provider, !!header) : ready;
+  const refusal = !button ? 'final-control' : header && headerTriggerReady(button, header);
+  if (!button || refusal) {
+    if (requireGeminiMode) throw triggerFailure(header && refusal ? refusal : undefined);
     return {
       catalog: {
         options: [],
@@ -159,16 +226,16 @@ async function readModelMenu(
   }
   const current = button.innerText.trim().slice(0, 160) || undefined;
   if (button.getAttribute('aria-expanded') === 'true')
-    throw new Error('열린 모델 메뉴를 먼저 닫아주세요.', { cause: 'model-menu' });
+    throw menuFailure('열린 모델 메뉴를 먼저 닫아주세요.', 'open-trigger');
   if ([...document.querySelectorAll('[role="menu"], [role="listbox"]')].some(visible))
-    throw new Error('사이트의 열린 메뉴를 먼저 닫아주세요.', { cause: 'model-menu' });
+    throw menuFailure('사이트의 열린 메뉴를 먼저 닫아주세요.', 'open-menu');
   const geminiHost =
     provider === 'gemini'
       ? button.closest('gem-button[data-test-id="bard-mode-menu-button"]')
       : null;
   const localOwner = geminiHost?.closest('bard-mode-switcher[data-test-id="bard-mode-switcher"]');
   if (geminiHost && !localOwner)
-    throw new Error('Gemini 모델 메뉴의 연결을 확인하지 못했습니다.', { cause: 'model-menu' });
+    throw menuFailure('Gemini 모델 메뉴의 연결을 확인하지 못했습니다.', 'owner-missing');
   const localPopovers = () =>
     localOwner
       ? [
@@ -187,11 +254,13 @@ async function readModelMenu(
         [...document.querySelectorAll(geminiModeSelector)].some(visible);
       if (currentGemini) {
         if (localOwner && !button.hasAttribute('aria-controls')) {
-          if (!button.isConnected || button.closest('bard-mode-switcher') !== localOwner)
-            throw new Error('Gemini 모델 메뉴의 연결이 변경되었습니다.', { cause: 'model-menu' });
+          if (!button.isConnected)
+            throw menuFailure('Gemini 모델 메뉴의 연결이 변경되었습니다.', 'trigger-detached');
+          if (button.closest('bard-mode-switcher') !== localOwner)
+            throw menuFailure('Gemini 모델 메뉴의 연결이 변경되었습니다.', 'owner-changed');
           const popovers = localPopovers();
           if (popovers.length > 1)
-            throw new Error('Gemini 모델 메뉴의 연결이 모호합니다.', { cause: 'model-menu' });
+            throw menuFailure('Gemini 모델 메뉴의 연결이 모호합니다.', 'popover-ambiguous');
           const popover = popovers[0];
           const menus = popover
             ? [
@@ -201,7 +270,7 @@ async function readModelMenu(
               ].filter((menu) => visible(menu) && menu.closest('bard-mode-switcher') === localOwner)
             : [];
           if (menus.length > 1)
-            throw new Error('Gemini 모델 메뉴의 연결이 모호합니다.', { cause: 'model-menu' });
+            throw menuFailure('Gemini 모델 메뉴의 연결이 모호합니다.', 'menu-ambiguous');
           const menu = menus[0];
           return menu
             ? [...menu.querySelectorAll<HTMLElement>(geminiModeSelector)].filter(
@@ -211,14 +280,12 @@ async function readModelMenu(
         }
         const ownerId = button.getAttribute('aria-controls') ?? '';
         if (!ownerId || /\s/.test(ownerId))
-          throw new Error('Gemini 모델 메뉴의 연결을 확인하지 못했습니다.', {
-            cause: 'model-menu',
-          });
+          throw menuFailure('Gemini 모델 메뉴의 연결을 확인하지 못했습니다.', 'controls-invalid');
         const owners = [...document.querySelectorAll<HTMLElement>('[id]')].filter(
           (owner) => owner.id === ownerId,
         );
         if (owners.length > 1)
-          throw new Error('Gemini 모델 메뉴의 연결이 모호합니다.', { cause: 'model-menu' });
+          throw menuFailure('Gemini 모델 메뉴의 연결이 모호합니다.', 'owner-duplicate');
         const owner = owners[0];
         return owner && visible(owner)
           ? [...owner.querySelectorAll(geminiModeSelector)].filter(visible)
@@ -234,6 +301,7 @@ async function readModelMenu(
   const readSelected = (options: HTMLElement[]) =>
     currentGemini ? selectedGeminiMode(options) : selectedModel(options);
   let options: HTMLElement[] = [];
+  signal?.throwIfAborted();
   try {
     button.click();
     const deadline = Date.now() + 1500;
@@ -358,4 +426,19 @@ export async function readClaudeProbeLabel(): Promise<string> {
     break;
   }
   throw new Error('Claude 모델 이름을 확인하지 못했습니다.', { cause: 'model' });
+}
+
+export function inspectGeminiHeader(): boolean {
+  try {
+    return headerStructure(trigger('gemini', true), { document }) === undefined;
+  } catch (failure) {
+    if (
+      failure instanceof Error &&
+      failure.cause === 'model-trigger' &&
+      (failure as Error & { geminiTriggerDiagnostic?: string }).geminiTriggerDiagnostic ===
+        'compact-control'
+    )
+      return false;
+    throw failure;
+  }
 }

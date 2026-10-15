@@ -26,6 +26,19 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 describe('Gemini page protection readiness', () => {
+  it.each(['registry', 'missing', 'shape', 'id', 'metadata', 'flags'] as const)(
+    'accepts only the fixed root-view %s reason without provider data',
+    (stage) => {
+      const value = { status: 'unsupported', reason: `owner-view-${stage}` };
+      expect(GeminiClientCapability.parse(value)).toEqual(value);
+      for (const extra of [
+        { id: 'SYNTHETIC_PRIVATE_MARKER' },
+        { flags: 256 },
+        { detail: 'SYNTHETIC_PRIVATE_MARKER' },
+      ])
+        expect(GeminiClientCapability.safeParse({ ...value, ...extra }).success).toBe(false);
+    },
+  );
   it('accepts only fixed client prerequisites and never private provider metadata', () => {
     expect(GeminiClientCapability.parse({ status: 'candidate' })).toEqual({ status: 'candidate' });
     for (const reason of [
@@ -51,6 +64,7 @@ describe('Gemini page protection readiness', () => {
       'transport-rpc',
       'prewarm',
       'hook',
+      'transport-webchannel',
     ])
       expect(GeminiClientCapability.parse({ status: 'unsupported', reason })).toEqual({
         status: 'unsupported',
@@ -63,6 +77,9 @@ describe('Gemini page protection readiness', () => {
       { status: 'candidate', reason: 'hook' },
       { status: 'candidate', token: 'SYNTHETIC_PRIVATE_MARKER' },
       { status: 'unsupported', reason: 'hook', context: 10 },
+      { status: 'unsupported', reason: 'transport-webchannel', oa: false },
+      { status: 'unsupported', reason: 'transport-webchannel', detail: 'SYNTHETIC_PRIVATE_MARKER' },
+      { status: 'unsupported', reason: 'transport-webchannel-unknown' },
       { status: 'ready' },
     ])
       expect(GeminiClientCapability.safeParse(value).success).toBe(false);
@@ -438,6 +455,156 @@ describe('Gemini page protection readiness', () => {
       });
     },
   );
+  it.each([
+    'open-trigger',
+    'open-menu',
+    'owner-missing',
+    'owner-changed',
+    'trigger-detached',
+    'popover-ambiguous',
+    'menu-ambiguous',
+    'controls-invalid',
+    'owner-duplicate',
+  ] as const)(
+    'carries finite Gemini menu diagnostic %s without changing the shared cause',
+    async (diagnostic) => {
+      mode.mockRejectedValue(
+        Object.assign(new Error('synthetic-secret', { cause: 'model-menu' }), {
+          geminiMenuDiagnostic: diagnostic,
+        }),
+      );
+      await expect(geminiReadiness()).rejects.toMatchObject({
+        message: 'Gemini readiness failed.',
+        cause: 'model-menu',
+        geminiMenuDiagnostic: diagnostic,
+      });
+    },
+  );
+  it.each(['unknown', 'accessor', 'inherited', 'other-cause'] as const)(
+    'omits unsupported menu diagnostic %s without reading private data',
+    async (kind) => {
+      const getter = vi.fn(() => 'open-trigger');
+      const cause = kind === 'other-cause' ? 'model-trigger' : 'model-menu';
+      const error = new Error('synthetic-secret', { cause });
+      if (kind === 'inherited')
+        Object.setPrototypeOf(
+          error,
+          Object.assign(Object.create(Error.prototype), {
+            geminiMenuDiagnostic: 'open-trigger',
+          }),
+        );
+      else
+        Object.defineProperty(
+          error,
+          'geminiMenuDiagnostic',
+          kind === 'accessor'
+            ? { get: getter }
+            : { value: kind === 'unknown' ? 'synthetic-secret' : 'open-trigger' },
+        );
+      mode.mockRejectedValue(error);
+      const failure = await geminiReadiness().catch((error) => error);
+      expect(failure).toMatchObject({ message: 'Gemini readiness failed.', cause });
+      expect(Object.hasOwn(failure, 'geminiMenuDiagnostic')).toBe(false);
+      expect(getter).not.toHaveBeenCalled();
+    },
+  );
+  it.each([
+    'compact-control',
+    'final-control',
+    'header-context',
+    'header-deadline',
+    'header-association',
+  ] as const)(
+    'carries finite Gemini trigger diagnostic %s without changing the shared cause',
+    async (diagnostic) => {
+      mode.mockRejectedValue(
+        Object.assign(new Error('synthetic-secret', { cause: 'model-trigger' }), {
+          geminiTriggerDiagnostic: diagnostic,
+        }),
+      );
+      const failure = await geminiReadiness(undefined, true).catch((error) => error);
+      expect(failure).toMatchObject({
+        message: 'Gemini readiness failed.',
+        cause: 'model-trigger',
+        geminiTriggerDiagnostic: diagnostic,
+      });
+      expect(Object.getOwnPropertyDescriptor(failure, 'geminiTriggerDiagnostic')).toMatchObject({
+        value: diagnostic,
+        writable: false,
+        configurable: false,
+      });
+    },
+  );
+  it.each(['unknown', 'accessor', 'inherited', 'other-cause', 'non-error'] as const)(
+    'omits unsupported trigger diagnostic %s without reading private data',
+    async (kind) => {
+      const getter = vi.fn(() => 'compact-control');
+      const cause = kind === 'other-cause' ? 'model-menu' : 'model-trigger';
+      const error = new Error('synthetic-secret', { cause });
+      if (kind === 'inherited')
+        Object.setPrototypeOf(
+          error,
+          Object.assign(Object.create(Error.prototype), {
+            geminiTriggerDiagnostic: 'compact-control',
+          }),
+        );
+      else
+        Object.defineProperty(
+          error,
+          'geminiTriggerDiagnostic',
+          kind === 'accessor'
+            ? { get: getter }
+            : { value: kind === 'unknown' ? 'synthetic-secret' : 'compact-control' },
+        );
+      mode.mockRejectedValue(
+        kind === 'non-error' ? { cause, geminiTriggerDiagnostic: 'compact-control' } : error,
+      );
+      const failure = await geminiReadiness(undefined, true).catch((error) => error);
+      expect(failure).toMatchObject({
+        message: 'Gemini readiness failed.',
+        cause: kind === 'non-error' ? 'model' : cause,
+      });
+      expect(Object.hasOwn(failure, 'geminiTriggerDiagnostic')).toBe(false);
+      expect(getter).not.toHaveBeenCalled();
+    },
+  );
+  it('keeps ordinary readiness generic even with recognized trigger metadata', async () => {
+    mode.mockRejectedValue(
+      Object.assign(new Error('synthetic-secret', { cause: 'model-trigger' }), {
+        geminiTriggerDiagnostic: 'compact-control',
+      }),
+    );
+    const failure = await geminiReadiness().catch((error) => error);
+    expect(failure).toMatchObject({ message: 'Gemini readiness failed.', cause: 'model-trigger' });
+    expect(Object.hasOwn(failure, 'geminiTriggerDiagnostic')).toBe(false);
+  });
+  it.each(['page', 'interrupted'] as const)(
+    'keeps %s precedence over an annotated header refusal',
+    async (cause) => {
+      const controller = new AbortController();
+      mode.mockImplementation(async () => {
+        if (cause === 'page') location.href += '/changed';
+        else controller.abort();
+        throw Object.assign(new Error('synthetic-secret', { cause: 'model-trigger' }), {
+          geminiTriggerDiagnostic: 'header-context',
+        });
+      });
+      const failure = await geminiReadiness(controller.signal, true).catch((error) => error);
+      expect(failure).toMatchObject({ message: 'Gemini readiness failed.', cause });
+      expect(Object.hasOwn(failure, 'geminiTriggerDiagnostic')).toBe(false);
+    },
+  );
+  it('does not read a model error cause accessor', async () => {
+    const getter = vi.fn(() => 'model-menu');
+    mode.mockRejectedValue(
+      Object.defineProperty(new Error('synthetic-secret'), 'cause', { get: getter }),
+    );
+    await expect(geminiReadiness()).rejects.toMatchObject({
+      message: 'Gemini readiness failed.',
+      cause: 'model',
+    });
+    expect(getter).not.toHaveBeenCalled();
+  });
   it.each(['synthetic-secret', 'model-confirmation', { token: 'synthetic-secret' }])(
     'replaces an arbitrary model cause with the fixed fallback (case %#)',
     async (cause) => {
@@ -536,3 +703,16 @@ describe('Gemini page protection readiness', () => {
     ).toBe(false);
   });
 });
+
+it.each([false, true])(
+  'propagates the explicit header readiness policy %s without changing the default',
+  async (header) => {
+    mode.mockResolvedValue({ label: 'Automatic fixture', modeId: 'fixture-mode' });
+    const signal = new AbortController().signal;
+    await expect(geminiReadiness(signal, header)).resolves.toEqual({
+      model: 'Automatic fixture',
+      modeId: 'fixture-mode',
+    });
+    expect(mode).toHaveBeenCalledExactlyOnceWith(signal, header);
+  },
+);

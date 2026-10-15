@@ -9,6 +9,7 @@ import {
   replies,
   questions,
   settledSnapshot,
+  snapshot,
   submit,
   textOf,
   messageKey,
@@ -21,6 +22,7 @@ import {
   GeminiReadinessProgress,
   GeminiReadinessReason,
 } from '../src/application/gemini-readiness';
+import { createGeminiHeaderObservation } from '../src/infrastructure/providers/gemini/header-observation';
 import { geminiReadiness } from '../src/infrastructure/providers/gemini/readiness';
 
 export default defineUnlistedScript(() => {
@@ -119,6 +121,37 @@ export default defineUnlistedScript(() => {
     );
   let choosingModel = false;
   let modelCleanupFailed = false;
+  let sdkTrial:
+    { id: string; closed: boolean; userChanged: boolean; start: number; poll: number } | undefined;
+  type HeaderObservation = {
+    id: string;
+    observer?: ReturnType<typeof createGeminiHeaderObservation>;
+  };
+  let headerObservation: HeaderObservation | undefined;
+  let sdkRevision = 0;
+  const stopSdkTrial = (userChanged = false) => {
+    if (!sdkTrial) return;
+    sdkTrial.closed = true;
+    sdkTrial.userChanged ||= userChanged;
+    // This page is quarantined until retirement or a fresh document.
+    choosingModel = true;
+  };
+  const changedSdkPage = () => {
+    sdkRevision++;
+    stopSdkTrial(true);
+  };
+  for (const type of ['beforeinput', 'input', 'change', 'paste', 'drop'])
+    document.addEventListener(type, changedSdkPage, true);
+  for (const type of ['pointerdown', 'keydown', 'click'])
+    document.addEventListener(
+      type,
+      (event) => {
+        if (event.isTrusted) changedSdkPage();
+      },
+      true,
+    );
+  for (const type of ['pagehide', 'popstate', 'hashchange'])
+    window.addEventListener(type, changedSdkPage);
   const failedModelCleanup = (failure: unknown): boolean =>
     failure instanceof Error &&
     (failure.cause === 'model-cleanup' ||
@@ -143,6 +176,80 @@ export default defineUnlistedScript(() => {
     }
     const command = parsed.data;
     void (async () => {
+      if (command.type === 'startGeminiHeaderObservation') {
+        if (
+          provider !== 'gemini' ||
+          window.top !== window ||
+          location.href !== 'https://gemini.google.com/app' ||
+          headerObservation ||
+          sdkTrial ||
+          choosingModel ||
+          modelCleanupFailed ||
+          active?.status === 'pending' ||
+          probe?.status === 'pending' ||
+          readiness?.status === 'pending' ||
+          peerJob?.status === 'pending' ||
+          used.has(command.id) ||
+          used.size >= 30
+        )
+          throw new Error('새 Gemini 관찰 페이지가 필요합니다.');
+        used.add(command.id);
+        const revision = sdkRevision;
+        // Reservation is synchronous; this document stays quarantined after settlement.
+        const job: HeaderObservation = { id: command.id };
+        headerObservation = job;
+        job.observer = createGeminiHeaderObservation(
+          new AbortController().signal,
+          () => revision === sdkRevision,
+        );
+        return { documentId };
+      }
+      if (
+        command.type === 'pollGeminiHeaderObservation' ||
+        command.type === 'cancelGeminiHeaderObservation'
+      ) {
+        if (
+          provider !== 'gemini' ||
+          command.documentId !== documentId ||
+          headerObservation?.id !== command.id ||
+          !headerObservation.observer ||
+          window.top !== window ||
+          location.href !== 'https://gemini.google.com/app'
+        )
+          throw new Error('Gemini 관찰 페이지의 연결이 바뀌었습니다.');
+        return command.type === 'pollGeminiHeaderObservation'
+          ? headerObservation.observer.poll()
+          : headerObservation.observer.cancel();
+      }
+      if (headerObservation && command.type !== 'snapshot')
+        throw new Error('이 페이지는 Gemini 버튼 관찰에 예약되어 있습니다.');
+      if (command.type === 'checkGeminiSdkTrial' || command.type === 'cancelGeminiSdkTrial') {
+        if (
+          provider !== 'gemini' ||
+          command.documentId !== documentId ||
+          sdkTrial?.id !== command.id
+        )
+          throw new Error('Gemini 시험 페이지의 연결이 바뀌었습니다.');
+        if (command.type === 'cancelGeminiSdkTrial') {
+          stopSdkTrial();
+          return true;
+        }
+        const samePage = () =>
+          window.top === window &&
+          /^https:\/\/gemini\.google\.com\/app(?:\/[0-9a-fA-F]{1,16})?$/.test(location.href);
+        if (!samePage()) stopSdkTrial(true);
+        if (Date.now() - sdkTrial.poll > 15000 || Date.now() - sdkTrial.start > LIMITS.timeoutMs)
+          stopSdkTrial();
+        sdkTrial.poll = Date.now();
+        await settledSnapshot(provider, documentId);
+        const snap = snapshot(provider, documentId);
+        const unchanged = samePage();
+        if (!unchanged || !snap.composer || snap.draft) stopSdkTrial(true);
+        return {
+          ready: !sdkTrial.closed && unchanged,
+          safeToRetire: unchanged && !sdkTrial.userChanged && snap.composer && !snap.draft,
+        };
+      }
       if (command.type === 'snapshot')
         return {
           ...(await settledSnapshot(provider, documentId, command.waitFor)),
@@ -213,6 +320,47 @@ export default defineUnlistedScript(() => {
         throw new Error(
           '모델 메뉴 정리를 확인하지 못했습니다. 이 페이지를 새로고침한 뒤 다시 연결하세요.',
         );
+      if (command.type === 'reserveGeminiSdkTrial') {
+        const occupied = () =>
+          headerObservation ||
+          sdkTrial ||
+          choosingModel ||
+          active?.status === 'pending' ||
+          probe?.status === 'pending' ||
+          readiness?.status === 'pending' ||
+          peerJob?.status === 'pending';
+        if (provider !== 'gemini' || occupied() || used.has(command.id))
+          throw new Error('새 Gemini 시험 페이지가 필요합니다.');
+        const revision = sdkRevision;
+        await settledSnapshot(provider, documentId);
+        const snap = snapshot(provider, documentId);
+        if (
+          revision !== sdkRevision ||
+          location.href !== command.url ||
+          !snap.composer ||
+          snap.busy ||
+          snap.draft ||
+          snap.truncated ||
+          questions(provider).length ||
+          replies(provider).length ||
+          snap.context.turns.length ||
+          snap.lastQuestion ||
+          snap.lastAnswer
+        )
+          throw new Error('Gemini 시험 페이지가 비어 있지 않습니다.');
+        // Reserve after the awaited snapshot only if no competing task started.
+        if (occupied()) throw new Error('Gemini 시험 페이지를 다른 작업이 사용 중입니다.');
+        used.add(command.id);
+        sdkTrial = {
+          id: command.id,
+          closed: false,
+          userChanged: false,
+          start: Date.now(),
+          poll: Date.now(),
+        };
+        choosingModel = true;
+        return true;
+      }
       if (command.type === 'finishGeminiReadiness') {
         const job = readiness;
         if (
@@ -486,6 +634,12 @@ export default defineUnlistedScript(() => {
     return true;
   });
   setInterval(() => {
+    if (
+      sdkTrial &&
+      !sdkTrial.closed &&
+      (Date.now() - sdkTrial.poll > 15000 || Date.now() - sdkTrial.start > LIMITS.timeoutMs)
+    )
+      stopSdkTrial();
     if (
       readiness?.status === 'pending' &&
       (location.href !== readiness.url ||

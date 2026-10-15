@@ -9,6 +9,12 @@ export const GeminiClientCapability = z.discriminatedUnion('status', [
         'owner',
         'owner-context',
         'owner-view',
+        'owner-view-registry',
+        'owner-view-missing',
+        'owner-view-shape',
+        'owner-view-id',
+        'owner-view-metadata',
+        'owner-view-flags',
         'owner-slot',
         'owner-declaration-1',
         'owner-declaration-2',
@@ -27,6 +33,7 @@ export const GeminiClientCapability = z.discriminatedUnion('status', [
         'transport-rpc',
         'prewarm',
         'hook',
+        'transport-webchannel',
       ]),
     })
     .strict(),
@@ -89,3 +96,47 @@ export const GeminiReadinessProgress = z
   })
   .strict();
 export type GeminiReadinessProgress = z.infer<typeof GeminiReadinessProgress>;
+
+export const GeminiHeaderObservationOutcome = z.enum([
+  'ready-early',
+  'ready-late',
+  'not-observed',
+  'inconclusive',
+  'visibility-changed',
+  'page',
+  'not-empty',
+  'unsupported',
+  'interrupted',
+]);
+export type GeminiHeaderObservationOutcome = z.infer<typeof GeminiHeaderObservationOutcome>;
+export const GeminiHeaderObservationVisibility = z.enum(['hidden', 'visible', 'unobserved']);
+const observed = (value: {
+  outcome?: GeminiHeaderObservationOutcome;
+  visibility: z.infer<typeof GeminiHeaderObservationVisibility>;
+}) =>
+  !['ready-early', 'ready-late', 'not-observed'].includes(value.outcome ?? '') ||
+  value.visibility !== 'unobserved';
+export const GeminiHeaderObservationProgress = z
+  .discriminatedUnion('status', [
+    z
+      .object({ status: z.literal('pending'), visibility: GeminiHeaderObservationVisibility })
+      .strict(),
+    z
+      .object({
+        status: z.literal('done'),
+        outcome: GeminiHeaderObservationOutcome,
+        visibility: GeminiHeaderObservationVisibility,
+      })
+      .strict(),
+  ])
+  .refine(observed);
+export type GeminiHeaderObservationProgress = z.infer<typeof GeminiHeaderObservationProgress>;
+export const GeminiHeaderObservationResult = z
+  .object({
+    outcome: GeminiHeaderObservationOutcome,
+    visibility: GeminiHeaderObservationVisibility,
+    retirement: z.enum(['closed', 'retained']),
+  })
+  .strict()
+  .refine(observed);
+export type GeminiHeaderObservationResult = z.infer<typeof GeminiHeaderObservationResult>;

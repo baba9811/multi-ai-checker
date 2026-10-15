@@ -1,6 +1,12 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
-import { geminiReadinessPage } from '../fixtures/providers/gemini-readiness';
+import { readFile } from 'node:fs/promises';
+import { readGeminiClientCapability } from '../../src/infrastructure/providers/gemini/client-capability';
+import {
+  geminiHeaderObservationPage,
+  geminiReadinessPage,
+  geminiClientReadinessPage,
+} from '../fixtures/providers/gemini-readiness';
 
 async function command(
   page: Page,
@@ -734,6 +740,40 @@ test('unsupported cached client explains the fixed boundary without dispatch', a
   expect(await page.evaluate(() => window.harness.sends)).toEqual([]);
 });
 
+for (const [stage, code] of [
+  ['registry', 'V1'],
+  ['missing', 'V2'],
+  ['shape', 'V3'],
+  ['id', 'V4'],
+  ['metadata', 'V5'],
+  ['flags', 'V6'],
+] as const) {
+  test(`readiness explains the fixed root-view ${stage} stage without sending or restoring it`, async ({
+    page,
+  }) => {
+    await page.goto(`/?client=owner-view-${stage}`);
+    await page.getByRole('button', { name: '연결', exact: true }).click();
+    await page.getByText('Gemini 준비 확인', { exact: true }).click();
+    await page.getByRole('button', { name: 'Gemini 준비 상태 확인', exact: true }).click();
+    await expect(
+      page.getByText(`모델 영역의 현재 연결을 확인하지 못했습니다. 확인 코드 ${code}.`, {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/SYNTHETIC_PRIVATE_MARKER|웹 클라이언트의 준비 조건을 확인했습니다/),
+    ).toHaveCount(0);
+    expect(await page.evaluate(() => window.harness.sends)).toEqual([]);
+    expect(await page.evaluate(() => sessionStorage.getItem('fixture-gemini-readiness'))).toBe(
+      'done',
+    );
+    await page.reload();
+    await page.getByRole('button', { name: '연결', exact: true }).click();
+    await page.getByText('Gemini 준비 확인', { exact: true }).click();
+    await expect(page.getByText(`확인 코드 ${code}.`, { exact: false })).toHaveCount(0);
+  });
+}
+
 test('readiness preserves the exact failed-close stage from the built model adapter', async ({
   page,
 }) => {
@@ -837,3 +877,412 @@ for (const [reason, explanation] of [
     await expect(page.getByText(explanation!, { exact: true })).toHaveCount(0);
   });
 }
+
+function withSdkHeaderProjection(page: string) {
+  return page
+    .replace(
+      '<bard-mode-switcher',
+      '<chat-app-side-nav-menu-button><new-model-picker-glow class="header-model-picker-glow"><div class="glow-content"><bard-mode-switcher',
+    )
+    .replace(
+      '</bard-mode-switcher>',
+      '</bard-mode-switcher></div></new-model-picker-glow></chat-app-side-nav-menu-button>',
+    );
+}
+
+test('canonical cold metadata stays unsupported while the compiled trial refuses missing model bindings', async ({
+  page,
+}) => {
+  await page.route('https://gemini.google.com/**', (route) =>
+    route.fulfill({
+      contentType: 'text/html',
+      body: withSdkHeaderProjection(geminiClientReadinessPage().replace('{oa:true}', '{oa:false}')),
+    }),
+  );
+  await page.goto('https://gemini.google.com/app');
+  expect(
+    await page.evaluate(
+      (source) => (0, eval)(`(${source})`)(),
+      readGeminiClientCapability.toString(),
+    ),
+  ).toEqual({ status: 'unsupported', reason: 'transport-webchannel' });
+  const source = await readFile(
+    path.resolve('.output/chrome-mv3/gemini-sdk-fixed-text-trial.js'),
+    'utf8',
+  );
+  const bootstrap = await page.evaluate((source) => (0, eval)(source), source);
+  const lease = () =>
+    page.evaluate(({ handle, capability }) => (window as any)[handle].lease(capability), bootstrap);
+  expect(await lease()).toEqual({ status: 'pending' });
+  await expect.poll(lease).toEqual({ status: 'error', reason: 'model-bindings' });
+  expect(await lease()).toEqual({ status: 'error', reason: 'model-bindings' });
+  expect(await page.evaluate(() => (window as any).fixtureClientCalls)).toBe(0);
+  expect(await page.evaluate(() => (window as any).fixtureNetworkCalls)).toBe(0);
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  expect(JSON.stringify(await lease())).not.toMatch(
+    /SYNTHETIC_PRIVATE|fixture-mode|capability|handle|oa/,
+  );
+});
+
+test('registered-idle metadata stays unsupported while the compiled trial refuses missing model bindings', async ({
+  page,
+}) => {
+  await page.route('https://gemini.google.com/**', (route) =>
+    route.fulfill({
+      contentType: 'text/html',
+      body: withSdkHeaderProjection(
+        geminiClientReadinessPage(false, { nativeSse: false, enabled: true }),
+      ),
+    }),
+  );
+  await page.goto('https://gemini.google.com/app');
+  expect(
+    await page.evaluate(
+      (source) => (0, eval)(`(${source})`)(),
+      readGeminiClientCapability.toString(),
+    ),
+  ).toEqual({ status: 'unsupported', reason: 'transport-webchannel' });
+  const source = await readFile(
+    path.resolve('.output/chrome-mv3/gemini-sdk-fixed-text-trial.js'),
+    'utf8',
+  );
+  const bootstrap = await page.evaluate((source) => (0, eval)(source), source);
+  const lease = () =>
+    page.evaluate(({ handle, capability }) => (window as any)[handle].lease(capability), bootstrap);
+  expect(await lease()).toEqual({ status: 'pending' });
+  await expect.poll(lease).toEqual({ status: 'error', reason: 'model-bindings' });
+  expect(await lease()).toEqual({ status: 'error', reason: 'model-bindings' });
+  expect(await page.evaluate(() => (window as any).fixtureClientCalls)).toBe(0);
+  expect(await page.evaluate(() => (window as any).fixtureNetworkCalls)).toBe(0);
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  expect(JSON.stringify(await lease())).not.toMatch(
+    /SYNTHETIC_PRIVATE|fixture-mode|capability|handle|Ma|Oa|hb|mb/,
+  );
+});
+
+test('unsupported WebChannel readiness explains the route without dispatch or accepted answer', async ({
+  page,
+}) => {
+  await page.goto('/?client=transport-webchannel');
+  await page.getByRole('button', { name: '연결', exact: true }).click();
+  await page.getByText('Gemini 준비 확인', { exact: true }).click();
+  await page.getByRole('button', { name: 'Gemini 준비 상태 확인', exact: true }).click();
+  await expect(
+    page.getByText('웹 채널 경로가 선택돼 있습니다. 이 시험에서는 해당 경로를 지원하지 않습니다.', {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/SYNTHETIC_PRIVATE_MARKER|웹 클라이언트의 준비 조건을 확인했습니다/),
+  ).toHaveCount(0);
+  await expect(page.locator('.gemini-trial-result')).toHaveCount(0);
+  expect(await page.evaluate(() => window.harness.sends)).toEqual([]);
+  expect(await page.evaluate(() => window.harness.geminiSdkTrialStarts)).toBe(0);
+  await page.reload();
+  await page.getByRole('button', { name: '연결', exact: true }).click();
+  await page.getByText('Gemini 준비 확인', { exact: true }).click();
+  await expect(page.getByText(/웹 채널 경로가 선택돼 있습니다/)).toHaveCount(0);
+});
+
+// Visibility is an explicit synthetic seam; compiled bridge and real shared inspector execute unchanged.
+async function headerSetup(page: Page, delay = 0) {
+  await page.route('https://gemini.google.com/**', (route) =>
+    route.fulfill({ contentType: 'text/html', body: geminiHeaderObservationPage(delay) }),
+  );
+  await page.goto('https://gemini.google.com/app');
+  await page.evaluate(() => {
+    (window as any).chrome = {
+      runtime: {
+        id: 'fixture',
+        getURL: (s: string) => `chrome-extension://fixture/${s}`,
+        onMessage: {
+          addListener: (h: unknown) => {
+            (window as any).__bridgeHandler = h;
+          },
+        },
+      },
+    };
+  });
+  const bridge = await page.addScriptTag({ path: path.resolve('.output/chrome-mv3/bridge.js') });
+  await bridge.evaluate((element) => element.parentNode?.removeChild(element));
+}
+test('DOM-only observation reaches the real compiled inspector, stays quarantined and terminal polls are inert', async ({
+  page,
+}) => {
+  await headerSetup(page);
+  const start = await command(page, { type: 'startGeminiHeaderObservation', id: 'header' });
+  expect(start).toEqual({ ok: true, data: { documentId: expect.any(String) } });
+  const bound = { id: 'header', documentId: start.data.documentId };
+  expect(await command(page, { type: 'pollGeminiHeaderObservation', ...bound })).toEqual({
+    ok: true,
+    data: { status: 'done', visibility: 'hidden', outcome: 'ready-early' },
+  });
+  const reads = await page.evaluate(() => (window as any).fixtureHeader.reads);
+  expect(reads).toBeGreaterThan(0);
+  for (const type of [
+    'models',
+    'selectModel',
+    'startGeminiReadiness',
+    'reserveGeminiSdkTrial',
+    'send',
+  ])
+    expect(
+      (
+        await command(page, {
+          type,
+          ...bound,
+          id: 'competing',
+          url: 'https://gemini.google.com/app',
+          ...(type === 'send' ? { prompt: 'never sent' } : {}),
+          ...(type === 'selectModel' ? { key: 'forbidden' } : {}),
+        })
+      ).ok,
+    ).toBe(false);
+  expect((await command(page, { type: 'startGeminiHeaderObservation', id: 'again' })).ok).toBe(
+    false,
+  );
+  expect(await command(page, { type: 'cancelGeminiHeaderObservation', ...bound })).toEqual({
+    ok: true,
+    data: { safeToRetire: true },
+  });
+  expect((await command(page, { type: 'pollGeminiHeaderObservation', ...bound })).data).toEqual({
+    status: 'done',
+    visibility: 'hidden',
+    outcome: 'ready-early',
+  });
+  expect(await page.evaluate(() => (window as any).fixtureHeader)).toEqual({
+    hidden: true,
+    reads,
+    clicks: 0,
+    privateReads: 0,
+    started: true,
+  });
+  expect(await page.evaluate(() => (window as any).fixtureNetworkCalls)).toBe(0);
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  expect(await page.locator('[role="menu"]').count()).toBe(0);
+});
+test('observation rejects foreign senders, stale IDs and unknown/private payload fields', async ({
+  page,
+}) => {
+  await headerSetup(page);
+  expect(
+    (
+      await command(
+        page,
+        { type: 'startGeminiHeaderObservation', id: 'foreign' },
+        'https://gemini.google.com/app',
+      )
+    ).ok,
+  ).toBe(false);
+  for (const key of ['url', 'documentId', 'headers', 'selector', 'timeout', 'private'])
+    expect(
+      (
+        await command(page, {
+          type: 'startGeminiHeaderObservation',
+          id: 'extra',
+          [key]: 'forbidden',
+        })
+      ).ok,
+    ).toBe(false);
+  const start = await command(page, { type: 'startGeminiHeaderObservation', id: 'bound' });
+  for (const type of ['pollGeminiHeaderObservation', 'cancelGeminiHeaderObservation']) {
+    expect((await command(page, { type, id: 'bound', documentId: 'stale' })).ok).toBe(false);
+    expect((await command(page, { type, id: 'stale', documentId: start.data.documentId })).ok).toBe(
+      false,
+    );
+  }
+  expect(await page.evaluate(() => (window as any).fixtureHeader.privateReads)).toBe(0);
+});
+test('compiled real inspector witnesses late hidden readiness without menu or requests', async ({
+  page,
+}) => {
+  await headerSetup(page, 3200);
+  const start = await command(page, { type: 'startGeminiHeaderObservation', id: 'late' });
+  const bound = { id: 'late', documentId: start.data.documentId };
+  await expect
+    .poll(
+      async () => (await command(page, { type: 'pollGeminiHeaderObservation', ...bound })).data,
+      { timeout: 10000 },
+    )
+    .toEqual({ status: 'done', visibility: 'hidden', outcome: 'ready-late' });
+  expect((await command(page, { type: 'cancelGeminiHeaderObservation', ...bound })).data).toEqual({
+    safeToRetire: true,
+  });
+  expect(await page.evaluate(() => (window as any).fixtureHeader.clicks)).toBe(0);
+  expect(await page.evaluate(() => (window as any).fixtureHeader.privateReads)).toBe(0);
+  expect(await page.evaluate(() => (window as any).fixtureNetworkCalls)).toBe(0);
+});
+test('compiled cancellation while composer preparation waits is final and does not inspect later', async ({
+  page,
+}) => {
+  await headerSetup(page, 3200);
+  await page.locator('.ql-editor').evaluate((element) => element.remove());
+  const start = await command(page, { type: 'startGeminiHeaderObservation', id: 'prep' });
+  const bound = { id: 'prep', documentId: start.data.documentId };
+  expect((await command(page, { type: 'cancelGeminiHeaderObservation', ...bound })).data).toEqual({
+    safeToRetire: false,
+  });
+  expect((await command(page, { type: 'pollGeminiHeaderObservation', ...bound })).data).toEqual({
+    status: 'done',
+    visibility: 'hidden',
+    outcome: 'interrupted',
+  });
+  expect(await page.evaluate(() => (window as any).fixtureHeader.reads)).toBe(0);
+});
+test('visibilitychange between polls invalidates an ongoing observer even if hidden again', async ({
+  page,
+}) => {
+  await headerSetup(page, 3200);
+  const start = await command(page, { type: 'startGeminiHeaderObservation', id: 'hidden' });
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  expect(
+    (
+      await command(page, {
+        type: 'pollGeminiHeaderObservation',
+        id: 'hidden',
+        documentId: start.data.documentId,
+      })
+    ).data,
+  ).toEqual({ status: 'done', visibility: 'hidden', outcome: 'visibility-changed' });
+});
+
+test('terminal evidence stays fixed but typed-then-cleared user input permanently vetoes retirement', async ({
+  page,
+}) => {
+  await headerSetup(page);
+  const start = await command(page, { type: 'startGeminiHeaderObservation', id: 'terminal-input' });
+  const bound = { id: 'terminal-input', documentId: start.data.documentId };
+  expect((await command(page, { type: 'pollGeminiHeaderObservation', ...bound })).data).toEqual({
+    status: 'done',
+    outcome: 'ready-early',
+    visibility: 'hidden',
+  });
+  const reads = await page.evaluate(() => (window as any).fixtureHeader.reads);
+  await page.locator('.ql-editor').fill('synthetic draft');
+  await page.locator('.ql-editor').fill('');
+  expect((await command(page, { type: 'cancelGeminiHeaderObservation', ...bound })).data).toEqual({
+    safeToRetire: false,
+  });
+  expect((await command(page, { type: 'pollGeminiHeaderObservation', ...bound })).data).toEqual({
+    status: 'done',
+    outcome: 'ready-early',
+    visibility: 'hidden',
+  });
+  expect(await page.evaluate(() => (window as any).fixtureHeader.reads)).toBe(reads);
+});
+for (const visible of [false, true]) {
+  test(`compiled observer preserves initial ${visible ? 'visible' : 'hidden'} state and refuses either transition direction`, async ({
+    page,
+  }) => {
+    await headerSetup(page, 3200);
+    await page.evaluate((value) => {
+      (window as any).fixtureHeader.hidden = !value;
+    }, visible);
+    const start = await command(page, { type: 'startGeminiHeaderObservation', id: 'transition' });
+    await page.evaluate((value) => {
+      (window as any).fixtureHeader.hidden = value;
+    }, visible);
+    await expect
+      .poll(
+        async () =>
+          (
+            await command(page, {
+              type: 'pollGeminiHeaderObservation',
+              id: 'transition',
+              documentId: start.data.documentId,
+            })
+          ).data,
+      )
+      .toEqual({
+        status: 'done',
+        outcome: 'visibility-changed',
+        visibility: visible ? 'visible' : 'hidden',
+      });
+    expect(
+      (
+        await command(page, {
+          type: 'cancelGeminiHeaderObservation',
+          id: 'transition',
+          documentId: start.data.documentId,
+        })
+      ).data,
+    ).toEqual({ safeToRetire: false });
+  });
+}
+
+test('the compiled bridge refuses a pending SDK reservation after the separate observer reserves', async ({
+  page,
+}) => {
+  await headerSetup(page);
+  const target = (await command(page, { type: 'snapshot' })).data;
+  const results = await page.evaluate((target) => {
+    const send = (message: object) =>
+      new Promise<{ ok: boolean; data?: any; error?: string }>((resolve) => {
+        (window as any).__bridgeHandler(
+          message,
+          { id: 'fixture', url: 'chrome-extension://fixture/sidepanel.html' },
+          resolve,
+        );
+      });
+    // Both handlers enter in one task before the SDK snapshot continuation resumes.
+    const sdk = send({
+      type: 'reserveGeminiSdkTrial',
+      id: 'pending-sdk',
+      documentId: target.documentId,
+      url: target.url,
+    });
+    const observation = send({ type: 'startGeminiHeaderObservation', id: 'observer' });
+    return Promise.all([sdk, observation]);
+  }, target);
+  expect(results[1]).toEqual({ ok: true, data: { documentId: target.documentId } });
+  expect(results[0]).toEqual({
+    ok: false,
+    error: 'Gemini 시험 페이지를 다른 작업이 사용 중입니다.',
+  });
+  const bound = { id: 'observer', documentId: target.documentId };
+  const terminal = {
+    ok: true,
+    data: { status: 'done', visibility: 'hidden', outcome: 'ready-early' },
+  };
+  expect(await command(page, { type: 'pollGeminiHeaderObservation', ...bound })).toEqual(terminal);
+  const reads = await page.evaluate(() => (window as any).fixtureHeader.reads);
+  expect(reads).toBeGreaterThan(0);
+  expect(await command(page, { type: 'cancelGeminiHeaderObservation', ...bound })).toEqual({
+    ok: true,
+    data: { safeToRetire: true },
+  });
+  expect(await command(page, { type: 'pollGeminiHeaderObservation', ...bound })).toEqual(terminal);
+  expect(await page.evaluate(() => (window as any).fixtureHeader)).toEqual({
+    hidden: true,
+    reads,
+    clicks: 0,
+    privateReads: 0,
+    started: true,
+  });
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  expect(await page.evaluate(() => (window as any).fixtureNetworkCalls)).toBe(0);
+  expect(await page.locator('[role="menu"]').count()).toBe(0);
+});
+
+test('an existing SDK reservation excludes the separate header observer before any inspector read', async ({
+  page,
+}) => {
+  await headerSetup(page);
+  const target = (await command(page, { type: 'snapshot' })).data;
+  expect(
+    (
+      await command(page, {
+        type: 'reserveGeminiSdkTrial',
+        id: 'sdk-first',
+        documentId: target.documentId,
+        url: target.url,
+      })
+    ).ok,
+  ).toBe(true);
+  expect((await command(page, { type: 'startGeminiHeaderObservation', id: 'conflict' })).ok).toBe(
+    false,
+  );
+  expect(await page.evaluate(() => (window as any).fixtureHeader.reads)).toBe(0);
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  expect(await page.evaluate(() => (window as any).fixtureNetworkCalls)).toBe(0);
+});

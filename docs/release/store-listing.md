@@ -33,6 +33,7 @@ AI agreement is not factual verification. Search execution, source accuracy, and
 CrossCheck는 ChatGPT·Claude·Gemini 웹 대화를 연결하는 Chrome 사이드패널 확장입니다. 이미 나눈 여러 턴의 질문과 답변을 불러와 비교·교차 검토할 수 있습니다.
 
 사용 방법
+
 1. 연결 버튼으로 서비스 탭을 열고 평소처럼 로그인하세요. 별도 API 키는 필요 없습니다.
 2. 완료된 질문·답변이 있는 메인 대화를 불러온 뒤, 공유할 전체 내용과 검토할 AI를 확인하세요.
 3. 대화에 첨부가 있다면 파일·이미지 원본을 모두 다시 선택하세요. 없다면 첨부 없음을 확인하세요.

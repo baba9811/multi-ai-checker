@@ -23,6 +23,8 @@ The [owning research](../research/background-web-transport.md#next-gate-fixed-te
 
 Use the real `lN.sendRequest` pipeline and a scoped final gate. A direct `fVd → h5a → Oub` implementation would need the private processor registry and duplicate normal effects. A direct legacy request cannot establish the bounded dispatch contract because of fallback/reconnect and SDK refresh behavior. Both alternatives are outside this plan.
 
+This exclusion concerns directly invoking those retrying SDK paths. It does not disprove one owned same-origin browser fetch outside that machinery. An in-page HTTP/hybrid candidate retaining genuine protection, supported serialization and strict request/history ownership remains unproved; the [current transport comparison](../research/provider-transport-comparison.md) owns that open assessment. This historical conditional plan is not evidence that the SDK is the uniquely best transport.
+
 The trial's authoritative model receipt is captured **inside the same MAIN request closure**, by compiling and reusing `geminiReadiness`/`readGeminiMode`. Retain its exact label/key there, reread before send, compare it to that owning `sV.I7` and final `request.Hi`, and recheck before the first callback delegation. Do not pass an ISOLATED private key through Chrome arguments/RPC or accept page-event model confirmations. Task 12 is a prerequisite diagnostic; its separate receipt is not this new trial's request receipt. If a separate ISOLATED receipt must become authoritative, stop until its exact pre-dispatch equality has an independently reviewed mechanism.
 
 ## Exact read and change scope
