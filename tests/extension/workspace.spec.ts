@@ -100,18 +100,25 @@ test.describe('synthetic three-provider workflow permissions already granted', (
     });
     await card.getByRole('button', { name: '연결', exact: true }).click();
     await expect(card).toContainText('입력란 감지');
+    await expect(card.getByRole('button', { name: '다시 연결', exact: true })).toBeEnabled();
     const main = await context.newPage();
     const sourceUrl = 'https://chatgpt.com/c/synthetic-panel-closure';
     await main.route('https://chatgpt.com/**', (route) =>
       route.fulfill({
         contentType: 'text/html',
-        body: providerPage('chatgpt'),
+        body: providerPage('chatgpt').replace(
+          "user('기존 질문')",
+          "user('패널 종료 연결 확인 질문')",
+        ),
       }),
     );
     await main.goto(sourceUrl);
     await main.bringToFront();
     await panel.getByRole('button', { name: '검토', exact: true }).click();
+    await panel.getByRole('button', { name: /현재 탭(에서 가져오기|으로 변경)/ }).click();
     await expect(panel.locator('.auto-source')).toContainText('질문·답변 1쌍');
+    await expect(panel.locator('.auto-source')).toContainText('ChatGPT');
+    await expect(panel.locator('.source-question')).toHaveText('패널 종료 연결 확인 질문');
     await panel.getByRole('checkbox', { name: 'Gemini 참여' }).uncheck();
     await panel.getByRole('checkbox', { name: '원래 대화에 첨부파일이 없습니다' }).check();
     await panel.getByRole('button', { name: '자동 검토 시작', exact: true }).click();
@@ -120,6 +127,8 @@ test.describe('synthetic three-provider workflow permissions already granted', (
       await panel.evaluate(() => chrome.storage.session.get('crosscheck.workspace.v1'))
     )['crosscheck.workspace.v1'] as Workspace;
     const pending = stored.run!.jobs.find((job) => job.status === 'sending')!;
+    expect(stored.run!.chair).toBe('chatgpt');
+    expect(stored.run!.main!.url).toBe(sourceUrl);
     expect(pending.provider).toBe('claude');
     expect(pending.stage).toBe('collect');
     const binding = stored.bindings.claude!;
