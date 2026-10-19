@@ -41,8 +41,12 @@ function harness(failure?: string) {
     files: AttachmentPayload[];
     checkpointStatus?: string;
   }[] = [];
-  const port: Pick<Platform, 'preparePeer' | 'inspect' | 'sendAndCollect' | 'reveal'> = {
+  const port: Pick<
+    Platform,
+    'preparePeer' | 'prepareAutomaticTarget' | 'inspect' | 'sendAndCollect' | 'reveal'
+  > = {
     async reveal() {},
+    async prepareAutomaticTarget() {},
     async preparePeer(provider) {
       return target(provider);
     },
@@ -244,41 +248,62 @@ it.each(['upload failed', 'send outcome uncertain'])(
   },
 );
 
-it('visits exact targets sequentially and keeps each active through collection', async () => {
-  const test = harness();
-  let active: Binding | undefined;
-  let collecting = false;
-  const visits: Binding[] = [];
-  test.platform.reveal = async (binding) => {
-    expect(collecting).toBe(false);
-    active = binding;
-    visits.push(binding);
-  };
-  test.platform.inspect = async (binding) => {
-    expect(active).toEqual(binding);
-    return snapshot(binding);
-  };
-  const collect = test.platform.sendAndCollect;
-  test.platform.sendAndCollect = async (...args) => {
-    expect(active).toEqual(args[1]);
-    expect(collecting).toBe(false);
-    collecting = true;
-    await new Promise((resolve) => setTimeout(resolve, 5));
-    expect(active).toEqual(args[1]);
-    const result = await collect(...args);
-    collecting = false;
-    return result;
-  };
-  const result = await executeAutomatic(
-    importedRun(source, [...providerIds], 'economy'),
-    {},
-    test.platform,
-    new AbortController().signal,
-    test.checkpoint,
-  );
-  expect(result.jobs.every((job) => job.status === 'done')).toBe(true);
-  expect(visits.at(-1)).toEqual(source.binding);
-});
+it.each([undefined, 'background'] as const)(
+  'prepares exact automatic targets sequentially with execution=%s',
+  async (execution) => {
+    const test = harness();
+    let prepared: Binding | undefined;
+    let collecting = false;
+    const visits: Binding[] = [];
+    test.platform.reveal = async (binding) => {
+      expect(execution).toBeUndefined();
+      expect(collecting).toBe(false);
+      prepared = binding;
+      visits.push(binding);
+    };
+    test.platform.prepareAutomaticTarget = async (binding) => {
+      expect(execution).toBe('background');
+      expect(collecting).toBe(false);
+      expect(binding.provider).not.toBe('chatgpt');
+      prepared = binding;
+      visits.push(binding);
+    };
+    test.platform.preparePeer = async (provider, _saved, threadId, _signal, background) => {
+      expect(threadId).toBeUndefined();
+      expect(background).toBe(execution === 'background');
+      return target(provider);
+    };
+    test.platform.inspect = async (binding) => {
+      if (!execution) expect(prepared).toEqual(binding);
+      return snapshot(binding);
+    };
+    const collect = test.platform.sendAndCollect;
+    test.platform.sendAndCollect = async (...args) => {
+      if (!execution || args[1].provider !== 'chatgpt') expect(prepared).toEqual(args[1]);
+      expect(collecting).toBe(false);
+      collecting = true;
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      if (!execution || args[1].provider !== 'chatgpt') expect(prepared).toEqual(args[1]);
+      const result = await collect(...args);
+      collecting = false;
+      return result;
+    };
+    const result = await executeAutomatic(
+      { ...importedRun(source, [...providerIds], 'economy'), ...(execution ? { execution } : {}) },
+      {},
+      test.platform,
+      new AbortController().signal,
+      test.checkpoint,
+    );
+    expect(result.jobs.every((job) => job.status === 'done')).toBe(true);
+    expect(visits.map(({ provider }) => provider)).toEqual(
+      execution
+        ? ['claude', 'gemini', 'claude']
+        : ['chatgpt', 'claude', 'gemini', 'claude', 'chatgpt'],
+    );
+    expect(result.execution).toBe(execution);
+  },
+);
 
 it.each(['cancel', 'save'])(
   'stops later provider requests after %s during the first collection',
@@ -346,12 +371,14 @@ it('keeps the next unsent provider ready after cancellation and sends it once on
 });
 
 it.each(
-  ['preparePeer', 'reveal', 'inspect'].flatMap((boundary) =>
-    [false, true].map((reject) => ({ boundary, reject })),
+  [undefined, 'background'].flatMap((execution) =>
+    ['preparePeer', execution ? 'prepareAutomaticTarget' : 'reveal', 'inspect'].flatMap(
+      (boundary) => [false, true].map((reject) => ({ execution, boundary, reject })),
+    ),
   ),
 )(
-  'preserves a known-unsent request cancelled during $boundary (reject=$reject)',
-  async ({ boundary, reject }) => {
+  'preserves a known-unsent request cancelled during $boundary (execution=$execution, reject=$reject)',
+  async ({ execution, boundary, reject }) => {
     const test = harness();
     const controller = new AbortController();
     if (boundary === 'preparePeer') {
@@ -360,8 +387,8 @@ it.each(
         if (reject) throw new Error('cancelled preparation');
         return target(provider);
       };
-    } else if (boundary === 'reveal') {
-      test.platform.reveal = async (binding) => {
+    } else if (boundary === 'prepareAutomaticTarget' || boundary === 'reveal') {
+      test.platform[boundary] = async (binding) => {
         if (binding.provider !== 'claude') return;
         controller.abort();
         if (reject) throw new Error('cancelled activation');
@@ -377,7 +404,10 @@ it.each(
     }
     await expect(
       executeAutomatic(
-        importedRun(source, [...providerIds], 'economy'),
+        {
+          ...importedRun(source, [...providerIds], 'economy'),
+          ...(execution ? { execution: 'background' as const } : {}),
+        },
         {},
         test.platform,
         controller.signal,

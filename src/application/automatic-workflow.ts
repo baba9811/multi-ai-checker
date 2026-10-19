@@ -1,4 +1,4 @@
-import { LIMITS, ConversationContext, type Run } from '../domains/crosscheck/model';
+import { LIMITS, ConversationContext, Run, type PromptOptions } from '../domains/crosscheck/model';
 import { createRun, nextStage, updateJob } from '../domains/crosscheck/workflow';
 import type { Binding, ProviderId } from '../domains/providers/model';
 import type { Conversation, Platform, Workspace } from './ports';
@@ -39,6 +39,7 @@ export function importedRun(
   selected: ProviderId[],
   mode: Run['mode'],
   attachments: Attachment[] = [],
+  promptOptions?: PromptOptions,
 ): Run {
   const { binding, snapshot } = source;
   if (
@@ -83,6 +84,7 @@ export function importedRun(
     mode,
     attachments,
     context,
+    promptOptions,
   );
   return {
     ...run,
@@ -93,6 +95,24 @@ export function importedRun(
         : job,
     ),
   };
+}
+
+export function importedClaudePeerRun(
+  source: Conversation,
+  attachments: Attachment[] = [],
+  promptOptions?: PromptOptions,
+): Run {
+  if (source.binding.provider === 'claude') throw new Error('다른 AI의 원래 대화를 선택해주세요.');
+  return Run.parse({
+    ...importedRun(
+      source,
+      [source.binding.provider, 'claude'],
+      'economy',
+      attachments,
+      promptOptions,
+    ),
+    kind: 'claude-peer',
+  });
 }
 
 /** A single user action authorizes this bounded pipeline. Never retry ambiguous sends. */
@@ -109,6 +129,8 @@ export async function executeAutomatic(
       '원본 첨부파일을 모두 다시 선택해주세요. 파일 이름과 내용이 이전 선택과 같아야 합니다.',
     );
   let run = initial;
+  const peer = run.kind === 'claude-peer';
+  const background = run.execution === 'background';
   const bindings = { ...saved, [run.chair]: run.main };
   const publish = () => checkpoint({ run, bindings: { ...bindings } });
   const checkAbort = () => {
@@ -128,9 +150,12 @@ export async function executeAutomatic(
       .map((job) => ({ question: job.prompt, answer: job.answer }));
   checkAbort();
   if (run.context) {
-    await platform.reveal(run.main);
-    checkAbort();
+    if (!peer && !background) {
+      await platform.reveal(run.main);
+      checkAbort();
+    }
     const source = await platform.inspect(run.main);
+    checkAbort();
     if (source.url !== run.main.url || source.documentId !== run.main.documentId)
       throw new Error('메인 대화가 바뀌었습니다.');
     assertCapturedContext(run.context, source, ownMainTurns());
@@ -145,7 +170,24 @@ export async function executeAutomatic(
     );
     if (!pending) continue;
     try {
-      bindings[provider] = await platform.preparePeer(provider, bindings[provider]);
+      const savedPeer = peer
+        ? bindings[provider]?.threadId === run.id
+          ? bindings[provider]
+          : undefined
+        : bindings[provider];
+      if (
+        peer &&
+        !savedPeer &&
+        run.jobs.some((job) => job.provider === provider && job.status !== 'ready')
+      )
+        throw new Error('Claude 검토 연결을 잃었습니다. 새 대화를 만들거나 재전송하지 않습니다.');
+      bindings[provider] = await platform.preparePeer(
+        provider,
+        savedPeer,
+        peer ? run.id : undefined,
+        signal,
+        background,
+      );
     } catch (error) {
       checkAbort();
       run = updateJob(run, pending.id, {
@@ -164,7 +206,15 @@ export async function executeAutomatic(
         job.provider === run.chair ? run.main : bindings[job.provider];
       try {
         if (!target) throw new Error('연결할 AI 탭을 찾지 못했습니다.');
-        await platform.reveal(target);
+        if (peer) {
+          if (target.threadId !== run.id || target.provider !== 'claude')
+            throw new Error('Claude 검토 연결이 일치하지 않습니다.');
+          const source = await platform.inspect(run.main!);
+          if (source.url !== run.main!.url || source.documentId !== run.main!.documentId)
+            throw new Error('메인 대화가 바뀌었습니다.');
+          assertCapturedContext(run.context, source);
+        } else if (!background) await platform.reveal(target);
+        else if (job.provider !== run.chair) await platform.prepareAutomaticTarget(target, signal);
         checkAbort();
         const snap = await platform.inspect(target);
         if (snap.url !== target.url || snap.documentId !== target.documentId)
@@ -201,7 +251,8 @@ export async function executeAutomatic(
             receipt &&
             receipt.tabId === target!.tabId &&
             receipt.documentId === target!.documentId &&
-            receipt.url === target!.url
+            receipt.url === target!.url &&
+            receipt.threadId === target!.threadId
           );
         });
         const result = await platform.sendAndCollect(
@@ -209,6 +260,7 @@ export async function executeAutomatic(
           target!,
           signal,
           delivered ? [] : attachments,
+          run.attachments,
         );
         if (job.provider === run.chair && result.binding.url !== run.main!.url)
           throw new Error('메인 대화가 바뀌었습니다. 답변을 해당 탭에서 확인하세요.');
@@ -227,6 +279,11 @@ export async function executeAutomatic(
       await publish();
     }
     checkAbort();
+    if (peer && run.stage === 'review') {
+      if (!run.jobs.some((job) => job.stage === 'review' && job.status === 'done'))
+        throw new Error('Claude 검토를 완료하지 못했습니다. 아래 상태를 확인해주세요.');
+      return run;
+    }
     if (run.stage === 'synthesize') {
       if (!run.jobs.some((job) => job.stage === 'synthesize' && job.status === 'done'))
         throw new Error('최종 답변 생성을 완료하지 못했습니다. 아래 상태를 확인해주세요.');

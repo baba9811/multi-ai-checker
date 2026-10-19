@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { ProviderId } from '../domains/providers/model';
 import { LIMITS, ConversationTurn } from '../domains/crosscheck/model';
-import { AttachmentBatch } from '../domains/attachments/model';
+import { AttachmentBatch, Attachment, ATTACHMENT_LIMITS } from '../domains/attachments/model';
+import { ClaudeProbeKind } from './claude-probe';
 
 export const AdapterDiagnostics = z.object({
   adapterVersion: z.literal('2026-10-06'),
@@ -30,19 +31,25 @@ export const CapturedConversation = z
       LIMITS.context + 2 * (LIMITS.prompt + LIMITS.answer),
     '불러온 대화가 전송 경계를 넘었습니다.',
   );
-export const Snapshot = z.object({
-  provider: ProviderId,
-  documentId: z.string(),
-  url: z.string(),
-  composer: z.boolean(),
-  busy: z.boolean(),
-  draft: z.boolean(),
-  truncated: z.boolean(),
-  lastQuestion: z.string().max(LIMITS.question),
-  lastAnswer: z.string().max(LIMITS.answer),
-  context: CapturedConversation,
-  diagnostics: AdapterDiagnostics.optional(),
-});
+export const Snapshot = z
+  .object({
+    provider: ProviderId,
+    documentId: z.string(),
+    url: z.string(),
+    threadId: z.uuid().optional(),
+    composer: z.boolean(),
+    busy: z.boolean(),
+    draft: z.boolean(),
+    truncated: z.boolean(),
+    lastQuestion: z.string().max(LIMITS.question),
+    lastAnswer: z.string().max(LIMITS.answer),
+    context: CapturedConversation,
+    diagnostics: AdapterDiagnostics.optional(),
+  })
+  .refine(
+    (snapshot) => !snapshot.threadId || snapshot.provider === 'claude',
+    'Invalid peer snapshot.',
+  );
 export type Snapshot = z.infer<typeof Snapshot>;
 export const ModelCatalog = z.object({
   current: z.string().max(160).optional(),
@@ -55,6 +62,24 @@ export const ModelCatalog = z.object({
 });
 export type ModelCatalog = z.infer<typeof ModelCatalog>;
 export const Command = z.discriminatedUnion('type', [
+  z
+    .object({ type: z.literal('startGeminiHeaderObservation'), id: z.string().min(1).max(100) })
+    .strict(),
+  z
+    .object({
+      type: z.literal('pollGeminiHeaderObservation'),
+      id: z.string().min(1).max(100),
+      documentId: z.string().min(1).max(100),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('cancelGeminiHeaderObservation'),
+      id: z.string().min(1).max(100),
+      documentId: z.string().min(1).max(100),
+    })
+    .strict(),
+
   z.object({
     type: z.literal('snapshot'),
     waitFor: z.enum(['composer', 'conversation']).optional(),
@@ -69,6 +94,70 @@ export const Command = z.discriminatedUnion('type', [
   }),
   z.object({ type: z.literal('poll'), id: z.string().max(100) }),
   z.object({ type: z.literal('cancel'), id: z.string().max(100) }),
+  z
+    .object({
+      type: z.literal('sendClaudePeer'),
+      id: z.string().min(1).max(100),
+      threadId: z.uuid(),
+      stage: z.enum(['collect', 'review']),
+      documentId: z.string().max(100),
+      url: z.string().max(3000),
+      prompt: z.string().min(1).max(LIMITS.prompt),
+      attachments: AttachmentBatch,
+      approved: z.array(Attachment).max(ATTACHMENT_LIMITS.count),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('startClaudeProbe'),
+      kind: ClaudeProbeKind.optional(),
+      id: z.string().min(1).max(100),
+      documentId: z.string().max(100),
+      url: z.string().max(3000),
+    })
+    .strict(),
+  z.object({ type: z.literal('pollClaudeProbe'), id: z.string().min(1).max(100) }).strict(),
+  z.object({ type: z.literal('cancelClaudeProbe'), id: z.string().min(1).max(100) }).strict(),
+  z
+    .object({
+      type: z.literal('startGeminiReadiness'),
+      id: z.string().min(1).max(100),
+      documentId: z.string().max(100),
+      url: z.string().max(3000),
+    })
+    .strict(),
+  z.object({ type: z.literal('pollGeminiReadiness'), id: z.string().min(1).max(100) }).strict(),
+  z.object({ type: z.literal('cancelGeminiReadiness'), id: z.string().min(1).max(100) }).strict(),
+  z
+    .object({
+      type: z.literal('reserveGeminiSdkTrial'),
+      id: z.string().min(1).max(100),
+      documentId: z.string().min(1).max(100),
+      url: z.literal('https://gemini.google.com/app'),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('checkGeminiSdkTrial'),
+      id: z.string().min(1).max(100),
+      documentId: z.string().min(1).max(100),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('cancelGeminiSdkTrial'),
+      id: z.string().min(1).max(100),
+      documentId: z.string().min(1).max(100),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('finishGeminiReadiness'),
+      id: z.string().min(1).max(100),
+      documentId: z.string().max(100),
+      url: z.string().max(3000),
+    })
+    .strict(),
   z.object({ type: z.literal('models'), documentId: z.string(), url: z.string() }),
   z.object({
     type: z.literal('selectModel'),

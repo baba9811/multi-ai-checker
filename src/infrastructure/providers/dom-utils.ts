@@ -34,14 +34,20 @@ export function messageOrder(a: HTMLElement, b: HTMLElement): number {
   return delta || (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1);
 }
 
+// Turn-level fallbacks can contain copy/read-aloud controls and screen-reader labels.
+const textControls =
+  'button, [role="toolbar"], .turn-action-controls, .sr-only, .cdk-visually-hidden, [aria-hidden="true"], [hidden]';
+
 export function textOf(element?: HTMLElement | null): string {
   if (!element) return '';
-  // Turn-level fallbacks can contain copy/read-aloud controls and screen-reader labels.
-  const controls =
-    'button, [role="toolbar"], .turn-action-controls, .sr-only, .cdk-visually-hidden, [aria-hidden="true"], [hidden]';
-  if (!element.querySelector(controls)) return element.innerText?.trim() ?? '';
+  if (!element.querySelector(textControls)) return element.innerText?.trim() ?? '';
+  return textOfClone(element);
+}
+
+/** Detached messages need explicit block breaks because innerText has no layout to read. */
+export function textOfClone(element: HTMLElement): string {
   const clone = element.cloneNode(true) as HTMLElement;
-  clone.querySelectorAll(controls).forEach((node) => node.remove());
+  clone.querySelectorAll(textControls).forEach((node) => node.remove());
   clone.querySelectorAll('br').forEach((node) => node.replaceWith('\n'));
   clone
     .querySelectorAll('p, div, li, pre, blockquote, h1, h2, h3, h4')

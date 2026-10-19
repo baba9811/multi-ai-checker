@@ -1,13 +1,18 @@
+import { observeGeminiHeaderReadiness } from './gemini-header-observation';
 import { z } from 'zod';
 import type { Platform } from '../../application/ports';
 import { providers } from '../../domains/providers/model';
 import { extensionStatus, watchExtensionUpdate, openExtensionManager } from './updates';
+import { readClaudeProbe, startClaudeProbe } from './claude-probe';
+import { readGeminiReadiness, checkGeminiReadiness } from './gemini-readiness';
+import { readGeminiSdkTrial, startGeminiSdkTrial } from './gemini-sdk-trial';
 import {
   connect,
   reveal,
   refreshConnection,
   currentConversation,
   preparePeer,
+  prepareAutomaticTarget,
   models,
   inspect,
   sendAndCollect,
@@ -17,8 +22,16 @@ const storageKey = 'crosscheck.workspace.v1';
 const Stored = z.object({
   run: z.unknown().optional(),
   bindings: z.record(z.string(), z.unknown()).optional(),
+  promptOptions: z.unknown().optional(),
 });
 export const chromePlatform: Platform = {
+  observeGeminiHeaderReadiness,
+  readGeminiSdkTrial,
+  startGeminiSdkTrial,
+  readGeminiReadiness,
+  checkGeminiReadiness,
+  readClaudeProbe,
+  startClaudeProbe,
   extensionStatus,
   watchExtensionUpdate,
   openExtensionManager,
@@ -32,6 +45,7 @@ export const chromePlatform: Platform = {
   refreshConnection,
   currentConversation,
   preparePeer,
+  prepareAutomaticTarget,
   models,
   watchActiveTab(changed) {
     const updated = (_id: number, info: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab) => {

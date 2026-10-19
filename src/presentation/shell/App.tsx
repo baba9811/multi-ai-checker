@@ -15,11 +15,17 @@ import {
   X,
 } from 'lucide-react';
 import { Binding, providerIds, providers, type ProviderId } from '../../domains/providers/model';
-import { stageNames, type Run } from '../../domains/crosscheck/model';
+import {
+  defaultPromptOptions,
+  PromptOptions,
+  stageNames,
+  type Run,
+} from '../../domains/crosscheck/model';
 import { budget, markdown, recoverRun, updateJob } from '../../domains/crosscheck/workflow';
 import {
   executeAutomatic,
   importedRun,
+  importedClaudePeerRun,
   assertSameSource,
 } from '../../application/automatic-workflow';
 import { matchAttachments, prepareAttachments } from '../../application/attachments';
@@ -28,6 +34,7 @@ import type { Conversation, Platform, Workspace } from '../../application/ports'
 import { ProviderLogo } from '../providers/ProviderLogo';
 import { ConnectionSettings } from '../providers/ConnectionSettings';
 import { JobCard } from '../crosscheck/JobCard';
+import { PromptSettings } from '../crosscheck/PromptSettings';
 import { Guide } from '../privacy/Guide';
 import { UpdateNotice } from './UpdateNotice';
 
@@ -43,6 +50,10 @@ export function App({ platform }: { platform: Platform }) {
   const [source, setSource] = useState<Conversation>();
   const [selected, setSelected] = useState<ProviderId[]>([...providerIds]);
   const [mode, setMode] = useState<Run['mode']>('economy');
+  const [background, setBackground] = useState(false);
+  const [promptOptions, setPromptOptions] = useState<PromptOptions>(() =>
+    structuredClone(defaultPromptOptions),
+  );
   const [busy, setBusy] = useState(false);
   const [configuring, setConfiguring] = useState(false);
   const [files, setFiles] = useState<AttachmentPayload[]>([]);
@@ -77,7 +88,13 @@ export function App({ platform }: { platform: Platform }) {
               if (binding.success && binding.data.provider === id) saved[id] = binding.data;
             }
             const restored = recoverRun(stored.run);
-            workspace.current = { run: restored, bindings: saved };
+            const options = PromptOptions.safeParse(stored.promptOptions);
+            workspace.current = {
+              run: restored,
+              bindings: saved,
+              ...(options.success ? { promptOptions: options.data } : {}),
+            };
+            if (options.success) setPromptOptions(options.data);
             setBindings(saved);
             setRun(restored);
           }
@@ -148,13 +165,27 @@ export function App({ platform }: { platform: Platform }) {
 
   function checkpoint(value: Workspace) {
     if (!alive.current) return Promise.reject(new Error('패널이 닫혀 작업을 중단했습니다.'));
-    workspace.current = value;
-    setRun(value.run);
-    setBindings(value.bindings);
-    writer.current = writer.current.then(() => platform.save(value));
+    const next = {
+      ...value,
+      ...(workspace.current.promptOptions
+        ? { promptOptions: value.promptOptions ?? workspace.current.promptOptions }
+        : {}),
+    };
+    workspace.current = next;
+    setRun(next.run);
+    setBindings(next.bindings);
+    writer.current = writer.current.then(() => platform.save(next));
     return writer.current;
   }
-  async function start(resume = false) {
+  function changePromptOptions(value: PromptOptions) {
+    setPromptOptions(value);
+    const parsed = PromptOptions.safeParse(value);
+    if (parsed.success)
+      void checkpoint({ ...workspace.current, promptOptions: parsed.data }).catch((error) =>
+        setNotice(message(error)),
+      );
+  }
+  async function start(resume = false, peer = false) {
     if (
       !owner ||
       operation.current ||
@@ -172,19 +203,36 @@ export function App({ platform }: { platform: Platform }) {
     writer.current = writer.current.catch(() => {});
     try {
       // Keep the permission request in the initiating click before any other asynchronous work.
-      const access = platform.requestAccess?.(resume ? workspace.current.run!.selected : selected);
+      const participants = peer && source ? [source.binding.provider, 'claude' as const] : selected;
+      const access = platform.requestAccess?.(
+        resume ? workspace.current.run!.selected : participants,
+      );
       await access;
       let initial = resume ? workspace.current.run : undefined;
       if (!initial) {
         if (!source) throw new Error('메인 대화를 먼저 선택해주세요.');
-        await platform.reveal(source.binding);
+        if (controller.signal.aborted) throw new Error('자동 검토를 중단했습니다.');
+        if (!peer && !background) await platform.reveal(source.binding);
         if (controller.signal.aborted) throw new Error('자동 검토를 중단했습니다.');
         const active = {
           binding: source.binding,
           snapshot: await platform.inspect(source.binding),
         };
         assertSameSource(source.snapshot, active.snapshot);
-        initial = importedRun(active, selected, mode, files.map(attachmentMetadata));
+        initial = peer
+          ? importedClaudePeerRun(
+              active,
+              files.map(attachmentMetadata),
+              PromptOptions.parse(promptOptions),
+            )
+          : importedRun(
+              active,
+              selected,
+              mode,
+              files.map(attachmentMetadata),
+              PromptOptions.parse(promptOptions),
+            );
+        if (!peer && background) initial = { ...initial, execution: 'background' };
         setSource(active);
       }
       if (!matchAttachments(initial.attachments, files))
@@ -220,6 +268,7 @@ export function App({ platform }: { platform: Platform }) {
     setSource(undefined);
     setFiles([]);
     setOriginalsConfirmed(false);
+    setBackground(false);
     void checkpoint({ bindings: workspace.current.bindings }).catch((error) =>
       setNotice(message(error)),
     );
@@ -281,7 +330,10 @@ export function App({ platform }: { platform: Platform }) {
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  const final = run?.jobs.find((job) => job.stage === 'synthesize' && job.status === 'done');
+  const peerRun = run?.kind === 'claude-peer';
+  const final = run?.jobs.find(
+    (job) => job.stage === (peerRun ? 'review' : 'synthesize') && job.status === 'done',
+  );
   const failed =
     run?.jobs.filter((job) => job.status === 'error' || job.status === 'interrupted') ?? [];
   const locked = !ready || !owner || busy || configuring || readingFiles || readingSource;
@@ -517,15 +569,29 @@ export function App({ platform }: { platform: Platform }) {
             </div>
             <button
               className="primary full"
-              disabled={locked || selected.length < 2 || !source || !originalsConfirmed}
+              disabled={
+                locked ||
+                selected.length < 2 ||
+                !source ||
+                !originalsConfirmed ||
+                !PromptOptions.safeParse(promptOptions).success
+              }
               onClick={() => void start()}
             >
               {busy ? '전송·답변 확인 중' : '자동 검토 시작'}
               <ArrowRight size={16} />
             </button>
+            {!PromptOptions.safeParse(promptOptions).success && (
+              <p role="status" className="hint">
+                검토 설정에서 답변 언어와 각 단계 지시문을 입력해주세요. 언어에는 줄바꿈을 넣을 수
+                없습니다.
+              </p>
+            )}
             <p className="action-note">
-              AI 탭을 하나씩 방문합니다. 패널을 열어두세요. 시작하면 선택한 AI에 불러온 대화·선택한
-              파일을 공유하고
+              {background
+                ? '실험 실행은 현재 탭을 전환하지 않습니다. Claude 전송이 실패할 수 있습니다.'
+                : 'AI 탭을 차례로 활성화합니다. 패널을 열어두세요.'}{' '}
+              시작하면 선택한 AI에 불러온 대화·선택한 파일을 공유하고
               <br />
               {source ? providers[source.binding.provider].name : '원래 AI'} 원래 대화에 최종
               프롬프트를 보냅니다.
@@ -553,12 +619,61 @@ export function App({ platform }: { platform: Platform }) {
               <button className="text-button" onClick={() => setTab('connections')}>
                 <Link2 size={13} /> 연결·모델 설정
               </button>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={background}
+                  disabled={locked}
+                  onChange={(event) => setBackground(event.target.checked)}
+                />
+                탭 전환 없이 실행 (실험)
+              </label>
+              {background && (
+                <p className="hint">
+                  검토용 창과 패널을 열어두세요. 현재 Claude는 비활성 상태에서 전송되지 않을 수
+                  있습니다. 실패한 요청은 자동 재시도하지 않습니다.
+                </p>
+              )}
+              <PromptSettings
+                value={promptOptions}
+                disabled={locked}
+                onChange={changePromptOptions}
+              />
+              {source?.binding.provider !== 'claude' && (
+                <div>
+                  <button
+                    className="secondary full"
+                    disabled={
+                      locked ||
+                      !source ||
+                      !originalsConfirmed ||
+                      !PromptOptions.safeParse(promptOptions).success
+                    }
+                    onClick={() => void start(false, true)}
+                  >
+                    Claude 백그라운드 검토
+                  </button>
+                  <p className="hint">
+                    탭을 전환하지 않고 가져온 대화·선택한 원본을 Claude에 공유해 2회 검토합니다.
+                    원래 대화에는 새 요청을 보내지 않습니다. TXT(UTF-8 · 64 KB 이하)·PNG(4096×4096
+                    이하)만 지원합니다.
+                  </p>
+                </div>
+              )}
             </details>
           </>
         ) : (
           <>
             <div className="run-top">
-              <h1>{final ? '검토 완료' : busy ? '검토 중' : '검토 멈춤'}</h1>
+              <h1>
+                {final
+                  ? peerRun
+                    ? 'Claude 검토 완료'
+                    : '검토 완료'
+                  : busy
+                    ? '검토 중'
+                    : '검토 멈춤'}
+              </h1>
               <button className="text-button" disabled={locked} onClick={reset}>
                 <RotateCcw size={16} />새 검토
               </button>
@@ -588,7 +703,10 @@ export function App({ platform }: { platform: Platform }) {
             {!final && (
               <>
                 <div className="auto-progress" role="status" aria-live="polite">
-                  {(['collect', 'review', 'synthesize'] as const).map((stage, index) => {
+                  {(peerRun
+                    ? (['collect', 'review'] as const)
+                    : (['collect', 'review', 'synthesize'] as const)
+                  ).map((stage, index) => {
                     const passed = index < ['collect', 'review', 'synthesize'].indexOf(run.stage);
                     const active = run.stage === stage;
                     return (
@@ -638,12 +756,14 @@ export function App({ platform }: { platform: Platform }) {
                     void platform.reveal(run.main!).catch((error) => setNotice(message(error)))
                   }
                 >
-                  원래 대화에서 보기 <ExternalLink size={14} />
+                  {peerRun ? '원래 대화로 돌아가기' : '원래 대화에서 보기'}{' '}
+                  <ExternalLink size={14} />
                 </button>
                 <div className="final-answer">
                   <div className="source-label">
-                    <ProviderLogo provider={run.chair} />
-                    {providers[run.chair].name} · 최종 답변
+                    <ProviderLogo provider={peerRun ? 'claude' : run.chair} />
+                    {providers[peerRun ? 'claude' : run.chair].name} ·{' '}
+                    {peerRun ? '교차 검토' : '최종 답변'}
                   </div>
                   <pre className="answer">{final.answer}</pre>
                 </div>
@@ -657,7 +777,7 @@ export function App({ platform }: { platform: Platform }) {
                     <p>
                       <strong>{providers[job.provider].name}</strong> · {job.error}
                     </p>
-                    {bindings[job.provider] && (
+                    {bindings[job.provider] && !bindings[job.provider]?.threadId && (
                       <button
                         className="text-button"
                         onClick={() =>

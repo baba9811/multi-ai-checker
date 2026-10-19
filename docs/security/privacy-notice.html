@@ -44,7 +44,7 @@
     <header>
       <p class="meta">CrossCheck · Multi AI Checker</p>
       <h1>Privacy &amp; support</h1>
-      <p class="meta">Effective October 6, 2026 · <a href="#ko">한국어</a></p>
+      <p class="meta">Effective October 19, 2026 · <a href="#ko">한국어</a></p>
       <p>
         Contact the CrossCheck developer for support or privacy questions at
         <a href="mailto:bany981111@gmail.com">bany981111@gmail.com</a>.
@@ -57,14 +57,28 @@
         choose. The panel shows the loaded scope and lets you inspect every shared turn before
         starting. A review shares those conversation turns, review prompts, evidence you enter, and
         original files you select with the participating services: OpenAI/ChatGPT, Anthropic/Claude,
-        and Google/Gemini, according to your selection. The final synthesis request returns to your
-        original main conversation.
+        and Google/Gemini, according to your selection. In the standard review, the final synthesis
+        request returns to your original main conversation. The optional Claude original-file review
+        instead collects Claude's review and cross-review in the panel without requesting a main
+        synthesis.
       </p>
       <p>
         It also handles the selected provider page's composer state and model menu, and keeps tab,
-        document, and conversation references to target requests safely. It does not read passwords,
-        cookies, login tokens, account-profile fields, or files you have not selected. Each website
-        uses its own normal login session.
+        document, and conversation references to target requests safely. For Claude requests, it
+        also reads the workspace reference and model availability supplied by the signed-in site.
+        The workspace reference stays in that provider page during the request. It does not read
+        passwords, browser cookies, login tokens, or files you have not selected. Each website uses
+        its own normal login session; authentication values are not exported through extension
+        messages, storage, diagnostics, or a developer server.
+      </p>
+      <p>
+        Optional connection and response checks show their fixed or synthetic prompts before you
+        start them. Response checks create a new provider conversation and verify its response and
+        saved conversation; they do not send your imported review or selected files. Their session
+        intent records contain a generated request ID, status, and check type when needed. Verified
+        answers and model labels are displayed in the open panel's memory. Stopping or closing a
+        check does not delete a conversation the provider has already created, and an uncertain
+        request is never automatically resent.
       </p>
       <h2>Where data is stored</h2>
       <p>
@@ -76,23 +90,28 @@
         reselecting matching originals.
       </p>
       <p>
+        Answer-language and stage-instruction settings also stay in Chrome session storage. Each new
+        review copies them into its prompts. Starting a new review retains these settings; you can
+        reset them to defaults in review settings, and clearing the browser session removes them.
+      </p>
+      <p>
         Disabling, reloading, or updating the extension, or restarting the browser, clears its
         session records and bindings. Export needed results before updating. Interrupted requests do
         not automatically restart.
       </p>
       <h2>Sharing and purpose</h2>
       <p>
-        Data is used for the review workflow you start. CrossCheck operates no developer backend,
-        analytics endpoint, advertising tracker, or telemetry service. The extension does not sell
-        your data or use it for advertising, unrelated profiling, creditworthiness, or lending
-        decisions.
+        Data is used for the review or connection/response check you start. CrossCheck operates no
+        developer backend, analytics endpoint, advertising tracker, or telemetry service. The
+        extension does not sell your data or use it for advertising, unrelated profiling,
+        creditworthiness, or lending decisions.
       </p>
       <p>
         CrossCheck's use and transfer of user data adhere to the
         <a href="https://developer.chrome.com/docs/webstore/program-policies/limited-use"
           >Chrome Web Store User Data Policy</a
         >, including its Limited Use requirements. Transfers to the AI services you select are
-        limited to providing the review workflow disclosed here and in the extension.
+        limited to providing the review and checks disclosed here and in the extension.
       </p>
       <p>
         Uploading a selected file already shares it with that AI service, even if a later message
@@ -127,27 +146,39 @@
       <hr />
       <section id="ko" lang="ko">
         <h1>개인정보처리방침 및 지원</h1>
-        <p class="meta">시행일: 2026년 10월 6일</p>
+        <p class="meta">시행일: 2026년 10월 19일</p>
         <p>지원·개인정보 문의: <a href="mailto:bany981111@gmail.com">bany981111@gmail.com</a></p>
         <h2>처리하는 정보와 공유 대상</h2>
         <p>
           CrossCheck는 사용자가 선택한 AI 대화 페이지에 불러온 여러 턴의 질문과 완료된 답변을
           읽습니다. 패널에서 불러온 범위와 각 질문·답변을 확인할 수 있습니다. 사용자가 검토를
           시작하면 이 대화 맥락·검토 프롬프트·직접 입력한 근거·선택한 원본 파일을 참여
-          서비스(OpenAI/ChatGPT, Anthropic/Claude, Google/Gemini)에 보냅니다. 최종 종합 요청은 원래
-          메인 대화로 돌아갑니다. 정확한 전송을 위해 입력란·모델 메뉴 상태와 탭·문서·대화 참조도
-          처리합니다.
+          서비스(OpenAI/ChatGPT, Anthropic/Claude, Google/Gemini)에 보냅니다. 일반 검토의 최종 종합
+          요청은 원래 메인 대화로 돌아갑니다. 선택형 Claude 원본 검토는 Claude의 검토·교차 검토를
+          패널에 모으며 메인 대화의 종합 요청은 보내지 않습니다. 정확한 전송을 위해 입력란·모델 메뉴
+          상태와 탭·문서·대화 참조도 처리합니다. Claude 요청에서는 로그인한 사이트가 제공하는 작업
+          공간 참조와 사용 가능한 모델 정보도 확인하며, 작업 공간 참조는 요청 중 해당 서비스 페이지
+          안에서만 처리합니다.
         </p>
         <p>
-          비밀번호·쿠키·로그인 토큰·계정 프로필·선택하지 않은 파일을 읽지 않습니다. 각 웹사이트의
-          일반 로그인 세션을 사용합니다. 개발자 서버·분석·광고·텔레메트리 전송은 없으며 데이터를
-          판매하거나 광고·관련 없는 프로파일링·신용 평가·대출 판단에 사용하지 않습니다.
+          비밀번호·브라우저 쿠키·로그인 토큰·선택하지 않은 파일을 읽지 않습니다. 각 웹사이트의 일반
+          로그인 세션을 사용하며 인증값을 확장 메시지·저장소·진단·개발자 서버로 내보내지 않습니다.
+          개발자 서버·분석·광고·텔레메트리 전송은 없으며 데이터를 판매하거나 광고·관련 없는
+          프로파일링·신용 평가·대출 판단에 사용하지 않습니다.
+        </p>
+        <p>
+          선택형 연결·응답 시험은 시작 전에 고정 또는 합성 시험 문구를 보여줍니다. 응답 시험은
+          서비스에 새 대화를 만들고 답변과 저장된 대화를 확인하며, 가져온 검토 문맥이나 선택한
+          파일은 보내지 않습니다. 시험의 세션 기록에는 생성한 요청 ID·진행 상태와 필요한 시험 종류만
+          저장하고, 검증된 답변과 모델 표시는 열린 패널의 메모리에서 보여줍니다. 중단하거나 패널을
+          닫아도 서비스에 이미 생성된 대화는 삭제되지 않으며, 전송 여부가 불확실한 요청을 자동으로
+          다시 보내지 않습니다.
         </p>
         <p>
           CrossCheck의 사용자 데이터 사용 및 전송은 제한적 사용(Limited Use) 요건을 포함한
           <a href="https://developer.chrome.com/docs/webstore/program-policies/limited-use"
             >Chrome 웹 스토어 사용자 데이터 정책</a
-          >을 준수합니다. 선택한 AI 서비스로의 전송은 이 방침과 확장 화면에 고지한 검토 기능을
+          >을 준수합니다. 선택한 AI 서비스로의 전송은 이 방침과 확장 화면에 고지한 검토·시험 기능을
           제공하는 데 한정됩니다.
         </p>
         <h2>저장·보관·삭제</h2>
@@ -156,6 +187,11 @@
           이름·형식·크기·원본 일치 확인용 SHA-256 값을 저장합니다. 파일 원본은 검토 기록에 저장하지
           않고 열린 패널의 메모리와 대상 사이트의 업로드 과정에서 일시적으로 처리합니다. 패널을 다시
           열어 계속하려면 같은 원본을 다시 선택해야 합니다.
+        </p>
+        <p>
+          답변 언어와 단계별 지시문 설정도 Chrome 세션 저장소에 보관하며, 새 검토마다 프롬프트에
+          복사합니다. 새 검토를 시작해도 설정은 유지됩니다. 검토 설정에서 기본값으로 되돌릴 수
+          있으며 브라우저 세션이 초기화되면 삭제됩니다.
         </p>
         <p>
           확장 비활성화·새로고침·업데이트·브라우저 재시작 시 세션 기록과 연결이 지워집니다. 필요한

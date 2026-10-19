@@ -923,6 +923,25 @@ p.error {
 .auto-options .review-options {
   margin: 16px 0 4px;
 }
+.prompt-settings {
+  border: 0;
+  padding: 0;
+  margin: 18px 0;
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+.prompt-settings legend {
+  margin-bottom: 12px;
+}
+.prompt-settings label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+.prompt-settings .text-button {
+  justify-self: start;
+}
 .run-question {
   margin-bottom: 25px;
 }
@@ -1005,6 +1024,9 @@ p.error {
 .connection-detail {
   font-size: 11px;
   color: var(--muted);
+}
+.connection-detail .gemini-trial-result {
+  overflow-wrap: anywhere;
 }
 .connection h2 {
   display: flex;

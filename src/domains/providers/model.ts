@@ -30,10 +30,13 @@ export function providerForUrl(value: string): ProviderId | undefined {
   }
 }
 
-export const Binding = z.object({
-  provider: ProviderId,
-  tabId: z.number().int(),
-  documentId: z.string().max(100),
-  url: z.string().max(3000),
-});
+export const Binding = z
+  .object({
+    provider: ProviderId,
+    tabId: z.number().int(),
+    documentId: z.string().max(100),
+    url: z.string().max(3000),
+    threadId: z.uuid().optional(),
+  })
+  .refine((binding) => !binding.threadId || binding.provider === 'claude', 'Invalid peer binding.');
 export type Binding = z.infer<typeof Binding>;

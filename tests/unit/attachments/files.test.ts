@@ -11,6 +11,7 @@ it('keeps original bytes identical while persisting metadata only and requiring 
   expect(JSON.stringify(metadata)).not.toContain('base64');
   expect(matchAttachments(metadata, files)).toBe(true);
   expect(matchAttachments(metadata, [])).toBe(false);
+  expect(matchAttachments(metadata, [{ ...files[0]!, type: 'image/png' }])).toBe(false);
   expect(
     matchAttachments(metadata, await prepareAttachments([new File(['changed'], 'facts.txt')])),
   ).toBe(false);

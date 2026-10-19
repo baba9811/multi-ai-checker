@@ -10,7 +10,7 @@ const directories = execFileSync('npm', ['ls', '--omit=dev', '--all', '--parseab
   .split('\n')
   .filter((p) => p !== root);
 directories.push(path.join(root, 'node_modules/wxt'));
-let output = 'CrossCheck bundled third-party licenses\n\n';
+let output = `CrossCheck license\n\n${await readFile(path.join(root, 'LICENSE'), 'utf8')}\nBundled third-party licenses\n\n`;
 for (const dir of [...new Set(directories)].sort()) {
   const pkg = JSON.parse(await readFile(path.join(dir, 'package.json'), 'utf8'));
   const names = await readdir(dir);

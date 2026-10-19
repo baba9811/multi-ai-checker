@@ -1,9 +1,23 @@
 import type { Binding, ProviderId } from '../domains/providers/model';
-import type { Job, Run } from '../domains/crosscheck/model';
+import type { Job, Run, PromptOptions } from '../domains/crosscheck/model';
 import type { Snapshot, ModelCatalog } from './provider-protocol';
-import type { AttachmentPayload } from '../domains/attachments/model';
+import type { Attachment, AttachmentPayload } from '../domains/attachments/model';
+import type { ClaudeProbeKind, ClaudeProbeRecord } from './claude-probe';
+import type {
+  GeminiHeaderObservationResult,
+  GeminiReadinessRecord,
+  GeminiReadinessResult,
+} from './gemini-readiness';
+import type {
+  GeminiFixedTextTrialRecord,
+  GeminiFixedTextTrialResult,
+} from './gemini-fixed-text-trial';
 
-export type Workspace = { run?: Run; bindings: Partial<Record<ProviderId, Binding>> };
+export type Workspace = {
+  run?: Run;
+  bindings: Partial<Record<ProviderId, Binding>>;
+  promptOptions?: PromptOptions;
+};
 export type Conversation = { binding: Binding; snapshot: Snapshot };
 export type Collected = { answer: string; binding: Binding };
 export type ExtensionStatus = {
@@ -13,6 +27,13 @@ export type ExtensionStatus = {
 };
 /** Browser implementation is injected at the entrypoint, never imported by the UI. */
 export interface Platform {
+  observeGeminiHeaderReadiness?(signal: AbortSignal): Promise<GeminiHeaderObservationResult>;
+  readGeminiSdkTrial?(): Promise<GeminiFixedTextTrialRecord | undefined>;
+  startGeminiSdkTrial?(signal: AbortSignal): Promise<GeminiFixedTextTrialResult>;
+  readGeminiReadiness?(): Promise<GeminiReadinessRecord | undefined>;
+  checkGeminiReadiness?(signal: AbortSignal): Promise<GeminiReadinessResult>;
+  readClaudeProbe?(): Promise<ClaudeProbeRecord | undefined>;
+  startClaudeProbe?(signal: AbortSignal, kind?: ClaudeProbeKind): Promise<string>;
   extensionStatus?(): Promise<ExtensionStatus>;
   watchExtensionUpdate?(available: (version: string) => void): () => void;
   openExtensionManager?(): Promise<void>;
@@ -20,19 +41,29 @@ export interface Platform {
   connect(provider: ProviderId): Promise<Binding>;
   refreshConnection?(binding: Binding): Promise<Binding>;
   currentConversation(requestAccess?: ProviderId[]): Promise<Conversation | undefined>;
-  preparePeer(provider: ProviderId, saved?: Binding): Promise<Binding>;
+  preparePeer(
+    provider: ProviderId,
+    saved?: Binding,
+    threadId?: string,
+    signal?: AbortSignal,
+    background?: boolean,
+  ): Promise<Binding>;
   inspect(binding: Binding): Promise<Snapshot>;
   sendAndCollect(
     job: Job,
     binding: Binding,
     signal: AbortSignal,
     attachments?: AttachmentPayload[],
+    approved?: Attachment[],
   ): Promise<Collected>;
   models(binding: Binding, key?: string): Promise<ModelCatalog>;
   reveal(binding: Binding): Promise<void>;
+  prepareAutomaticTarget(binding: Binding, signal?: AbortSignal): Promise<void>;
   watchActiveTab?(changed: () => void): () => void;
   openProvider(provider: ProviderId): Promise<void>;
   disconnect(provider: ProviderId): Promise<void>;
-  load(): Promise<{ run?: unknown; bindings?: Record<string, unknown> } | undefined>;
+  load(): Promise<
+    { run?: unknown; bindings?: Record<string, unknown>; promptOptions?: unknown } | undefined
+  >;
   save(workspace: Workspace): Promise<void>;
 }

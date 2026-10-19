@@ -1,3 +1,4 @@
+import { installCollectorFixture } from '../fixtures/chrome/collector';
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
 import { providerPage, redesignedChatgptPage } from '../fixtures/providers/pages';
@@ -8,16 +9,19 @@ async function command(
   page: Page,
   message: object,
   senderUrl = 'chrome-extension://fixture/sidepanel.html',
+  connectCollector = true,
 ) {
   return page.evaluate(
-    ({ message, senderUrl }) =>
+    ({ message, senderUrl, connectCollector }) =>
       new Promise<{ ok: boolean; data?: any; error?: string }>((resolve) => {
+        if (connectCollector && (message as any).type === 'send')
+          (window as any).__fixtureConnectCollector((message as any).id);
         const handler = (window as any).__bridgeHandler;
         handler(message, { id: 'fixture', url: senderUrl }, resolve);
         if (senderUrl !== 'chrome-extension://fixture/sidepanel.html')
           setTimeout(() => resolve({ ok: false, error: 'no response' }), 50);
       }),
-    { message, senderUrl },
+    { message, senderUrl, connectCollector },
   );
 }
 async function setup(page: Page, provider: ProviderId, html = providerPage(provider)) {
@@ -38,6 +42,7 @@ async function setup(page: Page, provider: ProviderId, html = providerPage(provi
       },
     };
   });
+  await page.evaluate(installCollectorFixture);
   await page.addScriptTag({ path: path.resolve('.output/chrome-mv3/bridge.js') });
   const response = await command(page, { type: 'snapshot' });
   expect(response.ok).toBe(true);
@@ -172,6 +177,99 @@ for (const inlineBreak of [false, true]) {
   });
 }
 
+const orderedListPrompt =
+  'Review all candidates.\n\n2. Check pressure and temperature.\n\n3. Check the stated conditions.\n\n4. Keep every uncertainty.\n\nReturn the critique.';
+
+async function claudeOrderedListEcho(page: Page, variant = 'matching') {
+  const target = await setup(page, 'claude');
+  await page.evaluate(
+    ({ prompt, variant }) => {
+      const state = window as any;
+      const user = state.user;
+      state.user = (text: string) => {
+        user(text);
+        const message = [...document.querySelectorAll('[data-testid="user-message"]')].at(-1)!;
+        // The observed echo renders three separate decimal lists; markers are absent from innerText.
+        const parts = prompt.split('\n\n');
+        message.replaceChildren();
+        for (const [index, part] of parts.entries()) {
+          if (index > 0 && index < parts.length - 1) {
+            const list = document.createElement('ol');
+            list.start = index + 1;
+            const item = document.createElement('li');
+            item.textContent = part.replace(/^\d+\. /, '');
+            list.append(item);
+            message.append(list);
+          } else {
+            const paragraph = document.createElement('p');
+            paragraph.textContent = part;
+            message.append(paragraph);
+          }
+        }
+        const list = message.querySelector('ol')!;
+        const item = list.querySelector('li')!;
+        if (variant === 'changed-marker') list.start = 9;
+        if (variant === 'literal-marker') {
+          message.querySelectorAll('li').forEach((item, index) => item.prepend(`${index + 2}. `));
+          list.start = 9;
+        }
+        if (variant === 'changed-text') item.append(' changed');
+        if (variant === 'nested-list') {
+          const nested = list.cloneNode(true);
+          item.append(nested);
+        }
+        if (variant === 'reversed-list') list.reversed = true;
+        if (variant === 'nondecimal-list') list.type = 'A';
+        if (variant === 'list-item-value') item.value = 9;
+        if (variant === 'extra-user') user(text);
+        if (variant === 'remounted-history') {
+          const previous = document.querySelector('.font-claude-response')!;
+          previous.replaceWith(previous.cloneNode(true));
+        }
+      };
+    },
+    { prompt: orderedListPrompt, variant },
+  );
+  await command(page, {
+    type: 'send',
+    id: 'ordered-list-echo',
+    ...target,
+    prompt: orderedListPrompt,
+  });
+  await expect
+    .poll(async () => (await command(page, { type: 'poll', id: 'ordered-list-echo' })).data?.status)
+    .toMatch(/^(done|error)$/);
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([orderedListPrompt]);
+  return (await command(page, { type: 'poll', id: 'ordered-list-echo' })).data;
+}
+
+test('Claude matches its own decimal ordered-list echo without changing collected answers', async ({
+  page,
+}) => {
+  const progress = await claudeOrderedListEcho(page);
+  expect(progress.status).toBe('done');
+  expect(progress.answer).toBe('새로운 claude 검증 답변');
+});
+
+for (const variant of [
+  'changed-marker',
+  'literal-marker',
+  'changed-text',
+  'extra-user',
+  'remounted-history',
+  'nested-list',
+  'reversed-list',
+  'nondecimal-list',
+  'list-item-value',
+]) {
+  test(`Claude refuses an unsafe ordered-list echo: ${variant}`, async ({ page }) => {
+    const progress = await claudeOrderedListEcho(page, variant);
+    expect(progress.status).toBe('error');
+    expect(progress.error).toContain('대화 내용이 바뀌어');
+    expect(progress.answer).toBe('');
+  });
+}
+
 test('Claude waits for a delayed enabled send control, sends once and collects completion', async ({
   page,
 }) => {
@@ -241,6 +339,7 @@ for (const unsafe of [
   'busy',
   'files',
   'cancel',
+  'disconnect',
   'changed-url',
 ]) {
   test(`send readiness refuses ${unsafe} without clicking`, async ({ page }) => {
@@ -273,6 +372,10 @@ for (const unsafe of [
     await command(page, { type: 'send', id: 'unsafe-ready', ...target, prompt: 'Readiness guard' });
     await page.clock.runFor(450);
     if (unsafe === 'cancel') await command(page, { type: 'cancel', id: 'unsafe-ready' });
+    if (unsafe === 'disconnect')
+      await page.evaluate(() =>
+        (window as any).__fixtureCollectors.get('unsafe-ready').disconnect(),
+      );
     await page.clock.runFor(3000);
     expect((await command(page, { type: 'poll', id: 'unsafe-ready' })).data.status).toBe('error');
     expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
@@ -303,6 +406,80 @@ for (const provider of providerIds) {
     ]);
   });
 }
+test('a connected collector survives a 26 second polling gap and completes without another send', async ({
+  page,
+}) => {
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  const target = await setup(page, 'chatgpt');
+  await page.evaluate(() => {
+    (window as any).fixtureMode = 'limit';
+  });
+  await command(page, {
+    type: 'send',
+    id: 'live-collector',
+    ...target,
+    prompt: 'Synthetic slow answer',
+  });
+  await page.clock.runFor(26000);
+  expect((await command(page, { type: 'poll', id: 'live-collector' })).data.status).toBe('pending');
+  await page.evaluate(() => (window as any).assistant('Completed synthetic answer'));
+  await page.clock.runFor(3600);
+  expect((await command(page, { type: 'poll', id: 'live-collector' })).data).toMatchObject({
+    status: 'done',
+    answer: 'Completed synthetic answer',
+  });
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual(['Synthetic slow answer']);
+});
+
+test('a disconnected collector cannot send after a pending upload finishes', async ({ page }) => {
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  const target = await setupUpload(page, 'chatgpt', 'hold');
+  await command(page, {
+    type: 'send',
+    id: 'closed-upload',
+    ...target,
+    prompt: 'Must remain unsent',
+    attachments: uploadOriginals,
+  });
+  await expect(page.getByRole('progressbar')).toBeVisible();
+  await page.evaluate(() => {
+    (window as any).__fixtureCollectors.get('closed-upload').disconnect();
+    (window as any).fixtureFinishUploads();
+  });
+  await page.clock.runFor(6000);
+  expect((await command(page, { type: 'poll', id: 'closed-upload' })).data).toMatchObject({
+    status: 'error',
+    error: expect.stringContaining('패널 연결이 끊겨'),
+  });
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+test('ordinary Send requires its own live collector and never reconnects a used request', async ({
+  page,
+}) => {
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  const target = await setup(page, 'chatgpt');
+  const send = { type: 'send', id: 'bound-collector', ...target, prompt: 'Send exactly once' };
+  expect((await command(page, send, undefined, false)).ok).toBe(false);
+  await page.evaluate(() => {
+    (window as any).__fixtureConnectCollector('untrusted', {
+      id: 'other-extension',
+      url: 'chrome-extension://fixture/sidepanel.html',
+    });
+  });
+  expect((await command(page, { ...send, id: 'untrusted' }, undefined, false)).ok).toBe(false);
+  expect((await command(page, send)).ok).toBe(true);
+  await page.clock.runFor(2600);
+  await page.evaluate(() =>
+    (window as any).__fixtureCollectors.get('bound-collector').disconnect(),
+  );
+  expect((await command(page, { type: 'poll', id: 'bound-collector' })).data.status).toBe('error');
+  expect((await command(page, send)).ok).toBe(false);
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual(['Send exactly once']);
+});
 test('adapter refuses existing draft, untrusted sender and changed conversation', async ({
   page,
 }) => {
@@ -922,10 +1099,11 @@ for (const provider of providerIds) {
           };
           menu.append(option);
         });
-        trigger.onclick = () => {
+        const toggle = () => {
           menu.hidden = !menu.hidden;
           trigger.setAttribute('aria-expanded', String(!menu.hidden));
         };
+        trigger.onclick = toggle;
         document.addEventListener('keydown', (event) => {
           if (event.key === 'Escape') {
             menu.hidden = true;
@@ -957,6 +1135,42 @@ test('unsupported model UI returns no invented models and sends nothing', async 
   expect(result.data.options).toEqual([]);
   expect(result.data.message).toContain('웹에서 선택한 모델');
   expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+test('Claude model picker waits for its delayed owning trigger', async ({ page }) => {
+  const target = await setup(page, 'claude');
+  await page.evaluate(() => {
+    setTimeout(() => {
+      const button = document.createElement('button');
+      button.dataset.testid = 'model-selector-dropdown';
+      button.textContent = 'Sonnet delayed';
+      button.setAttribute('aria-expanded', 'false');
+      const menu = document.createElement('div');
+      menu.setAttribute('role', 'menu');
+      menu.hidden = true;
+      const option = document.createElement('button');
+      option.setAttribute('role', 'menuitemradio');
+      option.setAttribute('aria-checked', 'true');
+      option.textContent = 'Sonnet delayed';
+      menu.append(option);
+      button.onclick = () => {
+        menu.hidden = !menu.hidden;
+        button.setAttribute('aria-expanded', String(!menu.hidden));
+        if (!menu.hidden) option.focus();
+      };
+      option.onkeydown = (event) => {
+        if (event.key === 'Escape') {
+          menu.hidden = true;
+          button.setAttribute('aria-expanded', 'false');
+        }
+      };
+      document.body.prepend(button, menu);
+    }, 320);
+  });
+  const result = await command(page, { type: 'models', ...target });
+  expect(result.data.current).toBe('Sonnet delayed');
+  expect(result.data.options).toHaveLength(1);
+  await expect(page.getByRole('menu')).not.toBeVisible();
 });
 
 test('new-conversation navigation is accepted once and subsequent conversation changes stop collection', async ({
@@ -1137,37 +1351,42 @@ for (const unsafe of ['previous-turn', 'multiple-replies', 'hidden-replies', 'st
   });
 }
 
-test('ChatGPT accepts unambiguous duplicate counters while uploading unchanged originals', async ({
-  page,
-}) => {
-  // Control the bridge collector interval from its creation, before navigation/injection.
-  await page.clock.install();
-  await page.clock.pauseAt(new Date(Date.now() + 1000));
-  const target = await setupUpload(page, 'chatgpt', 'hold');
-  await page.evaluate(() => {
-    (window as any).fixtureDisplayNames = {
-      'facts.txt': 'facts(1).txt',
-      'diagram.gif': 'diagram(1).gif',
-    };
+for (const [kind, suffix] of [
+  ['duplicate counters', '1'],
+  ['timestamp suffixes', '20261019-124030'],
+] as const) {
+  test(`ChatGPT accepts unambiguous ${kind} while uploading unchanged originals`, async ({
+    page,
+  }) => {
+    // Control the bridge collector interval from its creation, before navigation/injection.
+    await page.clock.install();
+    await page.clock.pauseAt(new Date(Date.now() + 1000));
+    const target = await setupUpload(page, 'chatgpt', 'hold');
+    await page.evaluate((suffix) => {
+      (window as any).fixtureDisplayNames = {
+        'facts.txt': `facts(${suffix}).txt`,
+        'diagram.gif': `diagram(${suffix}).gif`,
+      };
+    }, suffix);
+    await command(page, {
+      type: 'send',
+      id: 'renamed',
+      ...target,
+      prompt: 'Review selected originals',
+      attachments: uploadOriginals,
+    });
+    await expect(page.getByRole('progressbar')).toBeVisible();
+    await page.evaluate(() => (window as any).fixtureFinishUploads());
+    await page.clock.runFor(6000);
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([
+      'Review selected originals',
+    ]);
+    expect((await command(page, { type: 'poll', id: 'renamed' })).data.status).toBe('done');
+    expect(await page.evaluate(() => (window as any).fixtureUploads.flat())).toEqual(
+      uploadOriginals.map(({ sha256: _, ...file }) => file),
+    );
   });
-  await command(page, {
-    type: 'send',
-    id: 'renamed',
-    ...target,
-    prompt: 'Review selected originals',
-    attachments: uploadOriginals,
-  });
-  await expect(page.getByRole('progressbar')).toBeVisible();
-  await page.evaluate(() => (window as any).fixtureFinishUploads());
-  await page.clock.runFor(6000);
-  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([
-    'Review selected originals',
-  ]);
-  expect((await command(page, { type: 'poll', id: 'renamed' })).data.status).toBe('done');
-  expect(await page.evaluate(() => (window as any).fixtureUploads.flat())).toEqual(
-    uploadOriginals.map(({ sha256: _, ...file }) => file),
-  );
-});
+}
 
 for (const names of [
   ['facts(01).txt', 'diagram(1).gif'],
@@ -1177,6 +1396,10 @@ for (const names of [
   ['facts(1).txt', 'facts(2).txt'],
   ['facts(1).txt'],
   ['facts(1).txt', 'diagram(1).gif', 'extra.txt'],
+  ['facts(2026101-124030).txt', 'diagram(20261019-124030).gif'],
+  ['facts(20261019-12403).txt', 'diagram(20261019-124030).gif'],
+  ['facts(20261019_124030).txt', 'diagram(20261019-124030).gif'],
+  ['other(20261019-124030).txt', 'diagram(20261019-124030).gif'],
 ]) {
   test(`ChatGPT rejects missing, extra or unmatched display names ${JSON.stringify(names)}`, async ({
     page,
@@ -1234,37 +1457,79 @@ test('ChatGPT rejects a counter colliding with another original filename', async
   await command(page, { type: 'cancel', id: 'collision' });
 });
 
-test('ChatGPT rejects the same attachment tile when its confirmed counter changes', async ({
+test('ChatGPT rejects a timestamp suffix colliding with another literal original filename', async ({
   page,
 }) => {
   const target = await setupUpload(page, 'chatgpt', 'hold');
   await page.clock.install();
   await page.clock.pauseAt(new Date(Date.now() + 1000));
   await page.evaluate(() => {
-    (window as any).fixtureDisplayNames = { 'facts.txt': 'facts(1).txt' };
-    document.querySelector('textarea,[contenteditable]')!.addEventListener(
-      'input',
-      () => {
-        document
-          .querySelector('[data-composer-attachments] button')!
-          .setAttribute('aria-label', 'Remove facts(2).txt');
-      },
-      { once: true },
-    );
+    (window as any).fixtureDisplayNames = {
+      'facts.txt': 'facts(20261019-124030).txt',
+      'facts(20261019-124030).txt': 'facts(20261019-124030)(1).txt',
+    };
   });
   await command(page, {
     type: 'send',
-    id: 'counter-changed',
+    id: 'timestamp-collision',
     ...target,
     prompt: 'Must not send',
-    attachments: [uploadOriginals[0]!],
+    attachments: [
+      uploadOriginals[0]!,
+      { ...uploadOriginals[0]!, name: 'facts(20261019-124030).txt' },
+    ],
   });
   await expect(page.getByRole('progressbar')).toBeVisible();
   await page.evaluate(() => (window as any).fixtureFinishUploads());
   await page.clock.runFor(2500);
-  expect((await command(page, { type: 'poll', id: 'counter-changed' })).data.status).toBe('error');
   expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  expect((await command(page, { type: 'poll', id: 'timestamp-collision' })).data.status).toBe(
+    'pending',
+  );
+  await command(page, { type: 'cancel', id: 'timestamp-collision' });
 });
+
+for (const [kind, confirmed, changed] of [
+  ['counter', 'facts(1).txt', 'facts(2).txt'],
+  ['timestamp suffix', 'facts(20261019-124030).txt', 'facts(20261019-124031).txt'],
+] as const) {
+  test(`ChatGPT rejects the same attachment tile when its confirmed ${kind} changes`, async ({
+    page,
+  }) => {
+    const target = await setupUpload(page, 'chatgpt', 'hold');
+    await page.clock.install();
+    await page.clock.pauseAt(new Date(Date.now() + 1000));
+    await page.evaluate(
+      ({ confirmed, changed }) => {
+        (window as any).fixtureDisplayNames = { 'facts.txt': confirmed };
+        document.querySelector('textarea,[contenteditable]')!.addEventListener(
+          'input',
+          () => {
+            document
+              .querySelector('[data-composer-attachments] button')!
+              .setAttribute('aria-label', `Remove ${changed}`);
+          },
+          { once: true },
+        );
+      },
+      { confirmed, changed },
+    );
+    await command(page, {
+      type: 'send',
+      id: 'counter-changed',
+      ...target,
+      prompt: 'Must not send',
+      attachments: [uploadOriginals[0]!],
+    });
+    await expect(page.getByRole('progressbar')).toBeVisible();
+    await page.evaluate(() => (window as any).fixtureFinishUploads());
+    await page.clock.runFor(2500);
+    expect((await command(page, { type: 'poll', id: 'counter-changed' })).data.status).toBe(
+      'error',
+    );
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  });
+}
 
 for (const completion of ['complete', 'hidden-copy', 'previous-turn', 'streaming'] as const) {
   test(`Gemini Korean Copy completion stays scoped to the ${completion} response`, async ({
@@ -1308,5 +1573,571 @@ for (const completion of ['complete', 'hidden-copy', 'previous-turn', 'streaming
         answer: '새로운 gemini 검증 답변',
       });
     } else await command(page, { type: 'cancel', id: 'korean-copy' });
+  });
+}
+
+for (const delayedClose of [false, true]) {
+  test(`Claude model picker separates checked model from effort and rejects ambiguous checks (delayed close: ${delayedClose})`, async ({
+    page,
+  }) => {
+    const target = await setup(page, 'claude');
+    await page.evaluate((delayedClose) => {
+      const trigger = document.createElement('button');
+      trigger.dataset.testid = 'model-selector-dropdown';
+      trigger.textContent = 'Sonnet 5.5  Medium';
+      trigger.setAttribute('aria-label', 'Model: Sonnet 5.5 Medium');
+      trigger.setAttribute('aria-haspopup', 'menu');
+      trigger.setAttribute('aria-expanded', 'false');
+      const menu = document.createElement('div');
+      menu.setAttribute('role', 'menu');
+      menu.hidden = true;
+      for (const name of ['Sonnet 5.5', 'Opus Test']) {
+        const option = document.createElement('button');
+        option.setAttribute('role', 'menuitemradio');
+        option.setAttribute('aria-checked', String(name === 'Sonnet 5.5'));
+        const modelName = document.createElement('span');
+        modelName.dataset.testid = 'model-name';
+        const title = document.createElement('div');
+        title.textContent = name;
+        const description = document.createElement('div');
+        description.textContent = 'Most efficient for simpler tasks';
+        const icon = document.createElement('div');
+        icon.textContent = 'icon';
+        modelName.append(title, description, icon);
+        option.append(modelName);
+        option.onclick = () => {
+          const confirm = () => {
+            for (const model of menu.querySelectorAll('[role="menuitemradio"]'))
+              model.setAttribute('aria-checked', String(model === option));
+            trigger.textContent = `${name}  Medium`;
+            menu.hidden = true;
+            trigger.setAttribute('aria-expanded', 'false');
+          };
+          if (delayedClose) setTimeout(confirm, 20);
+          else confirm();
+        };
+        menu.append(option);
+      }
+      const effort = document.createElement('button');
+      effort.setAttribute('role', 'menuitem');
+      effort.textContent = 'Effort Medium';
+      menu.append(effort);
+      trigger.onclick = () => {
+        menu.hidden = !menu.hidden;
+        trigger.setAttribute('aria-expanded', String(!menu.hidden));
+      };
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          menu.hidden = true;
+          trigger.setAttribute('aria-expanded', 'false');
+        }
+      });
+      document.body.prepend(trigger, menu);
+    }, delayedClose);
+    const catalog = await command(page, { type: 'models', ...target });
+    expect(catalog.ok).toBe(true);
+    expect(catalog.data.current).toBe('Sonnet 5.5');
+    expect(catalog.data.options.map((option: { label: string }) => option.label)).toEqual([
+      'Sonnet 5.5',
+      'Opus Test',
+    ]);
+    const selected = await command(page, { type: 'selectModel', ...target, key: 'Opus Test' });
+    expect(selected.ok).toBe(true);
+    expect(selected.data.current).toBe('Opus Test');
+    await page.evaluate(() => {
+      for (const model of document.querySelectorAll('[role="menuitemradio"]'))
+        model.setAttribute('aria-checked', 'true');
+    });
+    expect((await command(page, { type: 'models', ...target })).ok).toBe(false);
+    await expect(page.getByRole('menu')).not.toBeVisible();
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  });
+}
+
+test('Claude model reads wait for asynchronous Escape cleanup before returning', async ({
+  page,
+}) => {
+  const target = await setup(page, 'claude');
+  const result = await page.evaluate(async (target) => {
+    const trigger = document.createElement('button');
+    trigger.dataset.testid = 'model-selector-dropdown';
+    trigger.textContent = 'Sonnet fixture Medium';
+    trigger.setAttribute('aria-expanded', 'false');
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+    const option = document.createElement('button');
+    option.setAttribute('role', 'menuitemradio');
+    option.setAttribute('aria-checked', 'true');
+    option.textContent = 'Sonnet fixture';
+    menu.append(option);
+    let fallbackCloses = 0;
+    const close = () =>
+      setTimeout(() => {
+        menu.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+      }, 20);
+    trigger.onclick = () => {
+      if (!menu.hidden) {
+        fallbackCloses++;
+        close();
+        return;
+      }
+      menu.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      option.focus();
+    };
+    option.onkeydown = (event) => {
+      if (event.key === 'Escape') close();
+    };
+    document.body.prepend(trigger, menu);
+    const results = [];
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await new Promise<{ ok: boolean }>((resolve) => {
+        (window as any).__bridgeHandler(
+          { type: 'models', ...target },
+          { id: 'fixture', url: 'chrome-extension://fixture/sidepanel.html' },
+          resolve,
+        );
+      });
+      results.push({ ok: response.ok, closed: menu.hidden });
+    }
+    return { results, fallbackCloses };
+  }, target);
+  expect(result.results).toEqual([
+    { ok: true, closed: true },
+    { ok: true, closed: true },
+  ]);
+  expect(result.fallbackCloses).toBe(0);
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+test('Claude model picker clicks its owning trigger once', async ({ page }) => {
+  const target = await setup(page, 'claude');
+  await page.evaluate(() => {
+    const trigger = document.createElement('button');
+    trigger.dataset.testid = 'model-selector-dropdown';
+    trigger.textContent = 'Sonnet fixture Medium';
+    trigger.setAttribute('aria-expanded', 'false');
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+    const option = document.createElement('button');
+    option.setAttribute('role', 'menuitemradio');
+    option.setAttribute('aria-checked', 'true');
+    option.textContent = 'Sonnet fixture';
+    menu.append(option);
+    (window as any).fixtureTriggerClicks = 0;
+    trigger.onclick = () => {
+      (window as any).fixtureTriggerClicks++;
+      menu.hidden = !menu.hidden;
+      trigger.setAttribute('aria-expanded', String(!menu.hidden));
+      if (!menu.hidden) option.focus();
+    };
+    option.onkeydown = (event) => {
+      if (event.key !== 'Escape') return;
+      menu.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+    };
+    document.body.prepend(trigger, menu);
+  });
+  const catalog = await command(page, { type: 'models', ...target });
+  expect(catalog.ok).toBe(true);
+  expect(catalog.data.current).toBe('Sonnet fixture');
+  expect(catalog.data.options).toEqual([
+    { key: 'Sonnet fixture', label: 'Sonnet fixture', disabled: false },
+  ]);
+  expect(await page.evaluate(() => (window as any).fixtureTriggerClicks)).toBe(1);
+  await expect(page.getByRole('menu')).not.toBeVisible();
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+test('Claude model picker closes an empty menu after the options timeout', async ({ page }) => {
+  const target = await setup(page, 'claude');
+  await page.evaluate(() => {
+    const trigger = document.createElement('button');
+    trigger.dataset.testid = 'model-selector-dropdown';
+    trigger.textContent = 'Sonnet fixture';
+    trigger.setAttribute('aria-expanded', 'false');
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    menu.textContent = 'Loading models';
+    menu.hidden = true;
+    trigger.onclick = () => {
+      menu.hidden = !menu.hidden;
+      trigger.setAttribute('aria-expanded', String(!menu.hidden));
+      trigger.focus();
+    };
+    trigger.onkeydown = (event) => {
+      if (event.key === 'Escape') {
+        menu.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+    };
+    document.body.prepend(trigger, menu);
+  });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const catalog = await command(page, { type: 'models', ...target });
+    expect(catalog.ok).toBe(true);
+    expect(catalog.data.options).toEqual([]);
+    expect(await page.getByTestId('model-selector-dropdown').getAttribute('aria-expanded')).toBe(
+      'false',
+    );
+    await expect(page.getByRole('menu')).not.toBeVisible();
+  }
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+async function setupCurrentGeminiModes(
+  page: Page,
+  variant: 'normal' | 'unmount' | 'ambiguous' | 'disabled' | 'foreign' | 'duplicate-owner',
+) {
+  const target = await setup(page, 'gemini');
+  await page.evaluate((variant) => {
+    const trigger = document.createElement('button');
+    trigger.setAttribute('data-test-id', 'bard-mode-menu-button');
+    trigger.setAttribute('aria-haspopup', 'menu');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-controls', 'fixture-mode-menu');
+    trigger.textContent = 'Gemini Automatic fixture low';
+    const menu = document.createElement('div');
+    menu.id = 'fixture-mode-menu';
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+    const rows: HTMLElement[] = [];
+    for (const [index, title] of ['Automatic fixture', 'Reasoned fixture'].entries()) {
+      const row = document.createElement('gem-menu-item');
+      row.style.cssText = 'display:block;min-height:40px;width:300px';
+      row.tabIndex = 0;
+      row.setAttribute('role', 'menuitem');
+      row.setAttribute('data-mode-id', `fixture-mode-${index}`);
+      row.setAttribute('aria-disabled', String(variant === 'disabled' && index === 0));
+      row.classList.toggle('selected', index === 0 || variant === 'ambiguous');
+      const content = document.createElement('gem-menu-item-content');
+      const labels = document.createElement('div');
+      labels.className = 'label-container';
+      const label = document.createElement('span');
+      label.className = 'label';
+      label.textContent = title;
+      const description = document.createElement('div');
+      description.className = 'sublabel';
+      description.textContent = 'Gemini model description, not its name';
+      labels.append(label, description);
+      content.append(labels);
+      row.append(content);
+      row.onclick = () => {
+        for (const candidate of rows) candidate.classList.toggle('selected', candidate === row);
+        trigger.textContent = `Gemini ${title} low`;
+        menu.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+      };
+      rows.push(row);
+      if (variant !== 'foreign') menu.append(row);
+    }
+    const effort = document.createElement('gem-menu-item');
+    effort.style.cssText = 'display:block;min-height:40px;width:300px';
+    effort.setAttribute('role', 'menuitem');
+    effort.className = 'selected';
+    effort.textContent = '빠른 사고';
+    menu.append(effort);
+    const foreign = document.createElement('div');
+    foreign.id = variant === 'duplicate-owner' ? menu.id : 'fixture-foreign-menu';
+    foreign.setAttribute('role', 'menu');
+    foreign.hidden = true;
+    if (variant === 'foreign' || variant === 'duplicate-owner') {
+      const foreignRow = document.createElement('gem-menu-item');
+      foreignRow.style.cssText = 'display:block;min-height:40px;width:300px';
+      foreignRow.setAttribute('role', 'menuitem');
+      foreignRow.setAttribute('data-mode-id', 'fixture-foreign-mode');
+      foreignRow.className = 'selected';
+      foreignRow.textContent = 'Gemini foreign model';
+      foreign.append(foreignRow);
+    }
+    const close = () => {
+      const finish = () => {
+        menu.hidden = true;
+        foreign.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+        if (variant === 'unmount') {
+          for (const row of rows) {
+            row.textContent = '';
+            row.removeAttribute('data-mode-id');
+          }
+          menu.remove();
+        }
+      };
+      if (variant === 'unmount') setTimeout(finish, 20);
+      else finish();
+    };
+    trigger.onclick = () => {
+      if (trigger.getAttribute('aria-expanded') === 'true') {
+        close();
+        return;
+      }
+      menu.hidden = false;
+      foreign.hidden = variant !== 'foreign' && variant !== 'duplicate-owner';
+      trigger.setAttribute('aria-expanded', 'true');
+      trigger.focus();
+    };
+    trigger.onkeydown = (event) => {
+      if (event.key === 'Escape') close();
+    };
+    document.body.prepend(trigger, menu, foreign);
+  }, variant);
+  return target;
+}
+
+test('Gemini keyed model menu separates selected mode from selected effort and keeps public keys as labels', async ({
+  page,
+}) => {
+  const target = await setupCurrentGeminiModes(page, 'normal');
+  const catalog = await command(page, { type: 'models', ...target });
+  expect(catalog.ok).toBe(true);
+  expect(catalog.data).toEqual({
+    current: 'Automatic fixture',
+    options: [
+      { key: 'Automatic fixture', label: 'Automatic fixture', disabled: false },
+      { key: 'Reasoned fixture', label: 'Reasoned fixture', disabled: false },
+    ],
+  });
+  expect(JSON.stringify(catalog)).not.toContain('fixture-mode-');
+  await expect(page.locator('#fixture-mode-menu')).not.toBeVisible();
+  const selected = await command(page, { type: 'selectModel', ...target, key: 'Reasoned fixture' });
+  expect(selected.ok).toBe(true);
+  expect(selected.data.current).toBe('Reasoned fixture');
+  await expect(page.locator('#fixture-mode-menu')).not.toBeVisible();
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+test('Gemini keyed model menu captures title before awaited menu unmount', async ({ page }) => {
+  const target = await setupCurrentGeminiModes(page, 'unmount');
+  const catalog = await command(page, { type: 'models', ...target });
+  expect(catalog.ok).toBe(true);
+  expect(catalog.data.current).toBe('Automatic fixture');
+  expect(catalog.data.options.map((option: { label: string }) => option.label)).toEqual([
+    'Automatic fixture',
+    'Reasoned fixture',
+  ]);
+  await expect(page.locator('#fixture-mode-menu')).toHaveCount(0);
+  expect(
+    await page.locator('[data-test-id="bard-mode-menu-button"]').getAttribute('aria-expanded'),
+  ).toBe('false');
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+for (const variant of ['ambiguous', 'disabled', 'foreign', 'duplicate-owner'] as const) {
+  test(`Gemini keyed model menu rejects ${variant} selection without sending`, async ({ page }) => {
+    const target = await setupCurrentGeminiModes(page, variant);
+    const catalog = await command(page, { type: 'models', ...target });
+    expect(catalog.ok).toBe(false);
+    await expect(page.locator('[role="menu"]:visible')).toHaveCount(0);
+    expect(
+      await page.locator('[data-test-id="bard-mode-menu-button"]').getAttribute('aria-expanded'),
+    ).toBe('false');
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  });
+}
+
+async function setupCompactGeminiModes(
+  page: Page,
+  variant: 'normal' | 'escape-ignored' | 'foreign-owner' | 'duplicate-inner' | 'duplicate-menu',
+) {
+  const target = await setupCurrentGeminiModes(page, 'normal');
+  await page.evaluate((variant) => {
+    const inner = document.querySelector<HTMLButtonElement>(
+      '[data-test-id="bard-mode-menu-button"]',
+    )!;
+    const oldMenu = document.querySelector<HTMLElement>('#fixture-mode-menu')!;
+    const owner = document.createElement('bard-mode-switcher');
+    owner.setAttribute('data-test-id', 'bard-mode-switcher');
+    owner.style.display = 'block';
+    const host = document.createElement('gem-button');
+    host.setAttribute('data-test-id', 'bard-mode-menu-button');
+    host.style.display = 'inline-block';
+    for (const attribute of ['data-test-id', 'aria-haspopup', 'aria-controls', 'aria-expanded'])
+      inner.removeAttribute(attribute);
+    inner.setAttribute('aria-label', 'Mode: Automatic fixture');
+    inner.onclick = null;
+    const menu = document.createElement('gem-menu');
+    menu.setAttribute('role', 'menu');
+    menu.setAttribute('data-test-id', 'gem-mode-menu');
+    const styles = document.createElement('style');
+    styles.textContent = 'gem-menu { display:block } gem-menu[hidden] { display:none }';
+    document.head.append(styles);
+    menu.hidden = true;
+    menu.append(...oldMenu.childNodes);
+    oldMenu.remove();
+    const popover = document.createElement('gem-popover');
+    const pane = document.createElement('div');
+    pane.className = 'cdk-overlay-pane';
+    const overlay = document.createElement('div');
+    overlay.className = 'cdk-overlay-popover';
+    const popup = document.createElement('div');
+    popup.setAttribute('data-test-id', 'bard-mode-popover-menu');
+    popup.append(menu);
+    overlay.append(popup);
+    pane.append(overlay);
+    popover.append(pane);
+    host.append(inner);
+    owner.append(host);
+    if (variant === 'foreign-owner') {
+      const foreignOwner = document.createElement('bard-mode-switcher');
+      foreignOwner.setAttribute('data-test-id', 'bard-mode-switcher');
+      foreignOwner.append(popover);
+      document.body.prepend(foreignOwner);
+    } else owner.append(popover);
+    if (variant === 'duplicate-inner') host.append(inner.cloneNode(true));
+    let duplicate: HTMLElement | undefined;
+    if (variant === 'duplicate-menu') {
+      duplicate = menu.cloneNode(true) as HTMLElement;
+      popup.append(duplicate);
+    }
+    const close = () => {
+      menu.hidden = true;
+      if (duplicate) duplicate.hidden = true;
+    };
+    (window as any).fixtureControlClicks = 0;
+    host.onclick = () => {
+      (window as any).fixtureControlClicks++;
+      menu.hidden = !menu.hidden;
+      if (duplicate) duplicate.hidden = menu.hidden;
+      inner.focus();
+    };
+    inner.onkeydown = (event) => {
+      if (event.key === 'Escape' && variant !== 'escape-ignored') close();
+    };
+    for (const row of menu.querySelectorAll<HTMLElement>('[data-mode-id]')) {
+      row.onclick = () => {
+        for (const candidate of menu.querySelectorAll('[data-mode-id]'))
+          candidate.classList.toggle('selected', candidate === row);
+        inner.textContent = `Gemini ${row.querySelector('.label')!.textContent} low`;
+        close();
+      };
+    }
+    document.body.prepend(owner);
+  }, variant);
+  return target;
+}
+
+test('Gemini compact model menu uses its unique inner control and local owning popover', async ({
+  page,
+}) => {
+  const target = await setupCompactGeminiModes(page, 'normal');
+  const catalog = await command(page, { type: 'models', ...target });
+  expect(catalog.ok).toBe(true);
+  expect(catalog.data.current).toBe('Automatic fixture');
+  expect(catalog.data.options.map((option: { label: string }) => option.label)).toEqual([
+    'Automatic fixture',
+    'Reasoned fixture',
+  ]);
+  expect(JSON.stringify(catalog)).not.toContain('fixture-mode-');
+  expect(await page.evaluate(() => (window as any).fixtureControlClicks)).toBe(1);
+  await expect(page.locator('[data-test-id="gem-mode-menu"]')).not.toBeVisible();
+  const selected = await command(page, { type: 'selectModel', ...target, key: 'Reasoned fixture' });
+  expect(selected.ok).toBe(true);
+  expect(selected.data.current).toBe('Reasoned fixture');
+  await expect(page.locator('[data-test-id="gem-mode-menu"]')).not.toBeVisible();
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+for (const phase of ['await-inner', 'await-host', 'after-click'] as const)
+  test(`Gemini compact menu respects the capture boundary during ${phase} replacement`, async ({
+    page,
+  }) => {
+    const target = await setupCompactGeminiModes(page, 'normal');
+    await page.evaluate((phase) => {
+      const owner = document.querySelector(
+        'bard-mode-switcher[data-test-id="bard-mode-switcher"]',
+      )!;
+      const host = owner.querySelector<HTMLElement>(
+        'gem-button[data-test-id="bard-mode-menu-button"]',
+      )!;
+      const stale = host.querySelector<HTMLButtonElement>('button')!;
+      const originalClick = host.onclick;
+      (window as any).fixtureStaleClicks = 0;
+      (window as any).fixtureFreshClicks = 0;
+      const replace = () => {
+        const fresh = stale.cloneNode(true) as HTMLButtonElement;
+        fresh.onkeydown = stale.onkeydown;
+        fresh.addEventListener('click', () => {
+          (window as any).fixtureFreshClicks++;
+        });
+        let freshHost = host;
+        if (phase === 'await-host') {
+          freshHost = host.cloneNode(false) as HTMLElement;
+          freshHost.append(fresh);
+          host.replaceWith(freshHost);
+        } else stale.replaceWith(fresh);
+        freshHost.onclick = (event) => {
+          originalClick?.call(freshHost, event);
+          fresh.focus();
+        };
+        fresh.focus();
+        (window as any).fixtureReplacementOwnerSame = fresh.closest('bard-mode-switcher') === owner;
+        (window as any).fixtureStaleConnected = stale.isConnected;
+      };
+      stale.addEventListener('click', () => {
+        (window as any).fixtureStaleClicks++;
+        if (phase === 'after-click') replace();
+      });
+      if (phase !== 'after-click') {
+        const read = document.querySelectorAll;
+        let queued = false;
+        document.querySelectorAll = function (this: Document, selector: string) {
+          const found = read.call(this, selector);
+          if (!queued && selector === '[data-test-id="bard-mode-menu-button"]') {
+            queued = true;
+            queueMicrotask(replace);
+          }
+          return found;
+        } as typeof document.querySelectorAll;
+      }
+    }, phase);
+    const catalog = await command(page, { type: 'models', ...target });
+    if (phase === 'after-click') {
+      expect(catalog.ok).toBe(false);
+      expect(catalog.error).toBe('Gemini 모델 메뉴의 연결이 변경되었습니다.');
+    } else {
+      expect(catalog.ok).toBe(true);
+      expect(catalog.data.current).toBe('Automatic fixture');
+    }
+    expect(
+      await page.evaluate(() => ({
+        stale: (window as any).fixtureStaleClicks,
+        fresh: (window as any).fixtureFreshClicks,
+        sameOwner: (window as any).fixtureReplacementOwnerSame,
+        staleConnected: (window as any).fixtureStaleConnected,
+      })),
+    ).toEqual({
+      stale: phase === 'after-click' ? 1 : 0,
+      fresh: phase === 'after-click' ? 0 : 1,
+      sameOwner: true,
+      staleConnected: false,
+    });
+    await expect(page.locator('[data-test-id="gem-mode-menu"]')).not.toBeVisible();
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  });
+
+test('Gemini compact model menu closes its own visible popover when Escape is ignored', async ({
+  page,
+}) => {
+  const target = await setupCompactGeminiModes(page, 'escape-ignored');
+  const catalog = await command(page, { type: 'models', ...target });
+  expect(catalog.ok).toBe(true);
+  expect(catalog.data.current).toBe('Automatic fixture');
+  expect(await page.evaluate(() => (window as any).fixtureControlClicks)).toBe(2);
+  await expect(page.locator('[data-test-id="gem-mode-menu"]')).not.toBeVisible();
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+for (const variant of ['foreign-owner', 'duplicate-inner', 'duplicate-menu'] as const) {
+  test(`Gemini compact model menu rejects ${variant} without sending`, async ({ page }) => {
+    const target = await setupCompactGeminiModes(page, variant);
+    const catalog = await command(page, { type: 'models', ...target });
+    expect(catalog.ok).toBe(false);
+    if (variant === 'duplicate-inner')
+      expect(await page.evaluate(() => (window as any).fixtureControlClicks)).toBe(0);
+    await expect(page.locator('[role="menu"]:visible')).toHaveCount(0);
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
   });
 }

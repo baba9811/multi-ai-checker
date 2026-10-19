@@ -6,6 +6,18 @@
 
 버전별 실제 결과와 남은 제한은 [검증 기록](validation.md)에 기록합니다. 아래 절차는 실행 체크리스트이며, 항목이 있다는 사실은 통과 근거가 아닙니다. 단위·합성 브라우저·설치 확장·실계정 결과를 구분하세요.
 
+## 선택적 Claude 원본 검토 수용
+
+기본 전체 검토와 별개의 두 요청 실험입니다. 텍스트 두 Q/A 수집과 최종 artifact의 실제 세 Q/A·TXT/PNG native collect/review 수용을 확인했습니다. source와 foreground가 유지됐으며 소유한 테스트 탭·helper도 정리했습니다. [Task 9 결과](validation.md)가 artifact별 증거를 소유합니다. 아래는 재실행 절차이며 부정 사례·재연결 모든 조합을 실제 서비스에서 실행했다고 해석하지 않습니다.
+
+- [ ] 정확한 production 설치 경로·버전을 새로고침하고 실제 native panel의 **Claude 백그라운드 검토**를 확인합니다. 연구용 비활성 stub이나 일반 탭 panel을 이 경로로 대신하지 않습니다.
+- [ ] 새 비민감 원본의 실제 렌더된 여러 Q/A를 가져와 모두 펼칩니다. 원본 내용과 선택한 공유 범위를 확인한 뒤 텍스트만으로 collect·review 두 답변, 같은 Claude 대화, 원본의 새 질문 없음·foreground 유지·새 peer 비활성을 확인합니다.
+- [ ] 합성 UTF-8 TXT(각 64 KiB 이하)·PNG(각 축 4096 이하) 원본을 패널에서 모두 선택합니다. 기존 10개·총 20 MiB 안에서 내용과 해시를 확인하고 지원 밖의 파일이 전송 전에 거부되는지 검사합니다.
+- [ ] 실제 파일 시작을 한 번만 눌러 원본의 내용/이미지가 collect와 review에 연결된 답변, 모든 완료 receipt와 첫 human의 정확한 history를 확인합니다. PNG는 한 번만 업로드하고 review에도 전체 승인 manifest·첫 history는 유지돼야 합니다. 인식 답변만으로 파일 receipt 검증을 대신하지 않습니다.
+- [ ] 보존된 peer A/B의 재연결에서 로컬 thread 소유권이 유지되는지, 같은 tab/document/URL의 소유권 변경도 UI가 갱신하는지 검사합니다. 정상 saved 연결은 유지하고 ordinary unbound Claude가 예약 peer를 재사용하지 않고 새 홈을 여는지 확인합니다.
+- [ ] 변경된 원본·모델·문서/URL·이전 history/receipt·lost session·draft·중단을 거부하고 자동 retry·DOM fallback·대체 새 session 할당이 없는지 확인합니다. 원본 메인 synthesis는 실행하지 않습니다.
+- [ ] 소유 테스트 탭과 허가된 helper만 정리하고 새 관찰로 종료를 확인합니다. 최신 타입/단위/합성/설치와 native 결과·artifact를 서로 구분해 기록합니다.
+
 ## 준비와 시작
 
 개발자 모드 확장을 허용하는 Chrome 120 이상에서 같은 프로필로 사용할 서비스에 로그인합니다. 새로 설치하거나 교체했다면 설치 폴더와 빌드 manifest의 버전, 실제 사이드패널을 확인하고 기존 AI 탭을 새로고침합니다. 비로그인 상태에서의 전체 인증 과정은 기존 로그인 계정 검사와 별도로 기록합니다. 새롭고 민감하지 않은 테스트 대화와 합성 파일을 사용하세요.

@@ -9,6 +9,9 @@ import {
   type Binding,
 } from '../../domains/providers/model';
 import { ProviderLogo } from './ProviderLogo';
+import { ClaudeProbe } from './ClaudeProbe';
+import { GeminiReadiness } from './GeminiReadiness';
+import { GeminiSdkTrial } from './GeminiSdkTrial';
 
 export function ConnectionSettings({
   platform,
@@ -59,7 +62,8 @@ export function ConnectionSettings({
         !saved ||
         binding.documentId !== saved.documentId ||
         binding.url !== saved.url ||
-        binding.tabId !== saved.tabId
+        binding.tabId !== saved.tabId ||
+        binding.threadId !== saved.threadId
       ) {
         onBinding(id, binding);
         setCatalogs((old) => ({ ...old, [id]: undefined }));
@@ -300,6 +304,15 @@ export function ConnectionSettings({
           </article>
         );
       })}
+      {platform.startClaudeProbe && platform.readClaudeProbe && (
+        <ClaudeProbe platform={platform} disabled={disabled} onWorking={onWorking} />
+      )}
+      {platform.checkGeminiReadiness && platform.readGeminiReadiness && (
+        <GeminiReadiness platform={platform} disabled={disabled} onWorking={onWorking} />
+      )}
+      {platform.startGeminiSdkTrial && platform.readGeminiSdkTrial && (
+        <GeminiSdkTrial platform={platform} disabled={disabled} onWorking={onWorking} />
+      )}
       <button className="text-button" onClick={downloadDiagnostics}>
         <Download size={13} /> 진단 저장
       </button>

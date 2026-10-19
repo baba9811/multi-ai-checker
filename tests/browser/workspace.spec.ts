@@ -8,6 +8,105 @@ async function confirmOriginals(page: Page) {
     .check();
 }
 
+test('prompt settings persist for new runs, reset independently and reach every stage as readable text', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByText('검토 설정', { exact: true }).click();
+  await page.getByLabel('답변 언어').fill('English');
+  for (const [stage, text] of [
+    ['독립 답변', 'Collect concise alternatives.'],
+    ['교차 검토', 'Review the actual evidence.'],
+    ['최종 종합', 'Give a concise final answer.'],
+  ]) {
+    await page.getByText(`${stage} 문구`, { exact: true }).click();
+    await page.getByLabel(`${stage} 지시문`).fill(text!);
+  }
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          JSON.parse(sessionStorage.getItem('fixture-workspace') ?? '{}').promptOptions?.stages
+            .synthesize,
+      ),
+    )
+    .toBe('Give a concise final answer.');
+  await page.reload();
+  await page.getByText('검토 설정', { exact: true }).click();
+  await expect(page.getByLabel('답변 언어')).toHaveValue('English');
+  await page.getByText('교차 검토 문구', { exact: true }).click();
+  await page.getByRole('button', { name: '교차 검토 기본값으로' }).click();
+  await expect(page.getByLabel('교차 검토 지시문')).not.toHaveValue('Review the actual evidence.');
+  await expect(page.getByLabel('답변 언어')).toHaveValue('English');
+  await confirmOriginals(page);
+  await page.getByRole('button', { name: '자동 검토 시작' }).click();
+  await expect(page.getByRole('heading', { name: '검토 완료' })).toBeVisible();
+  const sends = await page.evaluate(() => window.harness.sends);
+  expect(
+    sends
+      .filter(({ job }) => job.stage === 'collect')
+      .every(({ job }) => job.prompt.includes('Collect concise alternatives.')),
+  ).toBe(true);
+  expect(sends.at(-1)!.job.prompt).toContain('Give a concise final answer.');
+  for (const { job } of sends) {
+    expect(job.prompt).toContain('English');
+    expect(job.prompt).toContain('먼저 압력의 영향을 설명해주세요.');
+    expect(job.prompt).toContain('압력이 끓는점에 영향을 줍니다.');
+    expect(job.prompt).not.toContain('검토 데이터(JSON)');
+    expect(job.prompt).not.toContain('conversation_context');
+  }
+  const saved = await page.evaluate(() => JSON.parse(sessionStorage.getItem('fixture-workspace')!));
+  expect(saved.promptOptions).toEqual(saved.run.promptOptions);
+  expect(saved.run.execution).toBeUndefined();
+  await page.getByRole('button', { name: '새 검토', exact: true }).click();
+  if (!(await page.getByLabel('답변 언어').isVisible()))
+    await page.getByText('검토 설정', { exact: true }).click();
+  await page.getByRole('button', { name: '프롬프트 설정 모두 초기화' }).click();
+  await expect(page.getByLabel('답변 언어')).toHaveValue('한국어');
+  await page.getByText('독립 답변 문구', { exact: true }).click();
+  await expect(page.getByLabel('독립 답변 지시문')).not.toHaveValue(
+    'Collect concise alternatives.',
+  );
+});
+
+test('background execution requires explicit selection and is captured only for that run', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByText('검토 설정', { exact: true }).click();
+  const background = page.getByRole('checkbox', { name: '탭 전환 없이 실행 (실험)' });
+  await expect(background).not.toBeChecked();
+  await background.check();
+  await expect(page.locator('.action-note')).toContainText('Claude 전송이 실패할 수 있습니다');
+  await confirmOriginals(page);
+  await page.getByRole('button', { name: '자동 검토 시작' }).click();
+  await expect(page.getByRole('heading', { name: '검토 완료' })).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => JSON.parse(sessionStorage.getItem('fixture-workspace')!).run.execution,
+    ),
+  ).toBe('background');
+  await page.getByRole('button', { name: '새 검토', exact: true }).click();
+  if (!(await background.isVisible())) await page.getByText('검토 설정', { exact: true }).click();
+  await expect(background).not.toBeChecked();
+});
+
+test('invalid prompt settings explain a disabled start even when settings are collapsed', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await confirmOriginals(page);
+  await page.getByText('검토 설정', { exact: true }).click();
+  await page.getByText('독립 답변 문구', { exact: true }).click();
+  await page.getByLabel('독립 답변 지시문').fill('');
+  await page.getByText('검토 설정', { exact: true }).click();
+  await expect(page.getByRole('button', { name: '자동 검토 시작' })).toBeDisabled();
+  await expect(
+    page.getByText('검토 설정에서 답변 언어와 각 단계 지시문을 입력해주세요.', { exact: false }),
+  ).toBeVisible();
+  expect(await page.evaluate(() => window.harness.sends)).toHaveLength(0);
+});
+
 test('one click imports, collects, reviews and sends final synthesis to the original main', async ({
   page,
 }, info) => {
@@ -138,6 +237,31 @@ test('connections loads and changes available web models without sending a quest
   await page.getByLabel('ChatGPT 모델').selectOption('다른 모델');
   await expect.poll(() => page.evaluate(() => window.harness.models.chatgpt)).toBe('다른 모델');
   await expect(page.getByLabel('ChatGPT 모델').locator('option[value="한도 도달"]')).toBeDisabled();
+  expect(await page.evaluate(() => window.harness.sends)).toHaveLength(0);
+});
+
+test('reconnecting preserves changed local peer ownership even on the same tab and document', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const threadId = crypto.randomUUID();
+  await page.evaluate((id) => {
+    window.harness.reconnectedThread = id;
+  }, threadId);
+  await page.getByRole('button', { name: '연결', exact: true }).click();
+  const card = page
+    .getByRole('article')
+    .filter({ has: page.getByRole('heading', { name: 'Claude', exact: true }) });
+  await card.getByRole('button', { name: '다시 연결', exact: true }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          JSON.parse(sessionStorage.getItem('fixture-workspace') ?? '{}').bindings?.claude
+            ?.threadId,
+      ),
+    )
+    .toBe(threadId);
   expect(await page.evaluate(() => window.harness.sends)).toHaveLength(0);
 });
 

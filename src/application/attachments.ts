@@ -34,7 +34,11 @@ export function matchAttachments(expected: Attachment[], files: AttachmentPayloa
     expected.length === files.length &&
     expected.every((item) =>
       files.some(
-        (file) => item.name === file.name && item.size === file.size && item.sha256 === file.sha256,
+        (file) =>
+          item.name === file.name &&
+          item.type === file.type &&
+          item.size === file.size &&
+          item.sha256 === file.sha256,
       ),
     )
   );

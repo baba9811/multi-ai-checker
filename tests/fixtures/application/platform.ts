@@ -7,6 +7,12 @@ import {
 } from '../../../src/domains/providers/model';
 import type { Job } from '../../../src/domains/crosscheck/model';
 import type { AttachmentPayload } from '../../../src/domains/attachments/model';
+import type { GeminiClientCapability } from '../../../src/application/gemini-readiness';
+import {
+  GEMINI_FIXED_TEXT_TRIAL_ANSWER,
+  GeminiFixedTextTrialRecord,
+  GeminiFixedTextTrialReason,
+} from '../../../src/application/gemini-fixed-text-trial';
 
 declare global {
   interface Window {
@@ -25,6 +31,15 @@ declare global {
       extensionStatus: ExtensionStatus;
       updateAvailable?: (version: string) => void;
       managerOpens: number;
+      probeStarts: number;
+      probeKinds: Array<'context' | undefined>;
+      geminiHeaderStarts: number;
+      geminiHeaderCancels: number;
+      completeGeminiHeader?: () => void;
+      geminiSdkTrialStarts: number;
+      geminiSdkTrialCancels: number;
+      completeGeminiSdkTrial?: () => void;
+      reconnectedThread?: string;
     };
   }
 }
@@ -41,6 +56,12 @@ window.harness = {
     automaticUpdates: new URL(location.href).searchParams.get('updates') === 'automatic',
   },
   managerOpens: 0,
+  probeStarts: 0,
+  probeKinds: [],
+  geminiHeaderStarts: 0,
+  geminiHeaderCancels: 0,
+  geminiSdkTrialStarts: 0,
+  geminiSdkTrialCancels: 0,
 };
 const bindings = Object.fromEntries(
   providerIds.map((provider, i) => [
@@ -54,6 +75,142 @@ const bindings = Object.fromEntries(
   ]),
 ) as Record<ProviderId, Binding>;
 export const fixturePlatform: Platform = {
+  async observeGeminiHeaderReadiness(signal) {
+    window.harness.geminiHeaderStarts++;
+    const mode = new URL(location.href).searchParams.get('header-observation');
+    if (mode === 'hold' || mode === 'late')
+      await new Promise<void>((resolve, reject) => {
+        const finish = () => {
+          signal.removeEventListener('abort', abort);
+          resolve();
+        };
+        const abort = () => {
+          window.harness.geminiHeaderCancels++;
+          if (mode !== 'late') reject(Error('synthetic abort'));
+        };
+        signal.addEventListener('abort', abort, { once: true });
+        window.harness.completeGeminiHeader = finish;
+      });
+    return {
+      outcome: mode === 'inconclusive' ? 'inconclusive' : 'ready-late',
+      retirement: 'retained',
+      visibility: mode === 'visible' ? 'visible' : 'hidden',
+    };
+  },
+  async readGeminiSdkTrial() {
+    const record = sessionStorage.getItem('fixture-gemini-sdk-trial');
+    return record ? GeminiFixedTextTrialRecord.parse(JSON.parse(record)) : undefined;
+  },
+  async startGeminiSdkTrial(signal) {
+    signal.throwIfAborted();
+    const id = `fixture-gemini-sdk-${++window.harness.geminiSdkTrialStarts}`;
+    const save = (status: 'pending' | 'done' | 'uncertain') =>
+      sessionStorage.setItem('fixture-gemini-sdk-trial', JSON.stringify({ id, status }));
+    save('pending');
+    const mode = new URL(location.href).searchParams.get('sdk-trial');
+    const result = {
+      model: mode === 'long-model' ? 'x'.repeat(160) : 'Gemini fixture',
+      answer: GEMINI_FIXED_TEXT_TRIAL_ANSWER,
+    } as const;
+    const diagnosed = GeminiFixedTextTrialReason.safeParse(mode);
+    if (diagnosed.success) {
+      save('uncertain');
+      throw new Error('SYNTHETIC_PRIVATE_MARKER', { cause: diagnosed.data });
+    }
+    await new Promise<void>((resolve, reject) => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let finished = false;
+      const abort = () => {
+        window.harness.geminiSdkTrialCancels++;
+        save('uncertain');
+        if (mode !== 'late') {
+          if (timer) clearTimeout(timer);
+          reject(new Error('SYNTHETIC_PRIVATE_MARKER', { cause: 'interrupted' }));
+        }
+      };
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        if (window.harness.completeGeminiSdkTrial === finish)
+          window.harness.completeGeminiSdkTrial = undefined;
+        signal.removeEventListener('abort', abort);
+        save(signal.aborted ? 'uncertain' : 'done');
+        resolve();
+      };
+      signal.addEventListener('abort', abort, { once: true });
+      if (mode === 'late') window.harness.completeGeminiSdkTrial = finish;
+      else timer = setTimeout(finish, window.harness.delay);
+    });
+    return result;
+  },
+  async readGeminiReadiness() {
+    return sessionStorage.getItem('fixture-gemini-readiness') === 'done'
+      ? { id: 'fixture', status: 'done' }
+      : undefined;
+  },
+  async checkGeminiReadiness(signal) {
+    signal.throwIfAborted();
+    if (new URL(location.href).searchParams.get('readiness') === 'model-error')
+      throw new Error('SYNTHETIC_PRIVATE_MARKER', { cause: 'model' });
+    if (new URL(location.href).searchParams.get('readiness') === 'confirmation-error')
+      throw new Error('SYNTHETIC_PRIVATE_MARKER', { cause: 'model-confirmation' });
+    if (new URL(location.href).searchParams.get('readiness') === 'hold')
+      await new Promise<never>((_, reject) =>
+        signal.addEventListener('abort', () => reject(new Error('SYNTHETIC_PRIVATE_MARKER')), {
+          once: true,
+        }),
+      );
+    sessionStorage.setItem('fixture-gemini-readiness', 'done');
+    const protectionReason = [
+      'bootstrap-missing',
+      'bootstrap-format',
+      'bootstrap-limit',
+      'configuration-format',
+      'flag-missing',
+      'flag-ambiguous',
+      'flag-format',
+    ] as const;
+    const reason = protectionReason.find(
+      (value) => value === new URL(location.href).searchParams.get('readiness'),
+    );
+    const clientReason = [
+      'prewarm',
+      'transport-webchannel',
+      'owner-view-registry',
+      'owner-view-missing',
+      'owner-view-shape',
+      'owner-view-id',
+      'owner-view-metadata',
+      'owner-view-flags',
+    ] as const;
+    const clientFailure = clientReason.find(
+      (value) => value === new URL(location.href).searchParams.get('client'),
+    );
+    const client: GeminiClientCapability = clientFailure
+      ? { status: 'unsupported', reason: clientFailure }
+      : { status: 'candidate' };
+    if (reason)
+      return {
+        model: 'Automatic fixture',
+        protection: 'unknown',
+        protectionReason: reason,
+        client,
+      };
+    return { model: 'Automatic fixture', protection: 'enabled', client };
+  },
+  async readClaudeProbe() {
+    const status = sessionStorage.getItem('fixture-claude-probe');
+    return status === 'done' ? { id: 'fixture', status: 'done' } : undefined;
+  },
+  async startClaudeProbe(signal, kind) {
+    signal.throwIfAborted();
+    window.harness.probeStarts++;
+    window.harness.probeKinds.push(kind);
+    sessionStorage.setItem('fixture-claude-probe', 'done');
+    return kind === 'context'
+      ? 'First reply: CROSSCHECK_CONTEXT_OK/47\nFollow-up reply: 47/CROSSCHECK_CONTEXT_OK'
+      : 'CROSSCHECK_OK';
+  },
   async extensionStatus() {
     const pendingVersion = sessionStorage.getItem('fixture-pending-update');
     return { ...window.harness.extensionStatus, ...(pendingVersion ? { pendingVersion } : {}) };
@@ -79,9 +236,12 @@ export const fixturePlatform: Platform = {
     const binding = bindings[window.harness.activeProvider];
     return { binding, snapshot: await this.inspect(binding) };
   },
-  async preparePeer(provider, saved) {
-    return saved ?? bindings[provider];
+  async preparePeer(provider, saved, threadId, _signal, background = false) {
+    const binding = saved ?? bindings[provider];
+    if (!threadId && !background) await this.reveal(binding);
+    return binding;
   },
+  async prepareAutomaticTarget() {},
   async reveal(binding) {
     window.harness.activeProvider = binding.provider;
   },
@@ -97,7 +257,9 @@ export const fixturePlatform: Platform = {
     };
   },
   async connect(provider) {
-    return bindings[provider];
+    return provider === 'claude' && window.harness.reconnectedThread
+      ? { ...bindings[provider], threadId: window.harness.reconnectedThread }
+      : bindings[provider];
   },
   async inspect(binding) {
     return {
@@ -162,3 +324,10 @@ export const fixturePlatform: Platform = {
     sessionStorage.setItem('fixture-workspace', JSON.stringify(workspace));
   },
 };
+if (new URL(location.href).searchParams.get('sdk-trial') === 'absent') {
+  delete fixturePlatform.readGeminiSdkTrial;
+  delete fixturePlatform.startGeminiSdkTrial;
+}
+
+if (new URL(location.href).searchParams.get('header-observation') === 'absent')
+  delete fixturePlatform.observeGeminiHeaderReadiness;

@@ -165,6 +165,7 @@ it('finishes thorough synthesis after its actual long main review prompt is appe
   const sends: string[] = [];
   const platform = {
     async reveal() {},
+    async prepareAutomaticTarget() {},
     async preparePeer() {
       return {
         ...binding,
