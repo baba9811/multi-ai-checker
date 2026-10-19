@@ -10,6 +10,12 @@ import {
 } from '../fixtures/providers/gemini-readiness';
 import path from 'node:path';
 
+type WindowDiagnostics = {
+  reads: { requestedId: number; id?: number; type?: string; focused: boolean }[];
+  focusChanges: number[];
+  forcedFocus: boolean;
+};
+
 test('production panel starts without permissions or manual stage controls', async ({
   extension,
 }, info) => {
@@ -82,10 +88,7 @@ test.describe('synthetic three-provider workflow permissions already granted', (
   test.use({ syntheticWorkflowPermissions: true });
 
   test.afterEach(async ({ extension }, info) => {
-    if (
-      info.title !==
-      'installed panel completes one-start three-provider experimental background review with new background window from an inactive original main'
-    )
+    if (!info.title.endsWith('review with new background window from an inactive original main'))
       return;
     const diagnostics = await extension.panel
       .evaluate(
@@ -171,12 +174,18 @@ test.describe('synthetic three-provider workflow permissions already granted', (
     expect(await main.evaluate(() => (window as any).fixtureSent)).toEqual([]);
   });
 
-  for (const { savedPeers, background } of [
+  for (const { savedPeers, background, forceFocus = false } of [
     { savedPeers: true, background: false },
     { savedPeers: true, background: true },
     { savedPeers: false, background: true },
+    { savedPeers: false, background: true, forceFocus: true },
   ]) {
-    test(`installed panel completes one-start three-provider ${background ? 'experimental background' : 'default foreground'} review with ${savedPeers ? 'saved tabs' : 'new background window'} from an inactive original main`, async ({
+    const action = savedPeers
+      ? 'completes one-start three-provider'
+      : forceFocus
+        ? 'stops before Send after deliberate focus during'
+        : 'preserves the focus guard during';
+    test(`installed panel ${action} ${background ? 'experimental background' : 'default foreground'} review with ${savedPeers ? 'saved tabs' : 'new background window'} from an inactive original main`, async ({
       extension,
     }) => {
       const { context, panel } = extension;
@@ -269,15 +278,12 @@ test.describe('synthetic three-provider workflow permissions already granted', (
           );
           if (--remaining > 0) allocationPage = context.waitForEvent('page').catch(() => undefined);
         });
-        await panel.evaluate(() => {
+        await panel.evaluate((forceFocus) => {
           const fixture = window as unknown as {
             fixtureAllocationReady(url: string): Promise<void>;
-            fixtureWindowDiagnostics: {
-              reads: { requestedId: number; id?: number; type?: string; focused: boolean }[];
-              focusChanges: number[];
-            };
+            fixtureWindowDiagnostics: WindowDiagnostics;
           };
-          fixture.fixtureWindowDiagnostics = { reads: [], focusChanges: [] };
+          fixture.fixtureWindowDiagnostics = { reads: [], focusChanges: [], forcedFocus: false };
           const diagnostics = fixture.fixtureWindowDiagnostics;
           const getWindow = chrome.windows.get.bind(chrome.windows);
           chrome.windows.get = (async (
@@ -328,9 +334,16 @@ test.describe('synthetic three-provider workflow permissions already granted', (
             if (!created.id) throw new Error('Fixture peer tab was not allocated');
             await fixture.fixtureAllocationReady(options.url);
             await chrome.tabs.update(created.id, { url: options.url });
+            if (forceFocus) {
+              await chrome.windows.update(windowId, { focused: true });
+              const focused = await getWindow(windowId);
+              if (focused.id !== windowId || focused.type !== 'normal' || !focused.focused)
+                throw new Error('Deliberate focus did not reach the owned normal window');
+              diagnostics.forcedFocus = true;
+            }
             return chrome.tabs.get(created.id);
           }) as typeof chrome.tabs.create;
-        });
+        }, forceFocus);
       }
       const activeBefore = await panel.evaluate(async () =>
         (await chrome.tabs.query({ active: true })).map(({ id, windowId }) => ({ id, windowId })),
@@ -346,11 +359,11 @@ test.describe('synthetic three-provider workflow permissions already granted', (
       await expect(execution).not.toBeChecked();
       if (background) await execution.check();
       await panel.getByRole('button', { name: '자동 검토 시작', exact: true }).click();
-      await expect(panel.getByRole('heading', { name: '검토 완료', exact: true })).toBeVisible({
+      const completed = panel.getByRole('heading', { name: '검토 완료', exact: true });
+      const stopped = panel.getByRole('heading', { name: '검토 멈춤', exact: true });
+      await expect(savedPeers ? completed : completed.or(stopped)).toBeVisible({
         timeout: 30000,
       });
-      await expect(panel.locator('.final-answer .answer')).toHaveText('새로운 chatgpt 검증 답변');
-      await expect(panel.locator('.run-errors')).toHaveCount(0);
       const stored = (
         await panel.evaluate(() => chrome.storage.session.get('crosscheck.workspace.v1'))
       )['crosscheck.workspace.v1'] as Workspace;
@@ -363,14 +376,9 @@ test.describe('synthetic three-provider workflow permissions already granted', (
         url: sourceUrl,
       });
       expect(run.context).toEqual({ scope: 'rendered', turns });
-      expect(run.jobs.map(({ provider, stage, status }) => ({ provider, stage, status }))).toEqual([
-        { provider: 'chatgpt', stage: 'collect', status: 'done' },
-        { provider: 'claude', stage: 'collect', status: 'done' },
-        { provider: 'gemini', stage: 'collect', status: 'done' },
-        { provider: 'claude', stage: 'review', status: 'done' },
-        { provider: 'chatgpt', stage: 'synthesize', status: 'done' },
-      ]);
       expect(run.jobs[0]!.answer).toBe(turns[2]!.answer);
+      expect(main.url()).toBe(sourceUrl);
+      expect(stored.bindings.chatgpt).toEqual(run.main);
       const actualPeers = savedPeers
         ? [claude, gemini]
         : context
@@ -383,6 +391,93 @@ test.describe('synthetic three-provider workflow permissions already granted', (
                   page.url().startsWith(origin),
                 ),
             );
+      const activations = await panel.evaluate(
+        () => (window as unknown as { activations: chrome.tabs.OnActivatedInfo[] }).activations,
+      );
+      if (background) {
+        expect(
+          activations.filter(({ windowId }) =>
+            activeBefore.some((tab) => tab.windowId === windowId),
+          ),
+        ).toEqual([]);
+        expect(
+          await panel.evaluate(async () =>
+            (await chrome.tabs.query({ active: true })).map(({ id, windowId }) => ({
+              id,
+              windowId,
+            })),
+          ),
+        ).toEqual(expect.arrayContaining(activeBefore));
+      } else {
+        expect(activations.map(({ tabId }) => tabId)).toEqual(expect.arrayContaining([mainTab]));
+        expect(
+          await panel.evaluate(async (tabId) => (await chrome.tabs.get(tabId)).active, mainTab),
+        ).toBe(true);
+      }
+      if (!savedPeers && (await stopped.isVisible())) {
+        const state = await panel.evaluate(async () => {
+          const diagnostics = structuredClone(
+            (window as unknown as { fixtureWindowDiagnostics: WindowDiagnostics })
+              .fixtureWindowDiagnostics,
+          );
+          const requestedId = diagnostics.reads[0]?.requestedId;
+          if (requestedId === undefined) throw new Error('Missing owned-window observation');
+          const current = await chrome.windows.get(requestedId);
+          return {
+            requestedId,
+            current: { id: current.id, type: current.type, focused: current.focused },
+            diagnostics,
+          };
+        });
+        expect(state.current).toEqual({ id: state.requestedId, type: 'normal', focused: true });
+        expect(state.diagnostics.focusChanges).toContain(state.requestedId);
+        expect(state.diagnostics.forcedFocus).toBe(forceFocus);
+        expect(state.diagnostics.reads.some((read) => read.focused)).toBe(true);
+        expect(
+          state.diagnostics.reads.every(
+            (read) =>
+              read.requestedId === state.requestedId &&
+              read.id === state.requestedId &&
+              read.type === 'normal',
+          ),
+        ).toBe(true);
+        expect(run.stage).toBe('collect');
+        expect(
+          run.jobs.map(({ provider, stage, status }) => ({ provider, stage, status })),
+        ).toEqual([
+          { provider: 'chatgpt', stage: 'collect', status: 'done' },
+          { provider: 'claude', stage: 'collect', status: 'error' },
+          { provider: 'gemini', stage: 'collect', status: 'error' },
+        ]);
+        for (const job of run.jobs.slice(1))
+          expect(job.error).toBe(
+            '검토 창이 바뀌었거나 사용 중입니다. 자동으로 창을 전환하지 않습니다.',
+          );
+        expect(actualPeers.length).toBeGreaterThan(0);
+        expect(actualPeers.length).toBeLessThanOrEqual(2);
+        for (const page of [main, claude, gemini, ...actualPeers])
+          expect(
+            await page.evaluate(() => (window as unknown as { fixtureSent: string[] }).fixtureSent),
+          ).toEqual([]);
+        expect(
+          await panel.evaluate(
+            (tabId) => chrome.tabs.sendMessage(tabId, { type: 'snapshot' }),
+            mainTab,
+          ),
+        ).toEqual(original);
+        return;
+      }
+      expect(forceFocus).toBe(false);
+      await expect(completed).toBeVisible();
+      await expect(panel.locator('.final-answer .answer')).toHaveText('새로운 chatgpt 검증 답변');
+      await expect(panel.locator('.run-errors')).toHaveCount(0);
+      expect(run.jobs.map(({ provider, stage, status }) => ({ provider, stage, status }))).toEqual([
+        { provider: 'chatgpt', stage: 'collect', status: 'done' },
+        { provider: 'claude', stage: 'collect', status: 'done' },
+        { provider: 'gemini', stage: 'collect', status: 'done' },
+        { provider: 'claude', stage: 'review', status: 'done' },
+        { provider: 'chatgpt', stage: 'synthesize', status: 'done' },
+      ]);
       expect(actualPeers).toHaveLength(2);
       if (!savedPeers)
         for (const page of [claude, gemini])
@@ -418,31 +513,6 @@ test.describe('synthetic three-provider workflow permissions already granted', (
         `## 후보 답변\n### 답변 A\n${turns[2]!.answer}\n\n### 답변 B\n새로운 claude 검증 답변\n\n### 답변 C\n새로운 gemini 검증 답변`,
       );
       expect(finalPrompt).toContain('## 교차 검토\n### 검토 1\n새로운 claude 검증 답변');
-      const activations = await panel.evaluate(
-        () => (window as unknown as { activations: chrome.tabs.OnActivatedInfo[] }).activations,
-      );
-      if (background) {
-        expect(
-          activations.filter(({ windowId }) =>
-            activeBefore.some((tab) => tab.windowId === windowId),
-          ),
-        ).toEqual([]);
-        expect(
-          await panel.evaluate(async () =>
-            (await chrome.tabs.query({ active: true })).map(({ id, windowId }) => ({
-              id,
-              windowId,
-            })),
-          ),
-        ).toEqual(expect.arrayContaining(activeBefore));
-      } else {
-        expect(activations.map(({ tabId }) => tabId)).toEqual(expect.arrayContaining([mainTab]));
-        expect(
-          await panel.evaluate(async (tabId) => (await chrome.tabs.get(tabId)).active, mainTab),
-        ).toBe(true);
-      }
-      expect(main.url()).toBe(sourceUrl);
-      expect(stored.bindings.chatgpt).toEqual(run.main);
       expect(run.jobs.at(-1)!.answer).toBe('새로운 chatgpt 검증 답변');
     });
   }
