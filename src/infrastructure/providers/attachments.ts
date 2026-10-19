@@ -47,11 +47,13 @@ function chatgptNameMatches(original: string, displayed: string) {
   const dot = original.lastIndexOf('.');
   const stem = dot > 0 ? original.slice(0, dot) : original;
   const extension = dot > 0 ? original.slice(dot) : '';
-  // ChatGPT adds a duplicate counter before the extension; retain the entire original stem.
+  // ChatGPT adds a duplicate counter or timestamp before the extension; retain the entire stem.
   return (
     displayed.startsWith(stem) &&
     displayed.endsWith(extension) &&
-    /^\([1-9]\d*\)$/.test(displayed.slice(stem.length, displayed.length - extension.length))
+    /^\((?:[1-9]\d*|\d{8}-\d{6})\)$/.test(
+      displayed.slice(stem.length, displayed.length - extension.length),
+    )
   );
 }
 function uploadFailed(root: Element) {

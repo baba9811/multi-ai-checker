@@ -81,6 +81,25 @@ test('production session recovery never resumes ambiguous sends or renders model
 test.describe('synthetic three-provider workflow permissions already granted', () => {
   test.use({ syntheticWorkflowPermissions: true });
 
+  test.afterEach(async ({ extension }, info) => {
+    if (
+      info.title !==
+      'installed panel completes one-start three-provider experimental background review with new background window from an inactive original main'
+    )
+      return;
+    const diagnostics = await extension.panel
+      .evaluate(
+        () =>
+          (window as unknown as { fixtureWindowDiagnostics?: unknown })
+            .fixtureWindowDiagnostics ?? { unavailable: true },
+      )
+      .catch(() => ({ unavailable: true }));
+    await info.attach('background-window-state', {
+      body: JSON.stringify(diagnostics),
+      contentType: 'application/json',
+    });
+  });
+
   test('closing the real extension page disconnects its pending collector without resending', async ({
     extension,
   }) => {
@@ -253,7 +272,31 @@ test.describe('synthetic three-provider workflow permissions already granted', (
         await panel.evaluate(() => {
           const fixture = window as unknown as {
             fixtureAllocationReady(url: string): Promise<void>;
+            fixtureWindowDiagnostics: {
+              reads: { requestedId: number; id?: number; type?: string; focused: boolean }[];
+              focusChanges: number[];
+            };
           };
+          fixture.fixtureWindowDiagnostics = { reads: [], focusChanges: [] };
+          const diagnostics = fixture.fixtureWindowDiagnostics;
+          const getWindow = chrome.windows.get.bind(chrome.windows);
+          chrome.windows.get = (async (
+            requestedId: number,
+            options?: chrome.windows.QueryOptions,
+          ) => {
+            const result = await getWindow(requestedId, options);
+            if (diagnostics.reads.length < 30)
+              diagnostics.reads.push({
+                requestedId,
+                id: result.id,
+                type: result.type,
+                focused: result.focused,
+              });
+            return result;
+          }) as typeof chrome.windows.get;
+          chrome.windows.onFocusChanged.addListener((id) => {
+            if (diagnostics.focusChanges.length < 30) diagnostics.focusChanges.push(id);
+          });
           const createWindow = chrome.windows.create.bind(chrome.windows);
           const createTab = chrome.tabs.create.bind(chrome.tabs);
           let windowId: number | undefined;

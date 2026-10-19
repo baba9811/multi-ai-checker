@@ -1351,37 +1351,42 @@ for (const unsafe of ['previous-turn', 'multiple-replies', 'hidden-replies', 'st
   });
 }
 
-test('ChatGPT accepts unambiguous duplicate counters while uploading unchanged originals', async ({
-  page,
-}) => {
-  // Control the bridge collector interval from its creation, before navigation/injection.
-  await page.clock.install();
-  await page.clock.pauseAt(new Date(Date.now() + 1000));
-  const target = await setupUpload(page, 'chatgpt', 'hold');
-  await page.evaluate(() => {
-    (window as any).fixtureDisplayNames = {
-      'facts.txt': 'facts(1).txt',
-      'diagram.gif': 'diagram(1).gif',
-    };
+for (const [kind, suffix] of [
+  ['duplicate counters', '1'],
+  ['timestamp suffixes', '20261019-124030'],
+] as const) {
+  test(`ChatGPT accepts unambiguous ${kind} while uploading unchanged originals`, async ({
+    page,
+  }) => {
+    // Control the bridge collector interval from its creation, before navigation/injection.
+    await page.clock.install();
+    await page.clock.pauseAt(new Date(Date.now() + 1000));
+    const target = await setupUpload(page, 'chatgpt', 'hold');
+    await page.evaluate((suffix) => {
+      (window as any).fixtureDisplayNames = {
+        'facts.txt': `facts(${suffix}).txt`,
+        'diagram.gif': `diagram(${suffix}).gif`,
+      };
+    }, suffix);
+    await command(page, {
+      type: 'send',
+      id: 'renamed',
+      ...target,
+      prompt: 'Review selected originals',
+      attachments: uploadOriginals,
+    });
+    await expect(page.getByRole('progressbar')).toBeVisible();
+    await page.evaluate(() => (window as any).fixtureFinishUploads());
+    await page.clock.runFor(6000);
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([
+      'Review selected originals',
+    ]);
+    expect((await command(page, { type: 'poll', id: 'renamed' })).data.status).toBe('done');
+    expect(await page.evaluate(() => (window as any).fixtureUploads.flat())).toEqual(
+      uploadOriginals.map(({ sha256: _, ...file }) => file),
+    );
   });
-  await command(page, {
-    type: 'send',
-    id: 'renamed',
-    ...target,
-    prompt: 'Review selected originals',
-    attachments: uploadOriginals,
-  });
-  await expect(page.getByRole('progressbar')).toBeVisible();
-  await page.evaluate(() => (window as any).fixtureFinishUploads());
-  await page.clock.runFor(6000);
-  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([
-    'Review selected originals',
-  ]);
-  expect((await command(page, { type: 'poll', id: 'renamed' })).data.status).toBe('done');
-  expect(await page.evaluate(() => (window as any).fixtureUploads.flat())).toEqual(
-    uploadOriginals.map(({ sha256: _, ...file }) => file),
-  );
-});
+}
 
 for (const names of [
   ['facts(01).txt', 'diagram(1).gif'],
@@ -1391,6 +1396,10 @@ for (const names of [
   ['facts(1).txt', 'facts(2).txt'],
   ['facts(1).txt'],
   ['facts(1).txt', 'diagram(1).gif', 'extra.txt'],
+  ['facts(2026101-124030).txt', 'diagram(20261019-124030).gif'],
+  ['facts(20261019-12403).txt', 'diagram(20261019-124030).gif'],
+  ['facts(20261019_124030).txt', 'diagram(20261019-124030).gif'],
+  ['other(20261019-124030).txt', 'diagram(20261019-124030).gif'],
 ]) {
   test(`ChatGPT rejects missing, extra or unmatched display names ${JSON.stringify(names)}`, async ({
     page,
@@ -1448,37 +1457,79 @@ test('ChatGPT rejects a counter colliding with another original filename', async
   await command(page, { type: 'cancel', id: 'collision' });
 });
 
-test('ChatGPT rejects the same attachment tile when its confirmed counter changes', async ({
+test('ChatGPT rejects a timestamp suffix colliding with another literal original filename', async ({
   page,
 }) => {
   const target = await setupUpload(page, 'chatgpt', 'hold');
   await page.clock.install();
   await page.clock.pauseAt(new Date(Date.now() + 1000));
   await page.evaluate(() => {
-    (window as any).fixtureDisplayNames = { 'facts.txt': 'facts(1).txt' };
-    document.querySelector('textarea,[contenteditable]')!.addEventListener(
-      'input',
-      () => {
-        document
-          .querySelector('[data-composer-attachments] button')!
-          .setAttribute('aria-label', 'Remove facts(2).txt');
-      },
-      { once: true },
-    );
+    (window as any).fixtureDisplayNames = {
+      'facts.txt': 'facts(20261019-124030).txt',
+      'facts(20261019-124030).txt': 'facts(20261019-124030)(1).txt',
+    };
   });
   await command(page, {
     type: 'send',
-    id: 'counter-changed',
+    id: 'timestamp-collision',
     ...target,
     prompt: 'Must not send',
-    attachments: [uploadOriginals[0]!],
+    attachments: [
+      uploadOriginals[0]!,
+      { ...uploadOriginals[0]!, name: 'facts(20261019-124030).txt' },
+    ],
   });
   await expect(page.getByRole('progressbar')).toBeVisible();
   await page.evaluate(() => (window as any).fixtureFinishUploads());
   await page.clock.runFor(2500);
-  expect((await command(page, { type: 'poll', id: 'counter-changed' })).data.status).toBe('error');
   expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  expect((await command(page, { type: 'poll', id: 'timestamp-collision' })).data.status).toBe(
+    'pending',
+  );
+  await command(page, { type: 'cancel', id: 'timestamp-collision' });
 });
+
+for (const [kind, confirmed, changed] of [
+  ['counter', 'facts(1).txt', 'facts(2).txt'],
+  ['timestamp suffix', 'facts(20261019-124030).txt', 'facts(20261019-124031).txt'],
+] as const) {
+  test(`ChatGPT rejects the same attachment tile when its confirmed ${kind} changes`, async ({
+    page,
+  }) => {
+    const target = await setupUpload(page, 'chatgpt', 'hold');
+    await page.clock.install();
+    await page.clock.pauseAt(new Date(Date.now() + 1000));
+    await page.evaluate(
+      ({ confirmed, changed }) => {
+        (window as any).fixtureDisplayNames = { 'facts.txt': confirmed };
+        document.querySelector('textarea,[contenteditable]')!.addEventListener(
+          'input',
+          () => {
+            document
+              .querySelector('[data-composer-attachments] button')!
+              .setAttribute('aria-label', `Remove ${changed}`);
+          },
+          { once: true },
+        );
+      },
+      { confirmed, changed },
+    );
+    await command(page, {
+      type: 'send',
+      id: 'counter-changed',
+      ...target,
+      prompt: 'Must not send',
+      attachments: [uploadOriginals[0]!],
+    });
+    await expect(page.getByRole('progressbar')).toBeVisible();
+    await page.evaluate(() => (window as any).fixtureFinishUploads());
+    await page.clock.runFor(2500);
+    expect((await command(page, { type: 'poll', id: 'counter-changed' })).data.status).toBe(
+      'error',
+    );
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  });
+}
 
 for (const completion of ['complete', 'hidden-copy', 'previous-turn', 'streaming'] as const) {
   test(`Gemini Korean Copy completion stays scoped to the ${completion} response`, async ({
