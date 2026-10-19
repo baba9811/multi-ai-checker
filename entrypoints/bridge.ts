@@ -12,6 +12,7 @@ import {
   snapshot,
   submit,
   textOf,
+  matchesQuestion,
   messageKey,
 } from '../src/infrastructure/providers/dom';
 import { modelMenu, readClaudeProbeLabel } from '../src/infrastructure/providers/models';
@@ -43,7 +44,6 @@ export default defineUnlistedScript(() => {
     previous: string;
     changed: number;
     start: number;
-    poll: number;
     submitted: boolean;
     url: string;
     canCreate: boolean;
@@ -158,10 +158,35 @@ export default defineUnlistedScript(() => {
       (failure instanceof AggregateError &&
         failure.errors.some((error) => error instanceof Error && error.cause === 'model-cleanup')));
   const used = new Set<string>();
+  const collectors = new Map<string, chrome.runtime.Port>();
   const fail = (job: Active, message: string) => {
     job.status = 'error';
     job.error = message;
   };
+  chrome.runtime.onConnect.addListener((port) => {
+    const prefix = 'crosscheck-collector:';
+    const id = port.name.startsWith(prefix) ? port.name.slice(prefix.length) : '';
+    if (
+      port.sender?.id !== chrome.runtime.id ||
+      port.sender.url?.split('?')[0] !== chrome.runtime.getURL('sidepanel.html') ||
+      !id ||
+      id.length > 100 ||
+      collectors.has(id) ||
+      used.has(id) ||
+      collectors.size >= 30
+    ) {
+      port.disconnect();
+      return;
+    }
+    collectors.set(id, port);
+    port.onDisconnect.addListener(() => {
+      if (collectors.get(id) !== port) return;
+      collectors.delete(id);
+      if (active?.id === id && active.status === 'pending')
+        fail(active, '패널 연결이 끊겨 수집을 중단했습니다. 자동 재전송하지 않습니다.');
+    });
+    port.postMessage({ type: 'collector-ready', id });
+  });
   chrome.runtime.onMessage.addListener((raw, sender, respond) => {
     // Web pages/content scripts may not dispatch commands, even from this extension.
     if (
@@ -305,7 +330,6 @@ export default defineUnlistedScript(() => {
           throw new Error(
             '페이지가 새로고침되어 작업을 찾지 못했습니다. 답변을 수동으로 가져오세요.',
           );
-        active.poll = Date.now();
         return {
           status: active.status,
           answer: active.answer,
@@ -442,6 +466,8 @@ export default defineUnlistedScript(() => {
         throw new Error('이 탭에서 다른 작업이 진행 중입니다.');
       if (used.size >= 30)
         throw new Error('이 탭의 실행 한도에 도달했습니다. 새로고침 후 다시 연결하세요.');
+      if (command.type === 'send' && !collectors.has(command.id))
+        throw new Error('패널 연결을 확인하지 못했습니다. 자동 전송하지 않습니다.');
       used.add(command.id);
       if (command.type === 'sendClaudePeer') {
         if (provider !== 'claude' || !['/', '/new'].includes(location.pathname))
@@ -609,7 +635,6 @@ export default defineUnlistedScript(() => {
         previous: '',
         changed: Date.now(),
         start: Date.now(),
-        poll: Date.now(),
         submitted: false,
         url: command.url,
         canCreate: ['/', '/new', '/app'].includes(new URL(command.url).pathname),
@@ -624,7 +649,10 @@ export default defineUnlistedScript(() => {
         .then(() => {
           job.submitted = true;
         })
-        .catch((error) => fail(job, error instanceof Error ? error.message : '전송 실패'));
+        .catch((error) => {
+          if (job.status === 'pending')
+            fail(job, error instanceof Error ? error.message : '전송 실패');
+        });
       return true;
     })()
       .then((data) => respond({ ok: true, data }))
@@ -663,10 +691,6 @@ export default defineUnlistedScript(() => {
       stopProbe();
     const job = active;
     if (!job || job.status !== 'pending') return;
-    if (Date.now() - job.poll > 15000) {
-      fail(job, '패널 연결이 끊겨 수집을 중단했습니다. 자동 재전송하지 않습니다.');
-      return;
-    }
     if (Date.now() - job.start > LIMITS.timeoutMs) {
       fail(
         job,
@@ -698,7 +722,7 @@ export default defineUnlistedScript(() => {
     if (
       all.length !== 1 ||
       userMessages.length !== 1 ||
-      textOf(userMessages.at(-1)).replace(/\s+/g, ' ') !== job.prompt.trim().replace(/\s+/g, ' ')
+      !matchesQuestion(provider, userMessages.at(-1), job.prompt)
     ) {
       fail(
         job,

@@ -1,5 +1,7 @@
 import { test, expect } from './extension';
 import { createRun } from '../../src/domains/crosscheck/workflow';
+import { providers } from '../../src/domains/providers/model';
+import type { Workspace } from '../../src/application/ports';
 import { providerPage } from '../fixtures/providers/pages';
 import { claudeProbeFixture } from '../fixtures/providers/claude-probe';
 import {
@@ -74,6 +76,324 @@ test('production session recovery never resumes ambiguous sends or renders model
         ],
     )
     .toEqual({ bindings: {} });
+});
+
+test.describe('synthetic three-provider workflow permissions already granted', () => {
+  test.use({ syntheticWorkflowPermissions: true });
+
+  test('closing the real extension page disconnects its pending collector without resending', async ({
+    extension,
+  }) => {
+    const { context, panel, id } = extension;
+    await context.route('https://claude.ai/**', (route) =>
+      route.fulfill({
+        contentType: 'text/html',
+        body: providerPage('claude').replace('},150);', '},60000);'),
+      }),
+    );
+    const claude = await context.newPage();
+    await claude.goto(providers.claude.home);
+    await claude.bringToFront();
+    await panel.getByRole('button', { name: '연결', exact: true }).click();
+    const card = panel.getByRole('article').filter({
+      has: panel.getByRole('heading', { name: 'Claude', exact: true }),
+    });
+    await card.getByRole('button', { name: '연결', exact: true }).click();
+    await expect(card).toContainText('입력란 감지');
+    const main = await context.newPage();
+    const sourceUrl = 'https://chatgpt.com/c/synthetic-panel-closure';
+    await main.route('https://chatgpt.com/**', (route) =>
+      route.fulfill({
+        contentType: 'text/html',
+        body: providerPage('chatgpt'),
+      }),
+    );
+    await main.goto(sourceUrl);
+    await main.bringToFront();
+    await panel.getByRole('button', { name: '검토', exact: true }).click();
+    await expect(panel.locator('.auto-source')).toContainText('질문·답변 1쌍');
+    await panel.getByRole('checkbox', { name: 'Gemini 참여' }).uncheck();
+    await panel.getByRole('checkbox', { name: '원래 대화에 첨부파일이 없습니다' }).check();
+    await panel.getByRole('button', { name: '자동 검토 시작', exact: true }).click();
+    await expect.poll(() => claude.evaluate(() => (window as any).fixtureSent.length)).toBe(1);
+    const stored = (
+      await panel.evaluate(() => chrome.storage.session.get('crosscheck.workspace.v1'))
+    )['crosscheck.workspace.v1'] as Workspace;
+    const pending = stored.run!.jobs.find((job) => job.status === 'sending')!;
+    expect(pending.provider).toBe('claude');
+    expect(pending.stage).toBe('collect');
+    const binding = stored.bindings.claude!;
+    await panel.close();
+    const reopened = await context.newPage();
+    await reopened.goto(`chrome-extension://${id}/sidepanel.html`);
+    await expect(reopened.getByRole('heading', { name: '검토 멈춤', exact: true })).toBeVisible();
+    await expect
+      .poll(async () =>
+        reopened.evaluate(
+          async ({ tabId, id }) =>
+            (await chrome.tabs.sendMessage(tabId, { type: 'poll', id })).data,
+          { tabId: binding.tabId, id: pending.id },
+        ),
+      )
+      .toMatchObject({
+        status: 'error',
+        error: expect.stringContaining('패널 연결이 끊겨'),
+      });
+    expect(await claude.evaluate(() => (window as any).fixtureSent)).toEqual([pending.prompt]);
+    expect(await main.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+  });
+
+  for (const { savedPeers, background } of [
+    { savedPeers: true, background: false },
+    { savedPeers: true, background: true },
+    { savedPeers: false, background: true },
+  ]) {
+    test(`installed panel completes one-start three-provider ${background ? 'experimental background' : 'default foreground'} review with ${savedPeers ? 'saved tabs' : 'new background window'} from an inactive original main`, async ({
+      extension,
+    }) => {
+      const { context, panel } = extension;
+      if (!savedPeers)
+        await context.route(/^https?:\/\//, (route) => route.abort('blockedbyclient'));
+      await panel.getByRole('button', { name: '연결', exact: true }).click();
+      const claude = await context.newPage();
+      const gemini = await context.newPage();
+      for (const [id, page] of [
+        ['claude', claude],
+        ['gemini', gemini],
+      ] as const) {
+        await context.route(`${providers[id].origin}/**`, (route) =>
+          route.fulfill({ contentType: 'text/html', body: providerPage(id) }),
+        );
+        await page.goto(providers[id].home);
+        await page.bringToFront();
+        if (savedPeers) {
+          const card = panel.getByRole('article').filter({
+            has: panel.getByRole('heading', { name: providers[id].name, exact: true }),
+          });
+          await card.getByRole('button', { name: '연결', exact: true }).click();
+          await expect(card).toContainText('입력란 감지');
+          await expect(card.getByRole('button', { name: '다시 연결', exact: true })).toBeEnabled();
+        }
+      }
+      const turns = [
+        { question: '첫 번째 합성 질문', answer: '첫 번째 원래 답변' },
+        { question: '두 번째 합성 질문', answer: '두 번째 원래 답변' },
+        { question: '세 번째 합성 질문', answer: '세 번째 원래 답변' },
+      ];
+      const sourceUrl = 'https://chatgpt.com/c/synthetic-three-provider-source';
+      const main = await context.newPage();
+      await main.route('https://chatgpt.com/**', (route) =>
+        route.fulfill({
+          contentType: 'text/html',
+          body: providerPage('chatgpt').replace(
+            "user('기존 질문');assistant('과거 답변 — 새 답변으로 수집하면 안 됨');",
+            turns
+              .map(
+                (turn) =>
+                  `user(${JSON.stringify(turn.question)});assistant(${JSON.stringify(turn.answer)});`,
+              )
+              .join('\n'),
+          ),
+        }),
+      );
+      await main.goto(sourceUrl);
+      await main.bringToFront();
+      await panel.getByRole('button', { name: '검토', exact: true }).click();
+      await expect(panel.locator('.auto-source')).toContainText('질문·답변 3쌍');
+      await expect(panel.locator('.source-question')).toHaveText(turns[2]!.question);
+      const mainTabs = await panel.evaluate(
+        async (url) => (await chrome.tabs.query({ url })).map((tab) => tab.id!),
+        sourceUrl,
+      );
+      expect(mainTabs).toHaveLength(1);
+      const mainTab = mainTabs[0]!;
+      const original = await panel.evaluate(
+        (tabId) => chrome.tabs.sendMessage(tabId, { type: 'snapshot' }),
+        mainTab,
+      );
+      expect(original).toMatchObject({
+        ok: true,
+        data: { provider: 'chatgpt', url: sourceUrl, context: { scope: 'rendered', turns } },
+      });
+      for (const page of [main, claude, gemini])
+        expect(
+          await page.evaluate(() => (window as unknown as { fixtureSent: string[] }).fixtureSent),
+        ).toEqual([]);
+      const foreground = await context.newPage();
+      await foreground.goto('about:blank');
+      await foreground.bringToFront();
+      if (!savedPeers) {
+        // Chrome-created first navigations can precede Playwright routing. Stage only these two
+        // allocations at about:blank; real window/tab ownership, focus, navigation and RPC remain.
+        let allocationPage = context.waitForEvent('page').catch(() => undefined);
+        let remaining = 2;
+        await panel.exposeFunction('fixtureAllocationReady', async (url: string) => {
+          const provider = (['claude', 'gemini'] as const).find((id) => providers[id].home === url);
+          if (!provider) throw new Error('Unexpected fixture destination');
+          const page = await allocationPage;
+          if (!page) throw new Error('Allocated fixture page was not initialized');
+          await page.waitForLoadState('domcontentloaded');
+          expect(page.url()).toBe('about:blank');
+          await page.route('**/*', (route) =>
+            route.request().url() === url
+              ? route.fulfill({ contentType: 'text/html', body: providerPage(provider) })
+              : route.abort('blockedbyclient'),
+          );
+          if (--remaining > 0) allocationPage = context.waitForEvent('page').catch(() => undefined);
+        });
+        await panel.evaluate(() => {
+          const fixture = window as unknown as {
+            fixtureAllocationReady(url: string): Promise<void>;
+          };
+          const createWindow = chrome.windows.create.bind(chrome.windows);
+          const createTab = chrome.tabs.create.bind(chrome.tabs);
+          let windowId: number | undefined;
+          chrome.windows.create = (async (options: chrome.windows.CreateData) => {
+            if (
+              windowId !== undefined ||
+              options.focused !== false ||
+              options.type !== 'normal' ||
+              options.url !== 'https://claude.ai/new'
+            )
+              throw new Error('Unexpected fixture window allocation');
+            const created = await createWindow({ ...options, url: 'about:blank' });
+            if (created?.id === undefined || created.tabs?.length !== 1 || !created.tabs[0]?.id)
+              throw new Error('Fixture window did not allocate one real tab');
+            windowId = created.id;
+            await fixture.fixtureAllocationReady(options.url);
+            await chrome.tabs.update(created.tabs[0].id, { url: options.url });
+            return chrome.windows.get(windowId, { populate: true });
+          }) as typeof chrome.windows.create;
+          chrome.tabs.create = (async (options: chrome.tabs.CreateProperties) => {
+            if (
+              windowId === undefined ||
+              options.windowId !== windowId ||
+              options.active !== true ||
+              options.url !== 'https://gemini.google.com/app'
+            )
+              throw new Error('Unexpected fixture tab allocation');
+            const created = await createTab({ ...options, url: 'about:blank' });
+            if (!created.id) throw new Error('Fixture peer tab was not allocated');
+            await fixture.fixtureAllocationReady(options.url);
+            await chrome.tabs.update(created.id, { url: options.url });
+            return chrome.tabs.get(created.id);
+          }) as typeof chrome.tabs.create;
+        });
+      }
+      const activeBefore = await panel.evaluate(async () =>
+        (await chrome.tabs.query({ active: true })).map(({ id, windowId }) => ({ id, windowId })),
+      );
+      await panel.evaluate(() => {
+        const observed = window as unknown as { activations: chrome.tabs.OnActivatedInfo[] };
+        observed.activations = [];
+        chrome.tabs.onActivated.addListener((info) => observed.activations.push(info));
+      });
+      await panel.getByRole('checkbox', { name: '원래 대화에 첨부파일이 없습니다' }).check();
+      await panel.getByText('검토 설정', { exact: true }).click();
+      const execution = panel.getByRole('checkbox', { name: '탭 전환 없이 실행 (실험)' });
+      await expect(execution).not.toBeChecked();
+      if (background) await execution.check();
+      await panel.getByRole('button', { name: '자동 검토 시작', exact: true }).click();
+      await expect(panel.getByRole('heading', { name: '검토 완료', exact: true })).toBeVisible({
+        timeout: 30000,
+      });
+      await expect(panel.locator('.final-answer .answer')).toHaveText('새로운 chatgpt 검증 답변');
+      await expect(panel.locator('.run-errors')).toHaveCount(0);
+      const stored = (
+        await panel.evaluate(() => chrome.storage.session.get('crosscheck.workspace.v1'))
+      )['crosscheck.workspace.v1'] as Workspace;
+      const run = stored.run!;
+      expect(run.execution).toBe(background ? 'background' : undefined);
+      expect(run.main).toEqual({
+        provider: 'chatgpt',
+        tabId: mainTab,
+        documentId: original.data.documentId,
+        url: sourceUrl,
+      });
+      expect(run.context).toEqual({ scope: 'rendered', turns });
+      expect(run.jobs.map(({ provider, stage, status }) => ({ provider, stage, status }))).toEqual([
+        { provider: 'chatgpt', stage: 'collect', status: 'done' },
+        { provider: 'claude', stage: 'collect', status: 'done' },
+        { provider: 'gemini', stage: 'collect', status: 'done' },
+        { provider: 'claude', stage: 'review', status: 'done' },
+        { provider: 'chatgpt', stage: 'synthesize', status: 'done' },
+      ]);
+      expect(run.jobs[0]!.answer).toBe(turns[2]!.answer);
+      const actualPeers = savedPeers
+        ? [claude, gemini]
+        : context
+            .pages()
+            .filter(
+              (page) =>
+                page !== claude &&
+                page !== gemini &&
+                [providers.claude.origin, providers.gemini.origin].some((origin) =>
+                  page.url().startsWith(origin),
+                ),
+            );
+      expect(actualPeers).toHaveLength(2);
+      if (!savedPeers)
+        for (const page of [claude, gemini])
+          expect(
+            await page.evaluate(() => (window as unknown as { fixtureSent: string[] }).fixtureSent),
+          ).toEqual([]);
+      for (const [page, provider] of [
+        [main, 'chatgpt'],
+        [actualPeers.find((page) => page.url().startsWith(providers.claude.origin))!, 'claude'],
+        [actualPeers.find((page) => page.url().startsWith(providers.gemini.origin))!, 'gemini'],
+      ] as const) {
+        const sends = await page.evaluate(
+          () => (window as unknown as { fixtureSent: string[] }).fixtureSent,
+        );
+        expect(sends).toEqual(
+          run.jobs
+            .filter(
+              (job) =>
+                job.provider === provider && !(provider === 'chatgpt' && job.stage === 'collect'),
+            )
+            .map((job) => job.prompt),
+        );
+        for (const prompt of sends) {
+          for (const [index, turn] of turns.entries())
+            expect(prompt).toContain(
+              `### ${index + 1}번째 질문\n${turn.question}\n\n### ${index + 1}번째 답변\n${turn.answer}`,
+            );
+          expect(prompt).not.toContain('검토 데이터(JSON)');
+        }
+      }
+      const finalPrompt = run.jobs.at(-1)!.prompt;
+      expect(finalPrompt).toContain(
+        `## 후보 답변\n### 답변 A\n${turns[2]!.answer}\n\n### 답변 B\n새로운 claude 검증 답변\n\n### 답변 C\n새로운 gemini 검증 답변`,
+      );
+      expect(finalPrompt).toContain('## 교차 검토\n### 검토 1\n새로운 claude 검증 답변');
+      const activations = await panel.evaluate(
+        () => (window as unknown as { activations: chrome.tabs.OnActivatedInfo[] }).activations,
+      );
+      if (background) {
+        expect(
+          activations.filter(({ windowId }) =>
+            activeBefore.some((tab) => tab.windowId === windowId),
+          ),
+        ).toEqual([]);
+        expect(
+          await panel.evaluate(async () =>
+            (await chrome.tabs.query({ active: true })).map(({ id, windowId }) => ({
+              id,
+              windowId,
+            })),
+          ),
+        ).toEqual(expect.arrayContaining(activeBefore));
+      } else {
+        expect(activations.map(({ tabId }) => tabId)).toEqual(expect.arrayContaining([mainTab]));
+        expect(
+          await panel.evaluate(async (tabId) => (await chrome.tabs.get(tabId)).active, mainTab),
+        ).toBe(true);
+      }
+      expect(main.url()).toBe(sourceUrl);
+      expect(stored.bindings.chatgpt).toEqual(run.main);
+      expect(run.jobs.at(-1)!.answer).toBe('새로운 chatgpt 검증 답변');
+    });
+  }
 });
 
 for (const kind of [undefined, 'context'] as const) {

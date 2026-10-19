@@ -187,7 +187,7 @@ export function readGeminiTrialHistory(
           );
       }
 
-      const hl = prototype('pM');
+      const hl = prototype('gM');
       require(exact(actualHL, hl));
       const oa = capture(actualHL, 'oa');
       require(oa !== null && typeof oa === 'object');
@@ -196,15 +196,15 @@ export function readGeminiTrialHistory(
       unshadowed(oa, 'fetch');
       const fetch = source(
         capture(dataPrototype, 'fetch'),
-        'fetch(a,b=!0){return b?this.ka.then(()=>GZb(this.ha,a)):GZb(this.ha,a)}',
+        'fetch(a,b=!0){return b?this.ka.then(()=>LZb(this.ha,a)):LZb(this.ha,a)}',
       );
       const fcPrototype = prototype('yK');
       const fc = capture(actualHL, 'Gc');
       require(exact(fc, fcPrototype));
-      unshadowed(fc, 'Qr');
+      unshadowed(fc, 'Sr');
       const Mr = source(
-        capture(fcPrototype, 'Qr'),
-        'Qr(){if(this.Ha===void 0)throw Error("fk");return this.Ha}',
+        capture(fcPrototype, 'Sr'),
+        'Sr(){if(this.Ha===void 0)throw Error("fk");return this.Ha}',
       );
       const theme = capture(fc, 'Ha');
       require(typeof theme === 'boolean');
@@ -215,13 +215,13 @@ export function readGeminiTrialHistory(
           requestSource >= 0 &&
           requestSource <= 2147483647,
       );
-      const KCc = capture(actualHL, 'yGc'),
-        vd = capture(actualHL, 'xd');
+      const KCc = capture(actualHL, 'AHc'),
+        vd = capture(actualHL, 'yd');
       require(typeof KCc === 'boolean' && typeof vd === 'boolean');
       const baseMessage = prototype('l');
       const DEd = source(
-        exported('PGd'),
-        'class extends _.l{constructor(a){super(a)}ig(){return _.n(this,1)}getRequestSource(){return _.ui(this,4)}getClientCapabilities(a){return _.Hk(this,6,a)}}',
+        exported('eHd'),
+        'class extends _.l{constructor(a){super(a)}ig(){return _.n(this,1)}getRequestSource(){return _.ti(this,4)}getClientCapabilities(a){return _.Fk(this,6,a)}}',
       );
       const dud = source(exported('RI'), 'class extends _.l{constructor(a){super(a)}}');
       require(
@@ -229,26 +229,26 @@ export function readGeminiTrialHistory(
           Object.getPrototypeOf(own(dud, 'prototype')) === baseMessage,
       );
       const hy = source(
-        exported('Zy'),
-        'class extends _.JYb{constructor(a){super(a);this[_.Kwa]="unary"}}',
+        exported('Yy'),
+        'class extends _.OYb{constructor(a){super(a);this[_.Kwa]="unary"}}',
       );
-      const descriptorBase = prototype('JYb');
+      const descriptorBase = prototype('OYb');
       const hyPrototype = own(hy, 'prototype');
       require(hyPrototype && Object.getPrototypeOf(hyPrototype) === descriptorBase);
       unshadowed(hyPrototype as object, 'getInstance');
       const getInstance = source(
         capture(descriptorBase, 'getInstance'),
-        'getInstance(a){return new _.xxa(this,a,void 0,this[_.ll].n_b)}',
+        'getInstance(a){return new _.xxa(this,a,void 0,this[_.kl].E_b)}',
       );
       const requestPrototype = prototype('xxa');
       const promisePrototype = prototype('te');
       const then = source(
         capture(promisePrototype, 'then'),
-        'function(a,b,c){return cha(this,(0,_.qe)(typeof a==="function"?a:null),(0,_.qe)(typeof b==="function"?b:null),c)}',
+        'function(a,b,c){return bha(this,(0,_.qe)(typeof a==="function"?a:null),(0,_.qe)(typeof b==="function"?b:null),c)}',
       );
       cancel = source(
         capture(promisePrototype, 'cancel'),
-        'function(a){if(this.ha==0){let b=new _.xe(a);_.re(function(){fha(this,b)},this)}}',
+        'function(a){if(this.ha==0){let b=new _.xe(a);_.re(function(){eha(this,b)},this)}}',
       );
       capture(oa, 'ha');
       const initialized = capture(oa, 'ka');
@@ -257,42 +257,42 @@ export function readGeminiTrialHistory(
       unshadowed(initialized, 'cancel');
       const setters: Record<string, Call> = {};
       for (const [name, profile] of Object.entries({
-        Ni: 'function(a,b,c,d){return _.Wh(a,b,_.Cpa(c),d)}',
-        Ii: 'function(a,b,c){return _.Wh(a,b,c==null?c:_.Yg(c))}',
-        Pi: 'function(a,b,c){return _.Wh(a,b,c==null?c:_.Wg(c))}',
-        Fi: 'function(a,b,c,d){return _.Wh(a,b,c==null?c:_.aba(c),d)}',
-        p5c: 'function(a,b){return _.Fi(a,1,b)}',
-        xm: 'function(a,b,c){return _.ih(a,b,_.Wg,c,void 0,_.Xg)}',
-        Hh: 'function(a,b,c,d,e){d=Qpa(d);_.Wh(a,c,d,e);d&&!_.Ra(d)&&_.Ng(a.fl);return a}',
+        Li: 'function(a,b,c,d){return _.Vh(a,b,_.Cpa(c),d)}',
+        Gi: 'function(a,b,c){return _.Vh(a,b,c==null?c:_.Xg(c))}',
+        Ni: 'function(a,b,c){return _.Vh(a,b,c==null?c:_.Vg(c))}',
+        Ei: 'function(a,b,c,d){return _.Vh(a,b,c==null?c:_.aba(c),d)}',
+        u5c: 'function(a,b){return _.Ei(a,1,b)}',
+        xm: 'function(a,b,c){return _.ih(a,b,_.Vg,c,void 0,_.Wg)}',
+        Gh: 'function(a,b,c,d,e){d=Qpa(d);_.Vh(a,c,d,e);d&&!_.Ra(d)&&_.Mg(a.fl);return a}',
       }))
         setters[name] = source(exported(name), profile);
-      for (const name of ['Wh', 'Cpa', 'Wg', 'aba', 'Yg', 'ih', 'Xg', 'Ra', 'Ng'])
+      for (const name of ['Vh', 'Cpa', 'Vg', 'aba', 'Xg', 'ih', 'Wg', 'Ra', 'Mg'])
         callable(exported(name));
-      const il = exported('kl'),
-        jl = exported('ll'),
+      const il = exported('jl'),
+        jl = exported('kl'),
         kind = exported('Kwa');
       require(typeof il === 'symbol' && typeof jl === 'symbol' && typeof kind === 'symbol');
       const marker: symbol = il;
-      const cna = exported('qna'),
-        vna = exported('jna');
-      const registry = exported('Uy'),
-        metadata = exported('RGd');
-      const definition = record(metadata, ['Ob', 'Sb', 'Rb', 'Pb', 'Ub', marker]);
+      const cna = exported('pna'),
+        vna = exported('ina');
+      const registry = exported('Ty'),
+        metadata = exported('gHd');
+      const definition = record(metadata, ['Ob', 'Rb', 'Qb', 'Pb', 'Ub', marker]);
       const responseClass = definition.Pb;
       require(
         typeof responseClass === 'function' &&
           definition.Ob === 'hNvQHb' &&
-          definition.Sb === '/BardFrontendService.ListConversationTurns' &&
-          definition.Rb === true &&
+          definition.Rb === '/BardFrontendService.ListConversationTurns' &&
+          definition.Qb === true &&
           definition.Ub === DEd &&
           definition[marker] === true,
       );
       let registered = own(registry, 'o_hNvQHb');
       function checkDescriptor(value: unknown) {
-        const d = record(value, ['Ob', 'Sb', 'Rb', 'Pb', 'Ub', marker, 'n_b']);
-        for (const key of ['Ob', 'Sb', 'Rb', 'Pb', 'Ub', marker])
+        const d = record(value, ['Ob', 'Rb', 'Qb', 'Pb', 'Ub', marker, 'E_b']);
+        for (const key of ['Ob', 'Rb', 'Qb', 'Pb', 'Ub', marker])
           require(d[key] === definition[key]);
-        const options = d.n_b;
+        const options = d.E_b;
         require(
           Array.isArray(options) &&
             Object.getPrototypeOf(options) === Array.prototype &&
@@ -301,7 +301,7 @@ export function readGeminiTrialHistory(
         shape(options, ['length', '0', '1']);
         capture(options, 'length');
         for (const [index, key, value] of [
-          [0, cna, definition.Sb],
+          [0, cna, definition.Rb],
           [1, vna, true],
         ] as const) {
           const option = record(capture(options, String(index)), ['key', 'value']);
@@ -315,7 +315,7 @@ export function readGeminiTrialHistory(
       const initialize: Call = function (...args) {
         require(this === initialized && args.length === 1 && !initializationCaptured);
         live();
-        const callback = source(args[0], '()=>GZb(this.ha,a)');
+        const callback = source(args[0], '()=>LZb(this.ha,a)');
         initializationCaptured = true;
         const guarded: Call = function (...opaque) {
           live();
@@ -339,7 +339,7 @@ export function readGeminiTrialHistory(
         active();
         require(exact(actualHL, hl) && exact(oa, dataPrototype) && exact(fc, fcPrototype));
         unshadowed(oa, 'fetch');
-        unshadowed(fc, 'Qr');
+        unshadowed(fc, 'Sr');
         require(exact(initialized, promisePrototype));
         if (installed) {
           const binding = Object.getOwnPropertyDescriptor(initialized, 'then');
@@ -373,19 +373,19 @@ export function readGeminiTrialHistory(
         Reflect.apply(setters[name]!, undefined, args);
         live();
       }
-      set('Ni', [request, 1, c.conversationId]);
-      set('Ii', [request, 2, 2]);
-      set('Ni', [request, 3, undefined]);
-      set('Pi', [request, 4, 1]);
+      set('Li', [request, 1, c.conversationId]);
+      set('Gi', [request, 2, 2]);
+      set('Li', [request, 3, undefined]);
+      set('Ni', [request, 4, 1]);
       const device = Reflect.construct(dud, []);
       live();
       require(Reflect.apply(Mr, fc, []) === theme);
-      set('p5c', [device, theme]);
-      set('Hh', [request, dud, 5, device]);
-      set('Pi', [request, 4, requestSource]);
+      set('u5c', [device, theme]);
+      set('Gh', [request, dud, 5, device]);
+      set('Ni', [request, 4, requestSource]);
       set('xm', [request, 6, 4]);
       if (KCc) set('xm', [request, 6, 12]);
-      if (vd) set('Fi', [request, 8, true]);
+      if (vd) set('Ei', [request, 8, true]);
       const descriptor = Reflect.construct(hy, [metadata]);
       require(exact(descriptor, hyPrototype as object) && own(descriptor, kind) === 'unary');
       registered = own(descriptor, jl);

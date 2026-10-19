@@ -50,57 +50,62 @@ export function geminiClientReadinessPage(
 window.fixtureClientCalls=0;
 const invoked=()=>{window.fixtureClientCalls++;throw Error('SYNTHETIC_PRIVATE_MARKER');};
 const ns={};
-for(const name of ['FVb','zw','GN','pM','bM','eKd','hKd','ZU']) {
+for(const name of ['FVb','zw','wN','gM','UL','xKd','AKd','SU']) {
  ns[name]=function(){invoked();};
- for(const method of ['get','LAa','k2b','snapshot','h5a','JEa','register','sendRequest','Zxb']) ns[name].prototype[method]=invoked;
+ for(const method of ['get','LAa','k2b','snapshot','h5a','JEa','register','sendRequest','ybb']) ns[name].prototype[method]=invoked;
 }
 for(const name of ['uC','KL','RHd']) ns[name]=Object.assign(Object.create(ns.zw.prototype),{RTc:'InjectionToken'});
-for(const name of ['uC','KL','bM','eKd','hKd','RHd']) ns[name].Za={token:ns[name],kb:'root',Xa:invoked};
-ns.dKd=invoked;
-const api=Object.assign(Object.create(ns.pM.prototype),{Kd:true,Aa:true});
-const protection=Object.assign(Object.create(ns.bM.prototype),{isEnabled:true});
-const session=Object.assign(Object.create(ns.eKd.prototype),{oa:${idle?.nativeSse ?? true}});
-const registry=Object.create(ns.hKd.prototype);
+for(const name of ['uC','KL','UL','xKd','AKd','RHd']) ns[name].Za={token:ns[name],kb:'root',Xa:invoked};
+ns.wKd=invoked;
+const api=Object.assign(Object.create(ns.gM.prototype),{Kd:true});
+const protection=Object.assign(Object.create(ns.UL.prototype),{isEnabled:true});
+const session=Object.assign(Object.create(ns.xKd.prototype),{wa:${idle?.nativeSse ?? true}});
+const registry=Object.create(ns.AKd.prototype);
+ns.CKd=class {};ns.cM=class {};ns.zKd=class {};
+const selectedMode=Object.assign(Object.create(ns.cM.prototype),{ha:67});
+const eligibility=Object.assign(Object.create(ns.CKd.prototype),{ha:true,oa:false,ka:selectedMode});
+const headers=Object.assign(Object.create(ns.zKd.prototype),{wa:selectedMode});
+Object.assign(api,{Aa:eligibility,Ua:selectedMode,Eb:headers});
 ${registered ? 'registry.ha={};' : ''}
-const conversation=Object.assign(Object.create(ns.GN.prototype),{ha:api});
+const conversation=Object.assign(Object.create(ns.wN.prototype),{ha:api});
 ${
   idle
-    ? `ns.qVd=class {isEnabled(){invoked();}rmf(){invoked();}HCc(){invoked();}Aa(){invoked();}oa(){invoked();}};
-registry.ha=Object.assign(Object.create(ns.qVd.prototype),{Na:session,Oa:conversation,ka:false,Za:${idle.enabled},kb:${idle.nativeSse}});
+    ? `ns.JVd=class {isEnabled(){invoked();}rmf(){invoked();}HCc(){invoked();}Aa(){invoked();}oa(){invoked();}};
+registry.ha=Object.assign(Object.create(ns.JVd.prototype),{Na:session,Oa:conversation,Va:eligibility,Ua:headers,ka:false,Za:${idle.enabled},kb:${idle.nativeSse}});
 Object.defineProperty(registry.ha,'Wa',{get:invoked});`
     : ''
 }
-Object.assign(api,{Ja:protection,ub:session,Eb:registry});
+Object.assign(api,{Ja:protection,Ab:session,Fb:registry});
 Object.defineProperty(api,'Ia',{get:invoked});
-const values={uC:conversation,KL:api,bM:protection,eKd:session,hKd:registry,RHd:${idle?.nativeSse ?? true}};
+const values={uC:conversation,KL:api,UL:protection,xKd:session,AKd:registry,RHd:${idle?.nativeSse ?? true}};
 const cache=new Map();
 for(const [name,value] of Object.entries(values)) cache.set(ns[name],{value,Xa:ns[name].Za.Xa,Ig:undefined});
 const injector=Object.assign(Object.create(ns.FVb.prototype),{oq:cache,scopes:new Set(['root']),parent:null,ig:false});
 const host=document.querySelector('gem-button[data-test-id="bard-mode-menu-button"]');
 const owner=host.closest('bard-mode-switcher');
 Object.defineProperty(host,'__ngContext__',{value:7});
-ns.ZU.Ra={type:ns.ZU,template:invoked};
-const consumer=Object.assign(Object.create(ns.ZU.prototype),{Oa:conversation});
+ns.SU.Ra={type:ns.SU,template:invoked};
+const consumer=Object.assign(Object.create(ns.SU.prototype),{Oa:conversation});
 ${geminiOwnerGraph}
 Object.defineProperty(window,'default_BardChatUi',{value:ns});
 </script></body>`,
     );
 }
 
-const geminiOwnerGraph = `const component=[];Object.assign(component,{0:owner,1:{type:1,template:ns.ZU.Ra.template,data:[]},2:0,8:consumer,19:10});
+const geminiOwnerGraph = `const component=[];Object.assign(component,{0:owner,1:{type:1,template:ns.SU.Ra.template,data:[]},2:0,8:consumer,19:10});
 const eg=[];Object.assign(eg,{0:null,1:{type:2,data:[]},2:0,14:component,19:9});
 const dg=[];Object.assign(dg,{0:null,1:{type:2,data:[]},2:0,14:eg,19:8});
 const view=[];Object.assign(view,{0:null,1:{type:2,data:[]},2:0,9:injector,14:dg,19:7});
-const agNode={index:30,zB:view[1]};dg[1].data[30]=agNode;view[5]=agNode;
-const dgNode={index:29,zB:dg[1]};eg[1].data[29]=dgNode;dg[5]=dgNode;
-const egNode={index:83,zB:eg[1]};component[1].data[83]=egNode;
+const agNode={index:30,DB:view[1]};dg[1].data[30]=agNode;view[5]=agNode;
+const dgNode={index:29,DB:dg[1]};eg[1].data[29]=dgNode;dg[5]=dgNode;
+const egNode={index:83,DB:eg[1]};component[1].data[83]=egNode;
 const origin=[];Object.assign(origin,{1:true,3:component,5:egNode});component[83]=origin;eg[16]=origin;
 eg[5]={index:28,insertion:true};
 const hostNode={index:28,type:2,value:'gem-button'};view[1].data[28]=hostNode;
 const child=[];Object.assign(child,{0:host,1:{},2:0,3:view,5:hostNode,14:view,19:11});
 const anchor=document.createComment('');host.after(anchor);
 view[28]=[child,true,0,view,null,hostNode,null,anchor,null,null];
-ns.uPb=new Map([[7,view]]);
+ns.zPb=new Map([[7,view]]);
 `;
 
 // SDK-only support restriction; ordinary readiness and client-preparation pages stay unchanged.

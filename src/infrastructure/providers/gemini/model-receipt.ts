@@ -5,8 +5,8 @@ type ModelMetadata = Pick<
   ApprovedGeminiTrial,
   'modeId' | 'modeCategory' | 'Cq' | 'thinkingLevel' | 'Hj'
 >;
-const signals = ['host', 'Yb', 'r$f', 'H8', 'ZL', 'vT'] as const;
-const alternatives = ['iKb', 'gKb', 'hKb', 'jhc'] as const;
+const signals = ['host', 'Yb', 'Qag', 'N8', 'dM', 'xT'] as const;
+const alternatives = ['zKb', 'xKb', 'yKb', 'Ihc'] as const;
 function require(condition: unknown): asserts condition {
   if (!condition) throw new Error();
 }
@@ -39,7 +39,7 @@ function list(value: unknown): unknown[] {
   }
   return result;
 }
-// Only the source-projected fields used by VUd, YK and the final request.
+// Only the source-projected fields used by oVd, YK and the final request.
 // Serialize new primitive tuples, never a provider object or its toJSON method.
 function modelSnapshot(value: unknown): string {
   require(value !== null && typeof value === 'object');
@@ -48,7 +48,7 @@ function modelSnapshot(value: unknown): string {
   );
   const modeId = data(value, 'id');
   const category = data(value, 'modeCategory');
-  const routing = data(value, 'Uo');
+  const routing = data(value, 'Wo');
   require(id(modeId) || modeId === '');
   require(
     category === undefined ||
@@ -59,13 +59,13 @@ function modelSnapshot(value: unknown): string {
   require(routing === undefined || id(routing));
   // The catalog projection retains category-only rows in the catalog; these cannot identify a send model.
   require(modeId !== '' || (typeof category === 'string' && routing === undefined));
-  const pairs = list(data(value, 'Ms') ?? []).map((pair) => {
+  const pairs = list(data(value, 'Ns') ?? []).map((pair) => {
     require(pair !== null && typeof pair === 'object');
     require(
       Object.getPrototypeOf(pair) === Object.prototype || Object.getPrototypeOf(pair) === null,
     );
     const level = data(pair, 'thinkingLevel');
-    const effort = data(pair, 'Lj');
+    const effort = data(pair, 'Nj');
     require(
       typeof level === 'string' && level.length <= 160 && /^THINKING_LEVEL_[A-Z_]+$/.test(level),
     );
@@ -117,10 +117,10 @@ export async function captureGeminiTrialModel(
     const { namespace, consumer, conversation } = client;
     const service = data(consumer, 'bardModeService');
     const nb = data(consumer, 'nb');
-    const scope = data(consumer, 'Ca');
+    const scope = data(consumer, 'Da');
     for (const [name, value] of [
       ['YK', service],
-      ['PF', nb],
+      ['QF', nb],
     ] as const) {
       const constructor = data(namespace, name);
       require(typeof constructor === 'function' && value !== null && typeof value === 'object');
@@ -131,35 +131,35 @@ export async function captureGeminiTrialModel(
       require(typeof signal === 'function');
       return signal;
     });
-    const flag = data(namespace, 'IAb');
+    const flag = data(namespace, 'JAb');
     require(flag !== undefined);
-    const resolve = data(namespace, 'VUd');
+    const resolve = data(namespace, 'oVd');
     require(typeof resolve === 'function');
     const resolveMode = resolve;
     const config = method(scope, 'Ea');
-    const enabled = data(consumer, 'Sa');
+    const enabled = data(consumer, 'Ua');
     require(typeof enabled === 'boolean');
-    const catalogConstructor = data(namespace, 'PF');
+    const catalogConstructor = data(namespace, 'QF');
     const catalogPrototype = data(catalogConstructor, 'prototype') as object;
-    const catalogDescriptor = Object.getOwnPropertyDescriptor(catalogPrototype, 'pG');
+    const catalogDescriptor = Object.getOwnPropertyDescriptor(catalogPrototype, 'sG');
     require(catalogDescriptor && 'value' in catalogDescriptor);
     const retainedCatalogDescriptor = { ...catalogDescriptor };
     const source = catalogDescriptor.value;
-    require(!Object.getOwnPropertyDescriptor(nb, 'pG'));
+    require(!Object.getOwnPropertyDescriptor(nb, 'sG'));
     require(
       typeof source === 'function' &&
         Function.prototype.toString.call(source) ===
-          'function(){return this.ha().pipe(_.v(a=>{var b,c,d=(this.Na&&_.evc(a)?(b=a.mVa)!=null?b:[]:(c=a.iR)!=null?c:[]).filter(e=>e.tEa||this.Ha.includes(e.id)||!this.Aa&&this.Wa.includes(e.id)?!1:!0);return this.Sa?d.reverse():d}),_.uw((a,b)=>JSON.stringify(a)===JSON.stringify(b)))}',
+          'function(){return this.ha().pipe(_.v(a=>{var b,c,d=(this.Na&&_.pwc(a)?(b=a.rVa)!=null?b:[]:(c=a.kR)!=null?c:[]).filter(e=>e.yEa||this.Ha.includes(e.id)||!this.Aa&&this.Wa.includes(e.id)?!1:!0);return this.Ua?d.reverse():d}),_.sw((a,b)=>JSON.stringify(a)===JSON.stringify(b)))}',
     );
     function catalogCurrent() {
-      const descriptor = Object.getOwnPropertyDescriptor(catalogPrototype, 'pG');
+      const descriptor = Object.getOwnPropertyDescriptor(catalogPrototype, 'sG');
       require(
         !closed &&
           !signal.aborted &&
-          data(namespace, 'PF') === catalogConstructor &&
+          data(namespace, 'QF') === catalogConstructor &&
           data(catalogConstructor, 'prototype') === catalogPrototype &&
           Object.getPrototypeOf(nb) === catalogPrototype &&
-          !Object.getOwnPropertyDescriptor(nb, 'pG') &&
+          !Object.getOwnPropertyDescriptor(nb, 'sG') &&
           descriptor &&
           'value' in descriptor &&
           (['value', 'writable', 'enumerable', 'configurable'] as const).every(
@@ -255,11 +255,11 @@ export async function captureGeminiTrialModel(
           data(namespace, 'At') === combine &&
           data(latest, 'catalog') === catalog,
       );
-      require(data(namespace, 'VUd') === resolve && data(namespace, 'IAb') === flag);
+      require(data(namespace, 'oVd') === resolve && data(namespace, 'JAb') === flag);
       require(method(scope, 'Ea') === config && Reflect.apply(config, scope, [flag]) === enabled);
-      require(data(consumer, 'Sa') === enabled);
+      require(data(consumer, 'Ua') === enabled);
       for (const owner of [consumer, conversation, service]) {
-        require(data(owner, 'nb') === nb && data(owner, 'Ca') === scope);
+        require(data(owner, 'nb') === nb && data(owner, 'Da') === scope);
         if (owner !== service) require(data(owner, 'bardModeService') === service);
       }
       signals.forEach((key, index) => require(data(consumer, key) === selectedSignals[index]));
@@ -282,7 +282,7 @@ export async function captureGeminiTrialModel(
       const modeId = data(effective, 'id');
       require(id(modeId) && values[3] === modeId);
       const modeCategory = data(effective, 'modeCategory');
-      const Cq = data(effective, 'Uo');
+      const Cq = data(effective, 'Wo');
       require(
         modeCategory === undefined ||
           (typeof modeCategory === 'string' && /^MODE_CATEGORY_[A-Z_]+$/.test(modeCategory)),
@@ -298,13 +298,13 @@ export async function captureGeminiTrialModel(
       let Hj = effort as string | undefined;
       // Preserve a thinking pair only when the source-remapped model supports it.
       if (modeId !== selectedId) {
-        const pairs = list(data(effective, 'Ms') ?? []).filter(
+        const pairs = list(data(effective, 'Ns') ?? []).filter(
           (entry) => data(entry, 'thinkingLevel') === level,
         );
         if (!pairs.length) {
           thinkingLevel = undefined;
           Hj = undefined;
-        } else if (!effort || !pairs.some((entry) => data(entry, 'Lj') === effort)) Hj = undefined;
+        } else if (!effort || !pairs.some((entry) => data(entry, 'Nj') === effort)) Hj = undefined;
       }
       catalogCurrent();
       return {

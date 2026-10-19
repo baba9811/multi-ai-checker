@@ -47,13 +47,13 @@ export function armGeminiRpcDispatch(
   }
   function live(): void {
     if (closed) fail('closed');
+    selectedRouteCurrent();
     streamMethods();
     if (own(streaming, 'stream') !== streamGuard || own(service, 'sendRequest') !== receive)
       fail('binding');
     if (
       own(actualHL, 'Sd') !== streaming ||
       own(streaming, 'ha') !== service ||
-      own(actualHL, 'Aa') !== false ||
       own(actualHL, 'Kd') !== false
     )
       fail('binding');
@@ -68,6 +68,7 @@ export function armGeminiRpcDispatch(
     }
     if (closed) fail('closed');
     if (!valid) fail('interrupted');
+    selectedRouteCurrent();
   }
   function object(value: unknown): value is object {
     return value !== null && (typeof value === 'object' || typeof value === 'function');
@@ -133,10 +134,95 @@ export function armGeminiRpcDispatch(
     if (!Object.isExtensible(target)) fail('runtime-shape');
     Object.defineProperty(target, key, { value: fn, configurable: true, writable: true });
   }
-  const hl = proto('pM');
-  const protection = proto('bM');
+  const hl = proto('gM');
+  const protection = proto('UL');
   if (!exact(actualHL, hl)) fail('binding');
-  if (own(actualHL, 'Aa') !== false || own(actualHL, 'Kd') !== false) fail('route');
+  const selectedPins = [
+    [
+      'CKd',
+      'class{constructor(){this.Da=_.x(_.Nz);this.ka=_.x(_.cM);this.ha=this.Da.Ea(_.tKd);this.oa=this.Da.Ea(uKd)}}',
+    ],
+    ['cM', 'class{constructor(){this.ha=0}reset(){this.ha=0}}'],
+    [
+      'zKd',
+      'class{constructor(){this.ha=_.x(_.bL);this.ka=_.x(_.dL);this.oa=_.x(_.bM);this.wa=_.x(_.cM)}}',
+    ],
+    ['BKd', 'function(a){if(!a.ha)return!1;if(a.oa)return!0;a=a.ka.ha;return a!==43&&a!==42}'],
+  ] as const;
+  const selectedPrototypes: object[] = [];
+  const selectedDescriptors: [object, PropertyKey, PropertyDescriptor][] = [];
+  function selectedData(owner: unknown, key: PropertyKey): unknown {
+    const value = own(owner, key);
+    if (!object(owner) || value === missing) fail('binding');
+    selectedDescriptors.push([owner, key, Object.getOwnPropertyDescriptor(owner, key)!]);
+    return value;
+  }
+  for (const [name, text] of selectedPins) {
+    const constructor = source(selectedData(namespace, name), text);
+    if (name !== 'BKd') {
+      const prototype = selectedData(constructor, 'prototype');
+      if (
+        !object(prototype) ||
+        Object.getPrototypeOf(prototype) !== Object.prototype ||
+        selectedData(prototype, 'constructor') !== constructor
+      )
+        fail('source-profile');
+      selectedPrototypes.push(prototype);
+      if (name === 'cM') source(selectedData(prototype, 'reset'), 'reset(){this.ha=0}');
+    }
+  }
+  const selectedRoute = selectedData(actualHL, 'Aa');
+  const selectedMode = selectedData(actualHL, 'Ua');
+  const selectedHeader = selectedData(actualHL, 'Eb');
+  if (
+    !exact(selectedRoute, proto('CKd')) ||
+    !exact(selectedMode, proto('cM')) ||
+    !exact(selectedHeader, proto('zKd')) ||
+    selectedData(selectedRoute, 'ka') !== selectedMode ||
+    selectedData(selectedHeader, 'wa') !== selectedMode ||
+    !object(selectedData(selectedRoute, 'Da'))
+  )
+    fail('binding');
+  const routeHa = selectedData(selectedRoute, 'ha');
+  const routeOa = selectedData(selectedRoute, 'oa');
+  const mode = selectedData(selectedMode, 'ha');
+  if (
+    typeof routeHa !== 'boolean' ||
+    typeof routeOa !== 'boolean' ||
+    typeof mode !== 'number' ||
+    !Number.isSafeInteger(mode)
+  )
+    fail('runtime-shape');
+  // BKd's actual selected values choose the legacy RPC route; no provider flag is written.
+  if (
+    (routeHa && (routeOa || (mode !== 43 && mode !== 42))) ||
+    selectedData(actualHL, 'Kd') !== false
+  )
+    fail('route');
+  function selectedRouteCurrent(): void {
+    if (
+      selectedPrototypes.some((prototype) => Object.getPrototypeOf(prototype) !== Object.prototype)
+    )
+      fail('binding');
+    if (
+      !exact(actualHL, hl) ||
+      !exact(selectedRoute, proto('CKd')) ||
+      !exact(selectedMode, proto('cM')) ||
+      !exact(selectedHeader, proto('zKd'))
+    )
+      fail('binding');
+    for (const [owner, key, captured] of selectedDescriptors) {
+      const descriptor = Object.getOwnPropertyDescriptor(owner, key);
+      if (
+        !descriptor ||
+        !Object.hasOwn(descriptor, 'value') ||
+        (['value', 'writable', 'enumerable', 'configurable'] as const).some(
+          (field) => !Object.is(descriptor[field], captured[field]),
+        )
+      )
+        fail('binding');
+    }
+  }
   const challenge = own(actualHL, 'Ja');
   if (!exact(challenge, protection) || own(challenge, 'isEnabled') !== true) fail('protection');
   const streaming = own(actualHL, 'Sd');
@@ -146,7 +232,7 @@ export function armGeminiRpcDispatch(
     fail('source-profile');
   const stream = source(
     own(streamingPrototype, 'stream'),
-    'stream(a){var b=a.yx(),c=_.yxa(a),d=a.Tq(_.Iwa);Object.assign(c,d);var e=a.Tq(_.Jwa)||new Map;d=this.ha;a=a.qea();e=Object.fromEntries(e);var f;var g=(f=_.Uy[`o_${b.IVa()}`])==null?void 0:f.qsa;b=_.Wpa(b.Qyb());return cZb(d,a,c,e,g,b)}',
+    'stream(a){var b=a.zx(),c=_.yxa(a),d=a.Uq(_.Iwa);Object.assign(c,d);var e=a.Uq(_.Jwa)||new Map;d=this.ha;a=a.vea();e=Object.fromEntries(e);var f;var g=(f=_.Ty[`o_${b.NVa()}`])==null?void 0:f.zsa;b=_.Wpa(b.kzb());return hZb(d,a,c,e,g,b)}',
   );
   const service = own(streaming, 'ha');
   const servicePrototype = proto('dva');
@@ -157,14 +243,14 @@ export function armGeminiRpcDispatch(
   if (!Object.isExtensible(streaming) || !Object.isExtensible(service)) fail('runtime-shape');
 
   const requestPrototype = proto('xxa');
-  const descriptorPrototype = proto('LE');
-  const descriptorBase = proto('JYb');
+  const descriptorPrototype = proto('ME');
+  const descriptorBase = proto('OYb');
   if (Object.getPrototypeOf(descriptorPrototype) !== descriptorBase) fail('source-profile');
-  for (const key of ['IVa', 'Qyb']) {
+  for (const key of ['NVa', 'kzb']) {
     unshadowed(descriptorPrototype, key);
     callable(own(descriptorBase, key));
   }
-  const messagePrototype = proto('zL');
+  const messagePrototype = proto('wL');
   const bodyPrototype = proto('Fta');
   const batchPrototype = proto('Gta');
   const etaClass = callable(exported('Fta'));
@@ -177,33 +263,33 @@ export function armGeminiRpcDispatch(
     fail('source-profile');
   const serialize = callable(own(baseMessage, 'serialize'));
   const bodyField = callable(exported('n'));
-  const repeatedBodyField = callable(exported('di'));
+  const repeatedBodyField = callable(exported('ci'));
   const config = callable(exported('pd'));
-  const configString = callable(exported('jf'));
-  const descriptorKey = exported('ll');
+  const configString = callable(exported('hf'));
+  const descriptorKey = exported('kl');
   const kindKey = exported('Kwa');
   if (typeof descriptorKey !== 'symbol' || typeof kindKey !== 'symbol') fail('descriptor');
-  const registered = own(exported('Uy'), 'o_RxAFq');
+  const registered = own(exported('Ty'), 'o_RxAFq');
   const jsa = '/assistant.lamda.BardFrontendService/StreamGenerate';
   function registeredDescriptor(): void {
     if (
-      own(exported('Uy'), 'o_RxAFq') !== registered ||
+      own(exported('Ty'), 'o_RxAFq') !== registered ||
       !object(registered) ||
       own(registered, 'Ob') !== 'RxAFq' ||
-      own(registered, 'Sb') !== '/BardFrontendService.StreamGenerate' ||
-      own(registered, 'Rb') !== false ||
-      own(registered, 'Pb') !== exported('HF') ||
-      own(registered, 'Ub') !== exported('zL') ||
-      own(registered, 'oqa') !== jsa ||
-      own(registered, 'qsa') !== jsa
+      own(registered, 'Rb') !== '/BardFrontendService.StreamGenerate' ||
+      own(registered, 'Qb') !== false ||
+      own(registered, 'Pb') !== exported('IF') ||
+      own(registered, 'Ub') !== exported('wL') ||
+      own(registered, 'Fqa') !== jsa ||
+      own(registered, 'zsa') !== jsa
     )
       fail('descriptor');
   }
   registeredDescriptor();
   const streamClass = callable(exported('Ixa'));
   const streamPrototype = proto('Ixa');
-  const responseClass = callable(exported('HF'));
-  const responsePrototype = proto('HF');
+  const responseClass = callable(exported('IF'));
+  const responsePrototype = proto('IF');
   const deferredClass = callable(exported('bc'));
   const deferredPrototype = proto('bc');
   const deferredCancel = callable(own(deferredPrototype, 'cancel'));
@@ -217,7 +303,7 @@ export function armGeminiRpcDispatch(
   }
   source(
     streamClass,
-    'class{constructor(){this.ka=[];this.wa=[];this.oa=[];this.ha=[];this.Aa=null;this.Da=!1}on(a,b){a=="data"?this.ka.push(b):a=="status"?this.wa.push(b):a=="end"?this.oa.push(b):a=="error"&&this.ha.push(b);return this}cancel(){if(!this.Da){if(!this.Aa)throw Error("Ac");this.Aa.cancel()}}removeListener(a,b){a=="data"?Hxa(this.ka,b):a=="status"?Hxa(this.wa,b):a=="end"?Hxa(this.oa,b):a=="error"&&Hxa(this.ha,b);return this}}',
+    'class{constructor(){this.ka=[];this.wa=[];this.oa=[];this.ha=[];this.Aa=null;this.Ca=!1}on(a,b){a=="data"?this.ka.push(b):a=="status"?this.wa.push(b):a=="end"?this.oa.push(b):a=="error"&&this.ha.push(b);return this}cancel(){if(!this.Ca){if(!this.Aa)throw Error("Ac");this.Aa.cancel()}}removeListener(a,b){a=="data"?Hxa(this.ka,b):a=="status"?Hxa(this.wa,b):a=="end"?Hxa(this.oa,b):a=="error"&&Hxa(this.ha,b);return this}}',
     'source-stream',
   );
   const streamOn = source(
@@ -232,21 +318,21 @@ export function armGeminiRpcDispatch(
   );
   const streamCancel = source(
     own(streamPrototype, 'cancel'),
-    'cancel(){if(!this.Da){if(!this.Aa)throw Error("Ac");this.Aa.cancel()}}',
+    'cancel(){if(!this.Ca){if(!this.Aa)throw Error("Ac");this.Aa.cancel()}}',
     'source-stream',
   );
   function streamMethods() {
     notifyCheck();
     if (xhr !== undefined) {
-      if (exported('Xj') !== xhrClass || proto('Xj') !== xhrPrototype || !exact(xhr, xhrPrototype))
+      if (exported('Vj') !== xhrClass || proto('Vj') !== xhrPrototype || !exact(xhr, xhrPrototype))
         fail('binding');
-      unshadowed(xhr, 'l_c');
+      unshadowed(xhr, 'Y_c');
     }
     if (
       exported('Ixa') !== streamClass ||
       proto('Ixa') !== streamPrototype ||
-      exported('HF') !== responseClass ||
-      proto('HF') !== responsePrototype ||
+      exported('IF') !== responseClass ||
+      proto('IF') !== responsePrototype ||
       own(streamPrototype, 'on') !== streamOn ||
       own(streamPrototype, 'removeListener') !== streamRemove ||
       own(streamPrototype, 'cancel') !== streamCancel
@@ -275,10 +361,10 @@ export function armGeminiRpcDispatch(
       !exact(rawStream, streamPrototype) ||
       Reflect.ownKeys(rawStream).length !== 6 ||
       Reflect.ownKeys(rawStream).some(
-        (key) => !['ka', 'wa', 'oa', 'ha', 'Aa', 'Da'].includes(key as string),
+        (key) => !['ka', 'wa', 'oa', 'ha', 'Aa', 'Ca'].includes(key as string),
       ) ||
       own(rawStream, 'Aa') !== capturedWrapper ||
-      own(rawStream, 'Da') !== false
+      own(rawStream, 'Ca') !== false
     )
       fail('binding');
     for (const key of ['on', 'removeListener', 'cancel']) unshadowed(rawStream, key);
@@ -314,6 +400,7 @@ export function armGeminiRpcDispatch(
   function observeRaw(value: unknown) {
     if (detached || observationFailed) return;
     try {
+      selectedRouteCurrent();
       streamMethods();
       streamState();
       if (
@@ -324,6 +411,7 @@ export function armGeminiRpcDispatch(
         fail('binding');
       Reflect.apply(rawNext, rawObserver, [value]);
       if (!detached && !observationFailed) {
+        selectedRouteCurrent();
         streamMethods();
         streamState();
         if (own(rawObserver, 'next') !== rawNext || own(rawObserver, 'error') !== rawError)
@@ -342,13 +430,13 @@ export function armGeminiRpcDispatch(
     rawStream = value;
     streamMethods();
     for (const key of Reflect.ownKeys(value)) {
-      if (!['ka', 'wa', 'oa', 'ha', 'Aa', 'Da'].includes(key as string)) fail('stream');
+      if (!['ka', 'wa', 'oa', 'ha', 'Aa', 'Ca'].includes(key as string)) fail('stream');
       own(value, key);
     }
     if (
       Reflect.ownKeys(value).length !== 6 ||
       own(value, 'Aa') !== capturedWrapper ||
-      own(value, 'Da') !== false
+      own(value, 'Ca') !== false
     )
       fail('binding');
     for (const key of ['on', 'removeListener', 'cancel']) unshadowed(value, key);
@@ -363,7 +451,7 @@ export function armGeminiRpcDispatch(
     if (
       !exact(value, streamPrototype) ||
       own(value, 'Aa') !== capturedWrapper ||
-      own(value, 'Da') !== false
+      own(value, 'Ca') !== false
     )
       fail('binding');
     for (const key of ['on', 'removeListener', 'cancel']) unshadowed(value, key);
@@ -384,40 +472,40 @@ export function armGeminiRpcDispatch(
     streamState();
   }
 
-  const uriPrototype = proto('xg');
-  const queryPrototype = proto('Cg');
+  const uriPrototype = proto('wg');
+  const queryPrototype = proto('Bg');
   const transportBase = proto('Cua');
   // The post-Htc assignment fence relies on this exact normal transfer order.
   const baseTransfer = source(
     own(transportBase, 'transfer'),
-    'transfer(a){this.aborted=\n!1;uua(this,a);a.setParam("rt",this.uI);var b=a.Da,c=Object.assign({},a.z3c,{method:a.ka});if(zua(a)){vua(this,a);let d=Aua(a),e=a.OCc;d&&e?iua(d,e).then(f=>{this.isDisposed()||this.aborted||this.ha!==a||(b.set("Content-Encoding",e),this.xhr.send(a.getUrl(),c,f,b))}):this.xhr.send(a.getUrl(),c,d,b)}else this.xhr.send(a.getUrl(),c,null,b)}',
+    'transfer(a){this.aborted=\n!1;uua(this,a);a.setParam("rt",this.tI);var b=a.Ca,c=Object.assign({},a.o4c,{method:a.ka});if(zua(a)){vua(this,a);let d=Aua(a),e=a.wDc;d&&e?iua(d,e).then(f=>{this.isDisposed()||this.aborted||this.ha!==a||(b.set("Content-Encoding",e),this.xhr.send(a.getUrl(),c,f,b))}):this.xhr.send(a.getUrl(),c,d,b)}else this.xhr.send(a.getUrl(),c,null,b)}',
   );
-  const xhrClass = callable(exported('Xj'));
-  const xhrPrototype = proto('Xj');
+  const xhrClass = callable(exported('Vj'));
+  const xhrPrototype = proto('Vj');
   const xhrSend = source(
     own(xhrPrototype, 'send'),
-    'function(a,b,c,d){if(this.vk)throw Error("Xb`"+this.FAa+"`"+a);if(typeof b==="string")var e=b;else if(b){var f=b;e=f.method;c!=null||(c=f.body);d!=null||(d=f.headers)}e=e?e.toUpperCase():"GET";this.FAa=a;this.DG="";this.D6=0;this.nIc=!1;this.nE=!0;this.vk=this.Xtb(f);this.vk.onreadystatechange=(0,_.qe)((0,_.$b)(this.J7d,this));this.R3f&&"onprogress"in this.vk&&(this.vk.onprogress=(0,_.qe)((0,_.$b)(function(k){this.I7d(k,!0)},this)),this.vk.upload&&(this.vk.upload.onprogress=(0,_.qe)((0,_.$b)(this.I7d,\nthis))));try{this.TOc=!0,this.vk.open(e,String(a),!0),this.TOc=!1}catch(k){this.Aq(5,k);return}a=c||"";b=new Map(this.headers);if(d)if(Object.getPrototypeOf(d)===Object.prototype)for(var g in d)b.set(g,d[g]);else if(typeof d.keys==="function"&&typeof d.get==="function")for(let k of d.keys())b.set(k,d.get(k));else throw Error("Yb`"+String(d));d=Array.from(b.keys()).find(k=>"content-type"==k.toLowerCase());g=_.fa.FormData&&a instanceof _.fa.FormData;!_.xa(_.xta,e)||d||g||b.set("Content-Type","application/x-www-form-urlencoded;charset=utf-8");\nfor(let [k,r]of b)this.vk.setRequestHeader(k,r);this.uI&&(this.vk.responseType=this.uI);"withCredentials"in this.vk&&this.vk.withCredentials!==this.dD&&(this.vk.withCredentials=this.dD);if("setTrustToken"in this.vk&&this.Rbd)try{this.vk.setTrustToken(this.Rbd)}catch(k){}if("setAttributionReporting"in this.vk&&this.mzc)try{this.vk.setAttributionReporting(this.mzc)}catch(k){}try{this.Fua&&(clearTimeout(this.Fua),this.Fua=null),this.Vlb>0&&(this.Fua=setTimeout(this.lH.bind(this),this.Vlb)),this.t6b=\n!0,this.vk.send(a),this.t6b=!1}catch(k){this.Aq(5,k)}}',
+    'function(a,b,c,d){if(this.vk)throw Error("Xb`"+this.NAa+"`"+a);if(typeof b==="string")var e=b;else if(b){var f=b;e=f.method;c!=null||(c=f.body);d!=null||(d=f.headers)}e=e?e.toUpperCase():"GET";this.NAa=a;this.IG="";this.I6=0;this.WIc=!1;this.qE=!0;this.vk=this.rub(f);this.vk.onreadystatechange=(0,_.qe)((0,_.$b)(this.O8d,this));this.p5f&&"onprogress"in this.vk&&(this.vk.onprogress=(0,_.qe)((0,_.$b)(function(k){this.N8d(k,!0)},this)),this.vk.upload&&(this.vk.upload.onprogress=(0,_.qe)((0,_.$b)(this.N8d,\nthis))));try{this.EPc=!0,this.vk.open(e,String(a),!0),this.EPc=!1}catch(k){this.Cq(5,k);return}a=c||"";b=new Map(this.headers);if(d)if(Object.getPrototypeOf(d)===Object.prototype)for(var g in d)b.set(g,d[g]);else if(typeof d.keys==="function"&&typeof d.get==="function")for(let k of d.keys())b.set(k,d.get(k));else throw Error("Yb`"+String(d));d=Array.from(b.keys()).find(k=>"content-type"==k.toLowerCase());g=_.fa.FormData&&a instanceof _.fa.FormData;!_.xa(_.xta,e)||d||g||b.set("Content-Type","application/x-www-form-urlencoded;charset=utf-8");\nfor(let [k,r]of b)this.vk.setRequestHeader(k,r);this.tI&&(this.vk.responseType=this.tI);"withCredentials"in this.vk&&this.vk.withCredentials!==this.eD&&(this.vk.withCredentials=this.eD);if("setTrustToken"in this.vk&&this.Pcd)try{this.vk.setTrustToken(this.Pcd)}catch(k){}if("setAttributionReporting"in this.vk&&this.Tzc)try{this.vk.setAttributionReporting(this.Tzc)}catch(k){}try{this.Pua&&(clearTimeout(this.Pua),this.Pua=null),this.nmb>0&&(this.Pua=setTimeout(this.kH.bind(this),this.nmb)),this.K6b=\n!0,this.vk.send(a),this.K6b=!1}catch(k){this.Cq(5,k)}}',
     'source-async',
   );
   const xhrFactory = source(
-    own(xhrPrototype, 'Xtb'),
-    'function(a){return this.lPb?this.lPb.Z8(a):_.bja.Z8()}',
+    own(xhrPrototype, 'rub'),
+    'function(a){return this.BPb?this.BPb.g9(a):_.aja.g9()}',
     'source-async',
   );
   const xhrReady = source(
-    own(xhrPrototype, 'J7d'),
-    'function(){this.isDisposed()||(this.TOc||this.t6b||this.MWa?Cta(this):this.l_c())}',
+    own(xhrPrototype, 'O8d'),
+    'function(){this.isDisposed()||(this.EPc||this.K6b||this.TWa?Cta(this):this.Y_c())}',
     'source-async',
   );
-  const xhrNotify = callable(own(xhrPrototype, 'l_c'));
+  const xhrNotify = callable(own(xhrPrototype, 'Y_c'));
   const rawNotifySource = 'function(){Cta(this)}';
   notifyCheck = () => {
-    if (own(xhrPrototype, 'l_c') !== xhrNotify) fail('binding');
+    if (own(xhrPrototype, 'Y_c') !== xhrNotify) fail('binding');
   };
   if (Reflect.apply(functionSource, xhrNotify, []) !== rawNotifySource) {
     source(
       xhrNotify,
-      'function(){if(a.isDisposed())return b.apply(this,arguments);try{return b.apply(this,arguments)}catch(d){S1o(a,d)}}',
+      'function(){if(a.isDisposed())return b.apply(this,arguments);try{return b.apply(this,arguments)}catch(d){M5o(a,d)}}',
       'source-notify',
     );
     const protectedRoot = exported('Cr');
@@ -427,13 +515,13 @@ export function armGeminiRpcDispatch(
     if (!object(monitorPrototype)) fail('binding');
     const baseClass = source(
       exported('Eb'),
-      'function(){this.n5=this.n5;this.b_a=this.b_a}',
+      'function(){this.r5=this.r5;this.n_a=this.n_a}',
       'source-notify',
     );
     const basePrototype = proto('Eb');
     const disposed = source(
       own(basePrototype, 'isDisposed'),
-      'function(){return this.n5}',
+      'function(){return this.r5}',
       'source-notify',
     );
     const monitorClass = source(
@@ -443,12 +531,12 @@ export function armGeminiRpcDispatch(
     );
     const wrap = source(
       own(monitorPrototype, 'wrap'),
-      'function(a){return P1o(this,a)}',
+      'function(a){return J5o(this,a)}',
       'source-notify',
     );
     const unwrap = source(
       own(monitorPrototype, 'unwrap'),
-      'function(a){return a[Q1o(this,!1)]||a}',
+      'function(a){return a[K5o(this,!1)]||a}',
       'source-notify',
     );
     const identity = source(
@@ -457,7 +545,7 @@ export function armGeminiRpcDispatch(
       'source-notify',
     );
     const report = callable(own(monitor, 'oa'));
-    const monitors = exported('vga');
+    const monitors = exported('uga');
     const uidKeys = Reflect.ownKeys(monitor).filter(
       (key) => typeof key === 'string' && /^closure_uid_(0|[1-9]\d{0,8})$/.test(key),
     );
@@ -482,8 +570,8 @@ export function armGeminiRpcDispatch(
       if (
         exported('Cr') !== protectedRoot ||
         own(protectedRoot, 'ka') !== monitor ||
-        exported('wga') !== true ||
-        exported('vga') !== monitors ||
+        exported('vga') !== true ||
+        exported('uga') !== monitors ||
         !Array.isArray(monitors) ||
         Object.getPrototypeOf(monitors) !== Array.prototype ||
         own(monitors, 'length') !== 1 ||
@@ -496,7 +584,7 @@ export function armGeminiRpcDispatch(
         proto('Eb') !== basePrototype ||
         own(basePrototype, 'constructor') !== baseClass ||
         own(basePrototype, 'isDisposed') !== disposed ||
-        own(basePrototype, 'n5') !== false ||
+        own(basePrototype, 'r5') !== false ||
         own(monitorPrototype, 'constructor') !== monitorClass ||
         own(monitorClass, 'prototype') !== monitorPrototype ||
         own(monitorPrototype, 'wrap') !== wrap ||
@@ -505,7 +593,7 @@ export function armGeminiRpcDispatch(
         own(monitor, 'oa') !== report ||
         own(monitor, 'ka') !== true ||
         own(monitor, 'ha') !== true ||
-        own(monitor, 'n5') !== false ||
+        own(monitor, 'r5') !== false ||
         own(monitor, uidKey) !== uid ||
         Reflect.ownKeys(monitor).filter(
           (key) => typeof key === 'string' && /^closure_uid_/.test(key),
@@ -521,9 +609,9 @@ export function armGeminiRpcDispatch(
   }
   const xhrReadMethods: Array<[string, Call]> = [
     [
-      'pea',
+      'uea',
       source(
-        own(xhrPrototype, 'pea'),
+        own(xhrPrototype, 'uea'),
         'function(){return this.vk?this.vk.readyState:0}',
         'source-async',
       ),
@@ -536,22 +624,22 @@ export function armGeminiRpcDispatch(
         'source-async',
       ),
     ],
-    ['Xu', source(own(xhrPrototype, 'Xu'), 'function(){return this.pea()==4}', 'source-async')],
+    ['Wu', source(own(xhrPrototype, 'Wu'), 'function(){return this.uea()==4}', 'source-async')],
   ];
-  const nativeFactory = exported('bja');
-  const nativeFactoryPrototype = proto('cja');
+  const nativeFactory = exported('aja');
+  const nativeFactoryPrototype = proto('bja');
   const fetchFactoryPrototype = proto('Mta');
   const nativeCreate = source(
-    own(nativeFactoryPrototype, 'Z8'),
+    own(nativeFactoryPrototype, 'g9'),
     'function(){return new XMLHttpRequest}',
     'source-factory',
   );
   const fetchCreate = source(
-    own(fetchFactoryPrototype, 'Z8'),
-    'function(a){var b=new Zj(this.wa,this.ka,this.oa);this.ha&&(b.Aa=this.ha);a&&(b.oa=a);return b}',
+    own(fetchFactoryPrototype, 'g9'),
+    'function(a){var b=new Xj(this.wa,this.ka,this.oa);this.ha&&(b.Aa=this.ha);a&&(b.oa=a);return b}',
     'source-factory',
   );
-  const setterSource = 'function(a,b){_.soa(this.oa,a,b)}';
+  const setterSource = 'function(a,b){_.roa(this.oa,a,b)}';
   const managerBase = proto('Yb');
   const queuePrototype = proto('Zta');
   let active = false;
@@ -597,16 +685,16 @@ export function armGeminiRpcDispatch(
   function unrelatedRoute(metadata: unknown, profile: 'stream' | 'batch'): string {
     if (!object(metadata)) fail('descriptor');
     const id = own(metadata, 'Ob');
-    const method = own(metadata, 'Sb');
+    const method = own(metadata, 'Rb');
     if (
       typeof id !== 'string' ||
       !/^[A-Za-z0-9]{3,16}$/.test(id) ||
       id === 'RxAFq' ||
-      own(exported('Uy'), 'o_' + id) !== metadata ||
+      own(exported('Ty'), 'o_' + id) !== metadata ||
       typeof method !== 'string' ||
       method.includes('StreamGenerate') ||
-      typeof own(metadata, 'Rb') !== 'boolean' ||
-      (profile === 'stream' && own(metadata, 'Rb') !== false)
+      typeof own(metadata, 'Qb') !== 'boolean' ||
+      (profile === 'stream' && own(metadata, 'Qb') !== false)
     )
       fail('descriptor');
     const match = /^\/BardFrontendService\.([A-Za-z][A-Za-z0-9_]*)$/.exec(method);
@@ -614,40 +702,40 @@ export function armGeminiRpcDispatch(
     if (
       id === 'otAQ7b' ||
       method === '/BardFrontendService.GetUserStatus' ||
-      own(exported('Uy'), 'o_otAQ7b') === metadata
+      own(exported('Ty'), 'o_otAQ7b') === metadata
     ) {
-      const declaration = exported('Ofc');
-      const marker = exported('kl');
+      const declaration = exported('Zgc');
+      const marker = exported('jl');
       if (
         profile !== 'batch' ||
         id !== 'otAQ7b' ||
         method !== '/BardFrontendService.GetUserStatus' ||
-        own(metadata, 'Rb') !== true ||
-        own(metadata, 'Ub') !== exported('Nfc') ||
+        own(metadata, 'Qb') !== true ||
+        own(metadata, 'Ub') !== exported('Ygc') ||
         typeof marker !== 'symbol'
       )
         fail('descriptor');
-      for (const key of ['Ob', 'Sb', 'Rb', 'Pb', 'Ub'])
+      for (const key of ['Ob', 'Rb', 'Qb', 'Pb', 'Ub'])
         if (own(metadata, key) !== own(declaration, key)) fail('descriptor');
       for (const tuple of [metadata, declaration])
         if (
           own(tuple, marker) !== true ||
-          own(tuple, 'qsa') !== missing ||
-          own(tuple, 'oqa') !== missing
+          own(tuple, 'zsa') !== missing ||
+          own(tuple, 'Fqa') !== missing
         )
           fail('descriptor');
     }
     let route: string;
     if (survey) {
-      const marker = exported('kl');
+      const marker = exported('jl');
       if (
         profile !== 'batch' ||
         method !== survey[1] ||
-        own(metadata, 'Rb') !== survey[2] ||
+        own(metadata, 'Qb') !== survey[2] ||
         typeof marker !== 'symbol' ||
         own(metadata, marker) !== true ||
-        own(metadata, 'qsa') !== missing ||
-        own(metadata, 'oqa') !== missing
+        own(metadata, 'zsa') !== missing ||
+        own(metadata, 'Fqa') !== missing
       )
         fail('descriptor');
       route = survey[1];
@@ -655,13 +743,13 @@ export function armGeminiRpcDispatch(
       if (!match) fail('descriptor');
       route = '/assistant.lamda.BardFrontendService/' + match[1];
     }
-    for (const key of ['qsa', 'oqa']) {
+    for (const key of ['zsa', 'Fqa']) {
       const field = own(metadata, key);
       if ((profile === 'stream' || field !== missing) && field !== route) fail('descriptor');
     }
     const input = own(metadata, 'Ub');
     const output = own(metadata, 'Pb');
-    if (input === exported('zL') || output === exported('HF')) fail('descriptor');
+    if (input === exported('wL') || output === exported('IF')) fail('descriptor');
     const inputPrototype = own(callable(input), 'prototype');
     const outputPrototype = own(callable(output), 'prototype');
     if (
@@ -692,29 +780,29 @@ export function armGeminiRpcDispatch(
       const marker = Reflect.apply(bodyField, undefined, [entry, 1]);
       if (typeof marker !== 'string') fail('descriptor');
       let metadata: unknown;
-      if (/^[A-Za-z0-9]{3,16}$/.test(marker)) metadata = own(exported('Uy'), 'o_' + marker);
+      if (/^[A-Za-z0-9]{3,16}$/.test(marker)) metadata = own(exported('Ty'), 'o_' + marker);
       else if (surveyMethods.some(([, method]) => method === marker)) {
         const survey = surveyMethods.find(([, method]) => method === marker)!;
-        metadata = own(exported('Uy'), 'o_' + survey[0]);
+        metadata = own(exported('Ty'), 'o_' + survey[0]);
       } else {
         const match = /^\/BardFrontendService\.([A-Za-z][A-Za-z0-9_]*)$/.exec(marker);
         if (!match) fail('descriptor');
         const declaration =
           match[1] === 'ListConversationTurns'
-            ? exported('RGd')
+            ? exported('gHd')
             : match[1] === 'GetConversationTurn'
-              ? exported('HGd')
+              ? exported('YGd')
               : match[1] === 'GetUserStatus'
-                ? exported('Ofc')
+                ? exported('Zgc')
                 : undefined;
         if (declaration !== undefined) {
           const id = own(declaration, 'Ob');
           if (typeof id !== 'string' || !/^[A-Za-z0-9]{3,16}$/.test(id)) fail('descriptor');
-          metadata = own(exported('Uy'), 'o_' + id);
-          for (const key of ['Ob', 'Sb', 'Rb', 'Pb', 'Ub'])
+          metadata = own(exported('Ty'), 'o_' + id);
+          for (const key of ['Ob', 'Rb', 'Qb', 'Pb', 'Ub'])
             if (own(metadata, key) !== own(declaration, key)) fail('descriptor');
-        } else metadata = own(exported('Uy'), 'u_/assistant.lamda.BardFrontendService/' + match[1]);
-        if (!object(metadata) || own(metadata, 'Sb') !== marker) fail('descriptor');
+        } else metadata = own(exported('Ty'), 'u_/assistant.lamda.BardFrontendService/' + match[1]);
+        if (!object(metadata) || own(metadata, 'Rb') !== marker) fail('descriptor');
       }
       unrelatedRoute(metadata, 'batch');
     }
@@ -769,7 +857,7 @@ export function armGeminiRpcDispatch(
     unshadowed(value, 'getUrl');
     const uri = own(value, 'oa');
     if (!exact(uri, uriPrototype)) fail('binding');
-    const query = own(uri, 'ka');
+    const query = own(uri, 'ha');
     if (!exact(query, queryPrototype)) fail('binding');
     for (const key of ['ha', 'ka', 'oa', 'wa']) {
       const descriptor = Object.getOwnPropertyDescriptor(query, key);
@@ -777,7 +865,7 @@ export function armGeminiRpcDispatch(
     }
     const storage = own(query, 'ha');
     if (storage !== null && !exact(storage, Map.prototype)) fail('binding');
-    for (const key of ['remove', 'add', 'clone', 'QE', 'toString']) {
+    for (const key of ['remove', 'add', 'clone', 'XE', 'toString']) {
       unshadowed(query, key);
       callable(own(queryPrototype, key));
     }
@@ -843,7 +931,7 @@ export function armGeminiRpcDispatch(
     const ownerSlot = Object.getOwnPropertyDescriptor(value, 'ha');
     if (!ownerSlot || !Object.hasOwn(ownerSlot, 'value') || !ownerSlot.writable)
       fail('runtime-shape');
-    if (typeof own(value, 'aborted') !== 'boolean' || typeof own(value, 'uI') !== 'string')
+    if (typeof own(value, 'aborted') !== 'boolean' || typeof own(value, 'tI') !== 'string')
       fail('source-profile');
     const override = own(p, 'transfer');
     if (override === missing) {
@@ -852,14 +940,14 @@ export function armGeminiRpcDispatch(
       if (typeof own(value, 'wa') !== 'boolean') fail('source-profile');
       source(
         override,
-        'transfer(a){this.wa||\n_.Vj("transfer() called during response processing",Error());this.wa=!1;this.oa=0;this.Va=!1;super.transfer(a)}',
+        'transfer(a){this.wa||\n_.Tj("transfer() called during response processing",Error());this.wa=!1;this.oa=0;this.Va=!1;super.transfer(a)}',
       );
       if (own(transportBase, 'transfer') !== baseTransfer) fail('source-profile');
     }
     for (const [key, expected] of [
-      ['kb', 'kb(){this.xhr.pea()==3&&KZb(this,!1)}'],
-      ['ob', 'ob(){KZb(this,!0)}'],
-      ['Aa', 'Aa(a){var b=this.Ja&&a.getStatus()>=500;KZb(this,!0,b);super.Aa(a)}'],
+      ['kb', 'kb(){this.xhr.uea()==3&&PZb(this,!1)}'],
+      ['ob', 'ob(){PZb(this,!0)}'],
+      ['Aa', 'Aa(a){var b=this.Ja&&a.getStatus()>=500;PZb(this,!0,b);super.Aa(a)}'],
     ] as const) {
       unshadowed(value, key);
       if (override !== missing || own(p, key) !== missing)
@@ -873,21 +961,21 @@ export function armGeminiRpcDispatch(
     notifyCheck();
     if (!exact(value, xhrPrototype)) fail('backend');
     if (!guarded) unshadowed(value, 'send');
-    unshadowed(value, 'Xtb');
-    if (own(xhrPrototype, 'send') !== xhrSend || own(xhrPrototype, 'Xtb') !== xhrFactory)
+    unshadowed(value, 'rub');
+    if (own(xhrPrototype, 'send') !== xhrSend || own(xhrPrototype, 'rub') !== xhrFactory)
       fail('backend');
     for (const [key, method] of xhrReadMethods) {
       unshadowed(value, key);
       if (own(xhrPrototype, key) !== method) fail('source-profile');
     }
-    for (const key of ['J7d', 'l_c']) unshadowed(value, key);
-    if (own(xhrPrototype, 'J7d') !== xhrReady || own(xhrPrototype, 'l_c') !== xhrNotify)
+    for (const key of ['O8d', 'Y_c']) unshadowed(value, key);
+    if (own(xhrPrototype, 'O8d') !== xhrReady || own(xhrPrototype, 'Y_c') !== xhrNotify)
       fail('source-profile');
-    const factory = own(value, 'lPb');
+    const factory = own(value, 'BPb');
     if (factory === null) {
       if (!exact(nativeFactory, nativeFactoryPrototype)) fail('backend');
-      unshadowed(nativeFactory, 'Z8');
-      if (exported('bja') !== nativeFactory || own(nativeFactoryPrototype, 'Z8') !== nativeCreate)
+      unshadowed(nativeFactory, 'g9');
+      if (exported('aja') !== nativeFactory || own(nativeFactoryPrototype, 'g9') !== nativeCreate)
         fail('backend');
     } else {
       if (
@@ -897,8 +985,8 @@ export function armGeminiRpcDispatch(
         own(factory, 'oa') !== false
       )
         fail('backend');
-      unshadowed(factory, 'Z8');
-      if (own(fetchFactoryPrototype, 'Z8') !== fetchCreate) fail('backend');
+      unshadowed(factory, 'g9');
+      if (own(fetchFactoryPrototype, 'g9') !== fetchCreate) fail('backend');
       const mode = Object.getOwnPropertyDescriptor(factory, 'ha');
       if (mode && !Object.hasOwn(mode, 'value')) fail('runtime-shape');
     }
@@ -1000,7 +1088,7 @@ export function armGeminiRpcDispatch(
         own(own(p, 'constructor'), 'prototype') !== p
       )
         fail('source-profile');
-      source(own(p, 'reset'), 'reset(){this.Aq=this.ka=null}');
+      source(own(p, 'reset'), 'reset(){this.Cq=this.ka=null}');
       unshadowed(fresh, 'reset');
       unshadowed(fresh, 'ka');
       unshadowed(p, 'ka');
@@ -1020,7 +1108,7 @@ export function armGeminiRpcDispatch(
         ['i0c', 0],
         ['xFb', -1],
         ['wFb', 0],
-        ['qta', 0],
+        ['zta', 0],
         ['sKe', 0],
         ['wbc', 0],
       ] as const)
@@ -1176,12 +1264,12 @@ export function armGeminiRpcDispatch(
     if (this !== streaming || args.length !== 1) fail('binding');
     const packet = args[0];
     if (!exact(packet, requestPrototype)) fail('descriptor');
-    for (const method of ['yx', 'qea', 'Tq', 'ha']) unshadowed(packet, method);
+    for (const method of ['zx', 'vea', 'Uq', 'ha']) unshadowed(packet, method);
     const rpc = own(packet, 'rpcId');
     if (!exact(rpc, descriptorPrototype) || own(rpc, kindKey) !== 'server_streaming')
       fail('descriptor');
-    unshadowed(rpc, 'IVa');
-    unshadowed(rpc, 'Qyb');
+    unshadowed(rpc, 'NVa');
+    unshadowed(rpc, 'kzb');
     const metadata = own(rpc, descriptorKey);
     const message = own(packet, 'requestMessage');
     if (metadata !== registered) {

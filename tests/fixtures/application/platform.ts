@@ -236,9 +236,12 @@ export const fixturePlatform: Platform = {
     const binding = bindings[window.harness.activeProvider];
     return { binding, snapshot: await this.inspect(binding) };
   },
-  async preparePeer(provider, saved) {
-    return saved ?? bindings[provider];
+  async preparePeer(provider, saved, threadId, _signal, background = false) {
+    const binding = saved ?? bindings[provider];
+    if (!threadId && !background) await this.reveal(binding);
+    return binding;
   },
+  async prepareAutomaticTarget() {},
   async reveal(binding) {
     window.harness.activeProvider = binding.provider;
   },

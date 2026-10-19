@@ -3,6 +3,172 @@ import { armGeminiRpcDispatch } from '../../../src/infrastructure/providers/gemi
 import { geminiSdkDispatchFixture as fixture } from '../../fixtures/providers/gemini-sdk-dispatch';
 
 describe('request-owned Gemini RPC dispatch', () => {
+  it('uses the source URI ha query and XE member while ka remains the scheme', () => {
+    const f = fixture();
+    const uri = f.lowRequest(new f.namespace.Fta()).oa;
+    expect(uri.ka).toBe('');
+    expect(Object.getPrototypeOf(uri.ha)).toBe(f.namespace.Bg.prototype);
+    expect(Object.hasOwn(f.namespace.Bg.prototype, 'QE')).toBe(false);
+    expect(typeof f.namespace.Bg.prototype.XE).toBe('function');
+    const guard = armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver);
+    f.streaming.stream(f.request());
+    expect(guard.sent()).toBe(true);
+    expect(f.calls.send).toBe(1);
+    expect(f.current().ha.oa.ha.ha.has('rt')).toBe(true);
+  });
+  it.each(['native', 'fetch'] as const)(
+    'uses exported bja/aja with no cja for the %s factory',
+    (kind) => {
+      const f = fixture();
+      expect(Object.hasOwn(f.namespace, 'cja')).toBe(false);
+      expect(Object.getPrototypeOf(f.namespace.aja)).toBe(f.namespace.bja.prototype);
+      if (kind === 'fetch') f.transport.xhr.BPb = new f.namespace.Mta();
+      const guard = armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver);
+      f.streaming.stream(f.request());
+      expect(guard.sent()).toBe(true);
+      expect(f.calls.send).toBe(1);
+    },
+  );
+  it('uses the Native71 ME streaming descriptor while LE remains a separate setter', () => {
+    const f = fixture();
+    const setter = vi.spyOn(f.namespace, 'LE');
+    expect(Object.getPrototypeOf(f.namespace.ME.prototype)).toBe(f.namespace.OYb.prototype);
+    expect(Object.getPrototypeOf(f.descriptor)).toBe(f.namespace.ME.prototype);
+    const guard = armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver);
+    f.streaming.stream(f.request());
+    expect(guard.sent()).toBe(true);
+    expect(f.calls.send).toBe(1);
+    expect(setter).not.toHaveBeenCalled();
+  });
+  it.each(['constructor', 'reset', 'base'] as const)(
+    'rejects a late selected mode prototype %s mutation',
+    (kind) => {
+      const f = fixture();
+      armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver);
+      if (kind === 'constructor') f.namespace.cM.prototype.constructor = function () {};
+      if (kind === 'reset') f.namespace.cM.prototype.reset = function () {};
+      if (kind === 'base') Object.setPrototypeOf(f.namespace.cM.prototype, {});
+      expect(() => f.streaming.stream(f.request())).toThrow(/binding/);
+      expect(f.calls.send).toBe(0);
+    },
+  );
+  it.each([
+    'route',
+    'mode',
+    'header',
+    'route-mode',
+    'header-mode',
+    'ha',
+    'oa',
+    'mode-value',
+    'route-descriptor',
+    'mode-descriptor',
+    'header-descriptor',
+    'value-descriptor',
+    'namespace',
+    'prototype',
+  ] as const)('retains selected %s through the delayed physical boundary', (kind) => {
+    const f = fixture();
+    f.compression();
+    armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver);
+    f.streaming.stream(f.request());
+    if (kind === 'route')
+      f.api.Aa = Object.assign(Object.create(f.namespace.CKd.prototype), f.api.Aa);
+    if (kind === 'mode') f.api.Ua = new f.namespace.cM();
+    if (kind === 'header')
+      f.api.Eb = Object.assign(Object.create(f.namespace.zKd.prototype), f.api.Eb);
+    if (kind === 'route-mode') f.api.Aa.ka = new f.namespace.cM();
+    if (kind === 'header-mode') f.api.Eb.wa = new f.namespace.cM();
+    if (kind === 'ha') {
+      f.api.Ua.ha = 42;
+      f.api.Aa.ha = true;
+    }
+    if (kind === 'oa') f.api.Aa.oa = true;
+    if (kind === 'mode-value') f.api.Ua.ha = 67;
+    if (kind === 'route-descriptor') Object.defineProperty(f.api, 'Aa', { writable: false });
+    if (kind === 'mode-descriptor') Object.defineProperty(f.api, 'Ua', { enumerable: false });
+    if (kind === 'header-descriptor')
+      Object.defineProperty(f.api.Eb, 'wa', { configurable: false });
+    if (kind === 'value-descriptor') Object.defineProperty(f.api.Ua, 'ha', { writable: false });
+    if (kind === 'namespace')
+      f.namespace.BKd = function () {
+        return false;
+      };
+    if (kind === 'prototype') Object.setPrototypeOf(f.api.Aa, {});
+    expect(() => f.pending.shift()!()).toThrow(/binding/);
+    expect(f.calls.send).toBe(0);
+  });
+  it.each([
+    [true, false, 0],
+    [true, false, 67],
+    [true, true, 42],
+    [true, true, 43],
+  ])('refuses the actual cold predicate %s/%s/%s on the legacy route', (ha, oa, mode) => {
+    const f = fixture();
+    Object.assign(f.api.Aa, { ha, oa });
+    f.api.Ua.ha = mode;
+    expect(f.namespace.BKd(f.api.Aa)).toBe(true);
+    expect(() => armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver)).toThrow(
+      /route/,
+    );
+    expect(f.calls.send).toBe(0);
+  });
+  it.each([NaN, Infinity, 1.5, undefined, '0'])('refuses an unsupported actual mode %s', (mode) => {
+    const f = fixture();
+    f.api.Ua.ha = mode;
+    expect(() => armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver)).toThrow(
+      /runtime-shape/,
+    );
+    expect(f.calls.send).toBe(0);
+  });
+  it('checks selected state before and after the late raw callback without reopening generation', () => {
+    const f = fixture();
+    const error = vi.fn();
+    const next = vi.fn(() => {
+      f.api.Aa.oa = true;
+    });
+    const guard = armGeminiRpcDispatch(f.namespace, f.api, () => true, { next, error });
+    f.streaming.stream(f.request());
+    guard.close();
+    f.emit(new f.namespace.IF());
+    expect(next).toHaveBeenCalledOnce();
+    expect(error).toHaveBeenCalledOnce();
+    expect(f.calls.send).toBe(1);
+  });
+  it.each([
+    [false, false, 0],
+    [false, true, 67],
+    [true, false, 42],
+    [true, false, 43],
+  ])('admits the actual Native71 legacy predicate %s/%s/%s', (ha, oa, mode) => {
+    const f = fixture();
+    Object.assign(f.api.Aa, { ha, oa });
+    f.api.Ua.ha = mode;
+    expect(f.namespace.BKd(f.api.Aa)).toBe(false);
+    const guard = armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver);
+    f.streaming.stream(f.request());
+    expect(guard.sent()).toBe(true);
+    expect(f.calls.send).toBe(1);
+  });
+  it('rejects a selected mode mutation made by current even when BKd remains false', () => {
+    const f = fixture();
+    let changed = false;
+    armGeminiRpcDispatch(
+      f.namespace,
+      f.api,
+      () => {
+        if (!changed) {
+          changed = true;
+          f.api.Ua.ha = 67;
+        }
+        return true;
+      },
+      f.rawObserver,
+    );
+    expect(() => f.streaming.stream(f.request())).toThrow(/binding/);
+    expect(changed).toBe(true);
+    expect(f.calls.send).toBe(0);
+  });
   it('preserves the single source-owned protected notify entrypoint through dispatch and late raw data', () => {
     const f = fixture();
     const notify = f.protectedNotify();
@@ -11,15 +177,15 @@ describe('request-owned Gemini RPC dispatch', () => {
     const guard = armGeminiRpcDispatch(f.namespace, f.api, () => true, { next, error });
     expect(f.notifications()).toBe(0);
     expect(f.identityAssignments()).toBe(1);
-    expect(f.namespace.Xj.prototype.l_c).toBe(notify.wrapper);
+    expect(f.namespace.Vj.prototype.Y_c).toBe(notify.wrapper);
     f.streaming.stream(f.request());
-    f.transport.xhr.l_c();
+    f.transport.xhr.Y_c();
     expect(f.notifications()).toBe(1);
     guard.close();
-    f.emit(new f.namespace.HF());
+    f.emit(new f.namespace.IF());
     expect(next).toHaveBeenCalledTimes(1);
     expect(error).not.toHaveBeenCalled();
-    expect(f.namespace.Xj.prototype.l_c).toBe(notify.wrapper);
+    expect(f.namespace.Vj.prototype.Y_c).toBe(notify.wrapper);
     expect(f.identityAssignments()).toBe(1);
     expect(f.calls.send).toBe(1);
   });
@@ -50,10 +216,10 @@ describe('request-owned Gemini RPC dispatch', () => {
       Object.defineProperty(notify.monitor, notify.uidKey, { get: getter });
     if (kind === 'ambiguous-uid') notify.monitor.closure_uid_18 = 7;
     if (kind === 'nested') f.protectedNotify();
-    if (kind === 'disposed') notify.monitor.n5 = true;
+    if (kind === 'disposed') notify.monitor.r5 = true;
     if (kind === 'owner') f.namespace.Cr.ka = {};
-    if (kind === 'monitor-array') f.namespace.vga.push({});
-    if (kind === 'inactive') f.namespace.wga = false;
+    if (kind === 'monitor-array') f.namespace.uga.push({});
+    if (kind === 'inactive') f.namespace.vga = false;
     if (kind === 'wrap-shadow') notify.monitor.wrap = function () {};
     if (kind === 'wrap-getter') Object.defineProperty(notify.monitor, 'wrap', { get: getter });
     if (kind === 'wrap-source') Object.getPrototypeOf(notify.monitor).wrap = function () {};
@@ -102,9 +268,9 @@ describe('request-owned Gemini RPC dispatch', () => {
     guard.close();
     const checks = current.mock.calls.length;
     if (kind === 'owner') f.namespace.Cr.ka = {};
-    if (kind === 'monitor-array') f.namespace.vga[0] = {};
-    if (kind === 'monitor-array-ref') f.namespace.vga = [notify.monitor];
-    if (kind === 'inactive') f.namespace.wga = false;
+    if (kind === 'monitor-array') f.namespace.uga[0] = {};
+    if (kind === 'monitor-array-ref') f.namespace.uga = [notify.monitor];
+    if (kind === 'inactive') f.namespace.vga = false;
     if (kind === 'uid') notify.monitor[notify.uidKey]++;
     if (kind === 'uid-getter')
       Object.defineProperty(notify.monitor, notify.uidKey, { get: getter });
@@ -113,12 +279,12 @@ describe('request-owned Gemini RPC dispatch', () => {
     if (kind === 'unwrap') Object.getPrototypeOf(notify.monitor).unwrap = function () {};
     if (kind === 'Fd') f.namespace.Fd = function () {};
     if (kind === 'Eb') f.namespace.Eb = class {};
-    if (kind === 'disposed') notify.monitor.n5 = true;
+    if (kind === 'disposed') notify.monitor.r5 = true;
     if (kind === 'reciprocal') notify.original[notify.wrapperKey] = function () {};
     if (kind === 'protected') notify.wrapper[notify.protectedKey] = function () {};
     if (kind === 'original-proto') Object.setPrototypeOf(notify.original, {});
     if (kind === 'base-method') f.namespace.Eb.prototype.isDisposed = function () {};
-    expect(() => f.emit(new f.namespace.HF())).not.toThrow();
+    expect(() => f.emit(new f.namespace.IF())).not.toThrow();
     expect(next).not.toHaveBeenCalled();
     expect(error).toHaveBeenCalledWith();
     expect(getter).not.toHaveBeenCalled();
@@ -136,7 +302,7 @@ describe('request-owned Gemini RPC dispatch', () => {
         f.namespace,
         f.api,
         () => {
-          if (!changed && f.current()?.ha.oa.ka.ha.has('rt')) {
+          if (!changed && f.current()?.ha.oa.ha.ha.has('rt')) {
             changed = true;
             if (kind === 'uid') notify.monitor[notify.uidKey]++;
             if (kind === 'owner') f.namespace.Cr.ka = {};
@@ -163,7 +329,7 @@ describe('request-owned Gemini RPC dispatch', () => {
     const guard = armGeminiRpcDispatch(f.namespace, f.api, () => true, { next, error });
     f.streaming.stream(f.request());
     guard.close();
-    expect(() => f.emit(new f.namespace.HF())).not.toThrow();
+    expect(() => f.emit(new f.namespace.IF())).not.toThrow();
     expect(next).toHaveBeenCalledTimes(1);
     expect(error).toHaveBeenCalledWith();
     expect(f.identityAssignments()).toBe(1);
@@ -183,8 +349,8 @@ describe('request-owned Gemini RPC dispatch', () => {
       const xhr = f.transport.xhr;
       guard.close();
       const checks = current.mock.calls.length;
-      Object.defineProperty(xhr, 'l_c', kind === 'getter' ? { get: foreign } : { value: foreign });
-      expect(() => f.emit(new f.namespace.HF())).not.toThrow();
+      Object.defineProperty(xhr, 'Y_c', kind === 'getter' ? { get: foreign } : { value: foreign });
+      expect(() => f.emit(new f.namespace.IF())).not.toThrow();
       expect(next).not.toHaveBeenCalled();
       expect(error).toHaveBeenCalledWith();
       expect(foreign).not.toHaveBeenCalled();
@@ -198,12 +364,12 @@ describe('request-owned Gemini RPC dispatch', () => {
     const foreign = vi.fn();
     const error = vi.fn();
     const next = vi.fn(() => {
-      Object.defineProperty(f.transport.xhr, 'l_c', { value: foreign });
+      Object.defineProperty(f.transport.xhr, 'Y_c', { value: foreign });
     });
     const guard = armGeminiRpcDispatch(f.namespace, f.api, () => true, { next, error });
     f.streaming.stream(f.request());
     guard.close();
-    expect(() => f.emit(new f.namespace.HF())).not.toThrow();
+    expect(() => f.emit(new f.namespace.IF())).not.toThrow();
     expect(next).toHaveBeenCalledTimes(1);
     expect(error).toHaveBeenCalledWith();
     expect(foreign).not.toHaveBeenCalled();
@@ -221,10 +387,10 @@ describe('request-owned Gemini RPC dispatch', () => {
       f.streaming.stream(f.request());
       const xhr = f.transport.xhr;
       guard.close();
-      if (kind === 'namespace') f.namespace.Xj = class {};
+      if (kind === 'namespace') f.namespace.Vj = class {};
       if (kind === 'prototype') Object.setPrototypeOf(xhr, {});
-      if (kind === 'namespace-getter') Object.defineProperty(f.namespace, 'Xj', { get: getter });
-      expect(() => f.emit(new f.namespace.HF())).not.toThrow();
+      if (kind === 'namespace-getter') Object.defineProperty(f.namespace, 'Vj', { get: getter });
+      expect(() => f.emit(new f.namespace.IF())).not.toThrow();
       expect(next).not.toHaveBeenCalled();
       expect(error).toHaveBeenCalledWith();
       expect(getter).not.toHaveBeenCalled();
@@ -240,8 +406,8 @@ describe('request-owned Gemini RPC dispatch', () => {
     f.streaming.stream(f.request());
     guard.close();
     f.transport.ha = f.lowRequest(new f.namespace.Fta());
-    f.transport.xhr = new f.namespace.Xj();
-    expect(() => f.emit(new f.namespace.HF())).not.toThrow();
+    f.transport.xhr = new f.namespace.Vj();
+    expect(() => f.emit(new f.namespace.IF())).not.toThrow();
     expect(next).toHaveBeenCalledTimes(1);
     expect(error).not.toHaveBeenCalled();
     expect(f.calls.send).toBe(1);
@@ -264,14 +430,14 @@ describe('request-owned Gemini RPC dispatch', () => {
     const f = fixture();
     const getter = vi.fn();
     if (cause === 'runtime-shape') Object.defineProperty(f.api, 'Aa', { get: getter });
-    if (cause === 'route') f.api.Aa = true;
+    if (cause === 'route') f.api.Aa.ha = true;
     if (cause === 'protection') f.api.Ja.isEnabled = false;
     if (cause === 'source-profile') f.namespace.Cua.prototype.transfer = function () {};
-    if (cause === 'descriptor') f.namespace.ll = 'synthetic-not-a-symbol';
+    if (cause === 'descriptor') f.namespace.kl = 'synthetic-not-a-symbol';
     if (cause === 'binding') f.streaming.ha = {};
     if (cause === 'handoff') f.prefix('synthetic-invalid-prefix');
     if (cause === 'stream') f.beforeReturn((stream) => Object.setPrototypeOf(stream, {}));
-    if (cause === 'backend') f.transport.xhr.lPb = {};
+    if (cause === 'backend') f.transport.xhr.BPb = {};
     expect(() => {
       const guard = armGeminiRpcDispatch(
         f.namespace,
@@ -308,11 +474,11 @@ describe('request-owned Gemini RPC dispatch', () => {
       expect(f.calls.send).toBe(0);
     },
   );
-  it.each(['send', 'Xtb', 'J7d', 'pea', 'Ln', 'Xu'] as const)(
+  it.each(['send', 'rub', 'O8d', 'uea', 'Ln', 'Wu'] as const)(
     'identifies the static Wj %s source group before delegation',
     (key) => {
       const f = fixture();
-      f.namespace.Xj.prototype[key] = function () {};
+      f.namespace.Vj.prototype[key] = function () {};
       expect(() => armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver)).toThrow(
         expect.objectContaining({
           message: 'Gemini RPC dispatch: source-profile',
@@ -324,7 +490,7 @@ describe('request-owned Gemini RPC dispatch', () => {
   );
   it('identifies only the static BVc notify source mismatch', () => {
     const f = fixture();
-    f.namespace.Xj.prototype.l_c = function () {};
+    f.namespace.Vj.prototype.Y_c = function () {};
     expect(() => armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver)).toThrow(
       expect.objectContaining({
         message: 'Gemini RPC dispatch: source-profile',
@@ -333,11 +499,11 @@ describe('request-owned Gemini RPC dispatch', () => {
     );
     expect(f.calls.send).toBe(0);
   });
-  it.each(['cja', 'Mta'] as const)(
+  it.each(['bja', 'Mta'] as const)(
     'identifies the static %s factory source group before delegation',
     (key) => {
       const f = fixture();
-      f.namespace[key].prototype.Z8 = function () {};
+      f.namespace[key].prototype.g9 = function () {};
       expect(() => armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver)).toThrow(
         expect.objectContaining({
           message: 'Gemini RPC dispatch: source-profile',
@@ -374,8 +540,8 @@ describe('request-owned Gemini RPC dispatch', () => {
       error,
     });
     const stream = f.streaming.stream(f.request());
-    const frame = new f.namespace.HF();
-    const later = new f.namespace.HF();
+    const frame = new f.namespace.IF();
+    const later = new f.namespace.IF();
     frame.fl = [];
     frame.fl[64] = [[]];
     const before = JSON.stringify(frame);
@@ -407,7 +573,7 @@ describe('request-owned Gemini RPC dispatch', () => {
     expect(stream.ka).toHaveLength(2);
     guard.detach();
     guard.detach();
-    f.emit(new f.namespace.HF());
+    f.emit(new f.namespace.IF());
     expect(next).not.toHaveBeenCalled();
     expect(downstream).toHaveBeenCalledTimes(1);
     expect(stream.ka).toEqual([downstream]);
@@ -422,7 +588,7 @@ describe('request-owned Gemini RPC dispatch', () => {
       error,
     });
     f.streaming.stream(f.request());
-    expect(() => f.emit(new f.namespace.HF())).not.toThrow();
+    expect(() => f.emit(new f.namespace.IF())).not.toThrow();
     expect(error).toHaveBeenCalledWith();
     expect(() => f.transport.transfer(f.current().ha)).toThrow(/closed/);
     guard.detach();
@@ -440,7 +606,7 @@ describe('request-owned Gemini RPC dispatch', () => {
   });
   it('refuses an unsupported async send profile before any physical delegation', () => {
     const f = fixture();
-    f.namespace.Xj.prototype.send = function () {
+    f.namespace.Vj.prototype.send = function () {
       f.calls.send++;
     };
     expect(() => armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver)).toThrow(
@@ -448,22 +614,22 @@ describe('request-owned Gemini RPC dispatch', () => {
     );
     expect(f.calls.send).toBe(0);
   });
-  it.each(['factory', 'Xtb', 'J7d', 'kb'] as const)(
+  it.each(['factory', 'rub', 'O8d', 'kb'] as const)(
     'refuses %s changed by the final physical ownership callback',
     (key) => {
       const f = fixture();
       const next = vi.fn();
-      const foreign = vi.fn(() => f.namespace.bja.Z8());
+      const foreign = vi.fn(() => f.namespace.aja.g9());
       let changed = false;
       armGeminiRpcDispatch(
         f.namespace,
         f.api,
         () => {
-          if (!changed && f.current()?.ha.oa.ka.ha.has('rt') && f.calls.send === 0) {
+          if (!changed && f.current()?.ha.oa.ha.ha.has('rt') && f.calls.send === 0) {
             changed = true;
-            if (key === 'factory') f.transport.xhr.lPb = { Z8: foreign };
+            if (key === 'factory') f.transport.xhr.BPb = { g9: foreign };
             else if (key === 'kb') Object.getPrototypeOf(f.transport).kb = foreign;
-            else f.namespace.Xj.prototype[key] = foreign;
+            else f.namespace.Vj.prototype[key] = foreign;
           }
           return true;
         },
@@ -477,11 +643,11 @@ describe('request-owned Gemini RPC dispatch', () => {
       expect(f.rawStream().ka).toEqual([]);
     },
   );
-  it.each(['J7d', 'l_c', 'pea', 'Ln', 'Xu', 'Xtb'])(
+  it.each(['O8d', 'Y_c', 'uea', 'Ln', 'Wu', 'rub'])(
     'refuses altered async %s behavior before SDK delegation',
     (key) => {
       const f = fixture();
-      f.namespace.Xj.prototype[key] = function () {};
+      f.namespace.Vj.prototype[key] = function () {};
       expect(() => armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver)).toThrow(
         /source-profile/,
       );
@@ -498,7 +664,7 @@ describe('request-owned Gemini RPC dispatch', () => {
       expect(f.calls.send).toBe(0);
     },
   );
-  it.each(['Ixa', 'HF', 'Aa', 'ka', 'wa', 'oa', 'ha', 'Da', 'listener'])(
+  it.each(['Ixa', 'IF', 'Aa', 'ka', 'wa', 'oa', 'ha', 'Ca', 'listener'])(
     'keeps checking changed %s after send permission closes',
     (key) => {
       const f = fixture();
@@ -509,12 +675,12 @@ describe('request-owned Gemini RPC dispatch', () => {
       f.streaming.stream(f.request());
       const stream = f.rawStream();
       const callback = stream.ka[0];
-      const frame = new f.namespace.HF();
+      const frame = new f.namespace.IF();
       guard.close();
       const count = current.mock.calls.length;
-      if (key === 'Ixa' || key === 'HF') f.namespace[key] = class {};
+      if (key === 'Ixa' || key === 'IF') f.namespace[key] = class {};
       else if (key === 'listener') stream.ka.splice(0, 1);
-      else stream[key] = key === 'Da' ? true : key === 'Aa' ? {} : [];
+      else stream[key] = key === 'Ca' ? true : key === 'Aa' ? {} : [];
       expect(() => callback.call(stream.ka, frame, {})).not.toThrow();
       expect(next).not.toHaveBeenCalled();
       expect(error).toHaveBeenCalledWith();
@@ -533,7 +699,7 @@ describe('request-owned Gemini RPC dispatch', () => {
     guard.close();
     const getter = vi.fn();
     Object.defineProperty(stream, 'Aa', { get: getter });
-    callback(new f.namespace.HF());
+    callback(new f.namespace.IF());
     expect(getter).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
     expect(error).toHaveBeenCalledWith();
@@ -548,7 +714,7 @@ describe('request-owned Gemini RPC dispatch', () => {
     stream.on('data', () => {});
     stream.ka.reverse();
     guard.close();
-    expect(() => callback(new f.namespace.HF())).not.toThrow();
+    expect(() => callback(new f.namespace.IF())).not.toThrow();
     expect(next).not.toHaveBeenCalled();
     expect(error).toHaveBeenCalledWith();
   });
@@ -908,7 +1074,8 @@ describe('request-owned Gemini RPC dispatch', () => {
     'rejects a different natural %s route without an SDK call',
     (key) => {
       const f = fixture();
-      f.api[key] = true;
+      if (key === 'Aa') f.api.Aa.ha = true;
+      else f.api.Kd = true;
       expect(() => armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver)).toThrow(
         /route/,
       );
@@ -922,7 +1089,7 @@ describe('request-owned Gemini RPC dispatch', () => {
       /protection/,
     );
   });
-  it.each(['Ob', 'Sb', 'Pb', 'Ub', 'oqa', 'qsa', 'Rb'] as const)(
+  it.each(['Ob', 'Rb', 'Pb', 'Ub', 'Fqa', 'zsa', 'Qb'] as const)(
     'rejects wrong registered %s metadata',
     (key) => {
       const f = fixture();
@@ -966,13 +1133,13 @@ describe('request-owned Gemini RPC dispatch', () => {
       expect(f.calls.send).toBe(0);
     },
   );
-  it.each(['factory', 'worker', 'Z8', 'base', 'transfer', 'setter', 'Ni'] as const)(
+  it.each(['factory', 'worker', 'g9', 'base', 'transfer', 'setter', 'Ni'] as const)(
     'rejects unsupported %s before transfer delegation',
     (key) => {
       const f = fixture();
-      if (key === 'factory') f.transport.xhr.lPb = {};
-      if (key === 'worker') f.transport.xhr.lPb = Object.assign(new f.namespace.Mta(), { wa: {} });
-      if (key === 'Z8') f.namespace.bja.Z8 = () => ({});
+      if (key === 'factory') f.transport.xhr.BPb = {};
+      if (key === 'worker') f.transport.xhr.BPb = Object.assign(new f.namespace.Mta(), { wa: {} });
+      if (key === 'g9') f.namespace.aja.g9 = () => ({});
       if (key === 'base') Object.setPrototypeOf(Object.getPrototypeOf(f.transport), {});
       if (key === 'transfer') Object.getPrototypeOf(f.transport).transfer = function () {};
       if (key === 'setter')
@@ -991,7 +1158,7 @@ describe('request-owned Gemini RPC dispatch', () => {
   it('accepts the exact fetch-backed factory without changing its options', () => {
     const f = fixture();
     const factory = new f.namespace.Mta();
-    f.transport.xhr.lPb = factory;
+    f.transport.xhr.BPb = factory;
     armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver);
     f.streaming.stream(f.request());
     expect(f.calls.send).toBe(1);
@@ -1006,9 +1173,9 @@ describe('request-owned Gemini RPC dispatch', () => {
       if (key === 'stream') Object.defineProperty(f.streaming, 'stream', { get: getter });
       if (key === 'service') Object.defineProperty(f.streaming, 'ha', { get: getter });
       if (key === 'route') Object.defineProperty(f.api, 'Aa', { get: getter });
-      if (key === 'factory') Object.defineProperty(f.transport.xhr, 'lPb', { get: getter });
+      if (key === 'factory') Object.defineProperty(f.transport.xhr, 'BPb', { get: getter });
       if (key === 'query')
-        f.beforeService((w) => Object.defineProperty(w.ha.oa, 'ka', { get: getter }));
+        f.beforeService((w) => Object.defineProperty(w.ha.oa, 'ha', { get: getter }));
       if (key === 'factory' || key === 'query') {
         armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver);
         expect(() => f.streaming.stream(f.request())).toThrow(/shape/);
@@ -1024,7 +1191,7 @@ describe('request-owned Gemini RPC dispatch', () => {
     const f = fixture();
     const getter = vi.fn();
     const packet = f.request();
-    Object.defineProperty(packet, 'yx', { get: getter });
+    Object.defineProperty(packet, 'zx', { get: getter });
     armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver);
     expect(() => f.streaming.stream(packet)).toThrow(/source-profile/);
     expect(getter).not.toHaveBeenCalled();
@@ -1037,12 +1204,12 @@ describe('request-owned Gemini RPC dispatch', () => {
     expect(() => f.streaming.stream(f.request())).toThrow(/descriptor/);
     expect(f.calls.stream).toBe(0);
   });
-  it.each(['remove', 'ha', 'oa'] as const)(
+  it.each(['remove', 'XE', 'ha', 'oa'] as const)(
     'rejects unknown query %s shadows without invoking them',
     (key) => {
       const f = fixture();
       const getter = vi.fn();
-      f.beforeService((w) => Object.defineProperty(w.ha.oa.ka, key, { get: getter }));
+      f.beforeService((w) => Object.defineProperty(w.ha.oa.ha, key, { get: getter }));
       armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver);
       expect(() => f.streaming.stream(f.request())).toThrow(/shape|profile/);
       expect(getter).not.toHaveBeenCalled();
@@ -1129,7 +1296,7 @@ describe('request-owned Gemini RPC dispatch', () => {
     expect(f.calls.send).toBe(3);
     expect(g.sent()).toBe(true);
   });
-  it.each(['Sb', 'qsa', 'Ub'] as const)(
+  it.each(['Rb', 'zsa', 'Ub'] as const)(
     'does not treat a registered generation %s alias as unrelated',
     (key) => {
       const f = fixture();
@@ -1187,7 +1354,7 @@ describe('request-owned Gemini RPC dispatch', () => {
         originalTransfer();
         this.aborted = false;
         this.ha = request;
-        request.setParam('rt', this.uI);
+        request.setParam('rt', this.tI);
         // Skip normal tua/Htc and poison the assignment after the entry fence.
         Object.defineProperty(this, 'ha', { set: setter, configurable: true });
         this.ha = request;
@@ -1344,9 +1511,9 @@ describe('request-owned Gemini RPC dispatch', () => {
   });
   it('admits the source Bfa method-name marker using exact registered u_dra metadata', () => {
     const f = fixture();
-    f.namespace.Uy['u_' + f.otherMetadata.qsa] = f.otherMetadata;
+    f.namespace.Ty['u_' + f.otherMetadata.zsa] = f.otherMetadata;
     armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver);
-    f.service.sendRequest(f.batchWrapper([f.otherMetadata.Sb]));
+    f.service.sendRequest(f.batchWrapper([f.otherMetadata.Rb]));
     expect(f.calls.send).toBe(1);
   });
   it('reads only batch RPC markers, without reading request field 2', () => {
@@ -1395,7 +1562,7 @@ describe('source-owned routing survey batch', () => {
     const guard = armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver);
     f.service.sendRequest(f.batchWrapper([survey.Ob as string]));
     f.completeTransport();
-    f.service.sendRequest(f.batchWrapper([survey.Sb as string]));
+    f.service.sendRequest(f.batchWrapper([survey.Rb as string]));
     expect(guard.sent()).toBe(false);
     f.completeTransport();
     f.streaming.stream(f.request());
@@ -1414,23 +1581,23 @@ describe('closed routing survey registration', () => {
     'prototype',
     'generation-input',
     'generation-output',
-    'qsa',
-    'oqa',
+    'zsa',
+    'Fqa',
   ] as const)('rejects changed survey %s in both marker forms', (kind) => {
     for (const full of [false, true]) {
       const f = fixture();
       const survey = f.survey[0]!;
-      const marker = (full ? survey.Sb : survey.Ob) as string;
+      const marker = (full ? survey.Rb : survey.Ob) as string;
       armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver);
-      if (kind === 'flag') survey.Rb = false;
+      if (kind === 'flag') survey.Qb = false;
       if (kind === 'id') survey.Ob = 'WrongRpc';
-      if (kind === 'method') survey.Sb = '/TaskService.Unknown';
-      if (kind === 'registration') delete (survey as any)[f.namespace.kl];
+      if (kind === 'method') survey.Rb = '/TaskService.Unknown';
+      if (kind === 'registration') delete (survey as any)[f.namespace.jl];
       if (kind === 'constructor') (survey as any).Ub = {};
       if (kind === 'prototype') Object.setPrototypeOf(survey.Ub.prototype, {});
-      if (kind === 'generation-input') survey.Ub = f.namespace.zL;
-      if (kind === 'generation-output') survey.Pb = f.namespace.HF;
-      if (kind === 'qsa' || kind === 'oqa')
+      if (kind === 'generation-input') survey.Ub = f.namespace.wL;
+      if (kind === 'generation-output') survey.Pb = f.namespace.IF;
+      if (kind === 'zsa' || kind === 'Fqa')
         (survey as any)[kind] = '/assistant.lamda.BardFrontendService/GetCandidates';
       expect(() => f.service.sendRequest(f.batchWrapper([marker]))).toThrow();
       expect(f.calls.send).toBe(0);
@@ -1453,7 +1620,7 @@ describe('closed routing survey registration', () => {
     const f = fixture();
     armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver);
     Object.assign(f.otherMetadata, f.survey[index]);
-    f.namespace.Uy['o_' + f.otherMetadata.Ob] = f.otherMetadata;
+    f.namespace.Ty['o_' + f.otherMetadata.Ob] = f.otherMetadata;
     expect(() => f.streaming.stream(f.unrelatedRequest())).toThrow(/descriptor/);
     expect(f.calls.send).toBe(0);
   });
@@ -1470,8 +1637,8 @@ describe('exact normal unary GetUserStatus compatibility', () => {
       const batch = f.batchWrapper([marker]);
       const getter = vi.fn();
       Object.defineProperty(batch.Aa.items[0], 'payload', { get: getter });
-      expect(f.namespace.Uy.o_otAQ7b).not.toBe(f.namespace.Ofc);
-      expect(Object.keys(f.namespace.Uy)).not.toContain(
+      expect(f.namespace.Ty.o_otAQ7b).not.toBe(f.namespace.Zgc);
+      expect(Object.keys(f.namespace.Ty)).not.toContain(
         'u_/assistant.lamda.BardFrontendService/GetUserStatus',
       );
       f.service.sendRequest(batch);
@@ -1509,28 +1676,28 @@ describe('exact normal unary GetUserStatus compatibility', () => {
     'prototype',
     'generation-input',
     'generation-output',
-    'qsa',
-    'oqa',
+    'zsa',
+    'Fqa',
   ] as const)('refuses changed status %s in both batch marker forms', (kind) => {
     for (const marker of ['otAQ7b', '/BardFrontendService.GetUserStatus']) {
       const f = fixture();
-      const status = f.namespace.Uy.o_otAQ7b;
+      const status = f.namespace.Ty.o_otAQ7b;
       armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver);
-      if (kind === 'flag') status.Rb = false;
+      if (kind === 'flag') status.Qb = false;
       if (kind === 'id') status.Ob = 'WrongRpc';
-      if (kind === 'method') status.Sb = '/BardFrontendService.SyntheticList';
-      if (kind === 'declaration') f.namespace.Ofc.Pb = class extends f.namespace.l {};
-      if (kind === 'registration') delete f.namespace.Uy.o_otAQ7b;
-      if (kind === 'marker') delete status[f.namespace.kl];
-      if (kind === 'declaration-marker') delete f.namespace.Ofc[f.namespace.kl];
+      if (kind === 'method') status.Rb = '/BardFrontendService.SyntheticList';
+      if (kind === 'declaration') f.namespace.Zgc.Pb = class extends f.namespace.l {};
+      if (kind === 'registration') delete f.namespace.Ty.o_otAQ7b;
+      if (kind === 'marker') delete status[f.namespace.jl];
+      if (kind === 'declaration-marker') delete f.namespace.Zgc[f.namespace.jl];
       if (kind === 'declaration-flags')
-        f.namespace.Ofc.qsa = '/assistant.lamda.BardFrontendService/GetUserStatus';
-      if (kind === 'input') status.Ub = f.namespace.Ofc.Ub = class extends f.namespace.l {};
-      if (kind === 'constructor') status.Pb = f.namespace.Ofc.Pb = {};
+        f.namespace.Zgc.zsa = '/assistant.lamda.BardFrontendService/GetUserStatus';
+      if (kind === 'input') status.Ub = f.namespace.Zgc.Ub = class extends f.namespace.l {};
+      if (kind === 'constructor') status.Pb = f.namespace.Zgc.Pb = {};
       if (kind === 'prototype') Object.setPrototypeOf(status.Pb.prototype, {});
-      if (kind === 'generation-input') status.Ub = f.namespace.Ofc.Ub = f.namespace.zL;
-      if (kind === 'generation-output') status.Pb = f.namespace.Ofc.Pb = f.namespace.HF;
-      if (kind === 'qsa' || kind === 'oqa')
+      if (kind === 'generation-input') status.Ub = f.namespace.Zgc.Ub = f.namespace.wL;
+      if (kind === 'generation-output') status.Pb = f.namespace.Zgc.Pb = f.namespace.IF;
+      if (kind === 'zsa' || kind === 'Fqa')
         status[kind] = '/assistant.lamda.BardFrontendService/GetUserStatus';
       expect(() => f.service.sendRequest(f.batchWrapper([marker]))).toThrow();
       expect(f.calls.send).toBe(0);
@@ -1540,9 +1707,9 @@ describe('exact normal unary GetUserStatus compatibility', () => {
   it.each(['true', 'false', 'renamed'] as const)('refuses status %s in streaming lane', (kind) => {
     const f = fixture();
     armGeminiRpcDispatch(f.namespace, f.api, () => true, f.rawObserver);
-    Object.assign(f.otherMetadata, f.namespace.Uy.o_otAQ7b);
-    f.namespace.Uy.o_otAQ7b = f.otherMetadata;
-    if (kind !== 'true') f.otherMetadata.Rb = false;
+    Object.assign(f.otherMetadata, f.namespace.Ty.o_otAQ7b);
+    f.namespace.Ty.o_otAQ7b = f.otherMetadata;
+    if (kind !== 'true') f.otherMetadata.Qb = false;
     if (kind === 'renamed') f.otherMetadata.Ob = 'SynthRpc';
     expect(() => f.streaming.stream(f.unrelatedRequest())).toThrow(/descriptor/);
     expect(f.calls.send).toBe(0);

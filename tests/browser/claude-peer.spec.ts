@@ -1,3 +1,4 @@
+import { installCollectorFixture } from '../fixtures/chrome/collector';
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
 import { claudeProbeFixture } from '../fixtures/providers/claude-probe';
@@ -31,6 +32,7 @@ async function setup(page: Page) {
       },
     };
   });
+  await page.evaluate(installCollectorFixture);
   await page.addScriptTag({ path: path.resolve('.output/chrome-mv3/bridge.js') });
   const snapshot = (await command(page, { type: 'snapshot' })).data;
   return { ...fixture, target: { documentId: snapshot.documentId, url: snapshot.url } };
@@ -87,6 +89,7 @@ test('peer collect and review stay bound without DOM submit, repeated send or lo
       },
     };
   });
+  await page.evaluate(installCollectorFixture);
   await page.addScriptTag({ path: path.resolve('.output/chrome-mv3/bridge.js') });
   const snap = (await command(page, { type: 'snapshot' })).data;
   expect(snap.threadId).toBeUndefined();

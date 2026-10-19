@@ -140,12 +140,33 @@ test('a long model label stays inside a narrow side panel', async ({ page }) => 
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
 });
 
+const physicalDiagnosticCodes = new Map<string, string>([
+  ['dispatch-native-n20-entry-owner', '확인 코드 N20-1.'],
+  ['dispatch-native-n20-entry-data', '확인 코드 N20-2.'],
+  ['dispatch-native-n20-request-owner', '확인 코드 N20-3.'],
+  ['dispatch-native-n20-batch-owner', '확인 코드 N20-4.'],
+  ['dispatch-native-n20-batch-content', '확인 코드 N20-5.'],
+  ['dispatch-native-n20-session-id', '확인 코드 N20-6.'],
+  ['dispatch-native-n20-map-count', '확인 코드 N20-7.'],
+  ['dispatch-native-n20-active-request', '확인 코드 N20-8.'],
+  ['dispatch-native-n20-transport-state', '확인 코드 N20-9.'],
+  ['dispatch-native-n20-wrapper-state', '확인 코드 N20-10.'],
+  ['dispatch-native-n20-queue-owner', '확인 코드 N20-11.'],
+  ['dispatch-native-n20-connect-before', '확인 코드 N20-12.'],
+  ['dispatch-native-n20-connect-original', '확인 코드 N20-13.'],
+  ['dispatch-native-n20-connect-after', '확인 코드 N20-14.'],
+  ['dispatch-native-n20-forward-before', '확인 코드 N20-15.'],
+  ['dispatch-native-n20-forward-original', '확인 코드 N20-16.'],
+  ['dispatch-native-n20-forward-after', '확인 코드 N20-17.'],
+]);
+
 for (const [reason, text] of [
   ...GEMINI_NATIVE_DISPATCH_REASONS.map((reason, i) => [
     reason,
-    GEMINI_NATIVE_CONFIGURATION_DIAGNOSTICS.includes(reason as any)
-      ? `확인 코드 N15-${GEMINI_NATIVE_CONFIGURATION_DIAGNOSTICS.indexOf(reason as any) + 1}`
-      : `확인 코드 N${String(i + 1).padStart(2, '0')}`,
+    physicalDiagnosticCodes.get(reason) ??
+      (GEMINI_NATIVE_CONFIGURATION_DIAGNOSTICS.includes(reason as any)
+        ? `확인 코드 N15-${GEMINI_NATIVE_CONFIGURATION_DIAGNOSTICS.indexOf(reason as any) + 1}`
+        : `확인 코드 N${String(i + 1).padStart(2, '0')}`),
   ]),
   ['model-trigger', '모델 선택 버튼'],
   ['model-trigger-compact-control', '모델 선택 버튼을 확인하지 못했습니다. 확인 코드 T1.'],
@@ -340,5 +361,42 @@ for (const [reason, text] of [
     await expect(trial.getByText('CROSSCHECK_GEMINI_OK', { exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => window.harness.geminiSdkTrialStarts)).toBe(1);
     expect(await page.evaluate(() => window.harness.sends)).toEqual([]);
+  });
+}
+
+for (const malformed of [false, true]) {
+  test(`Native66 UI renders ${malformed ? 'malformed diagnostic fallback' : 'one validated diagnostic code'} with uncertainty`, async ({
+    page,
+  }) => {
+    // Existing fixture platform emits P18. This test-only Error constructor attaches the local metadata;
+    // installed transport is covered separately and this regular panel is not a native side panel.
+    await page.addInitScript((malformed) => {
+      const Original = Error;
+      (window as any).Error = new Proxy(Original, {
+        construct(target, args) {
+          const error = Reflect.construct(target, args);
+          if (args[1]?.cause === 'dispatch-observation')
+            Object.defineProperty(error, 'geminiNativeReceiveDiagnostic', {
+              value: malformed
+                ? { origin: 'private', predicate: 'unknown' }
+                : { origin: 'original-callback', predicate: 'unknown' },
+            });
+          return error;
+        },
+      });
+    }, malformed);
+    const trial = await open(page, '?sdk-trial=dispatch-observation');
+    await trial.getByRole('button', { name: 'Gemini 응답 시험 시작', exact: true }).click();
+    await expect(trial.getByRole('status')).toContainText('확인 코드 P18.');
+    await expect(trial.getByRole('status')).toContainText(
+      '요청의 완료 여부는 확인하지 못했으며 자동으로 다시 보내지 않습니다.',
+    );
+    if (malformed) await expect(trial.getByRole('status')).not.toContainText('P18-R');
+    else await expect(trial.getByRole('status')).toContainText('P18-R9-P1.');
+    await expect(trial.getByText(/SYNTHETIC_PRIVATE|private/)).toHaveCount(0);
+    expect(await page.evaluate(() => window.harness.geminiSdkTrialStarts)).toBe(1);
+    expect(
+      await page.evaluate(() => JSON.parse(sessionStorage.getItem('fixture-gemini-sdk-trial')!)),
+    ).toEqual({ id: 'fixture-gemini-sdk-1', status: 'uncertain' });
   });
 }

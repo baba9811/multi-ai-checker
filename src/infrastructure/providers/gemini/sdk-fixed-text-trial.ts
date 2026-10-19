@@ -5,6 +5,9 @@ import {
   GEMINI_FIXED_TEXT_TRIAL_PROMPT,
   type GeminiFixedTextTrialResult,
   type GeminiFixedTextTrialReason,
+  GeminiNativeReceiveDiagnostic,
+  attachGeminiNativeReceiveDiagnostic,
+  readGeminiNativeReceiveErrorDiagnostic,
 } from '../../../application/gemini-fixed-text-trial';
 import { composer, draftText } from '../dom';
 import { readGeminiClientCapability, type GeminiOwnedClient } from './client-capability';
@@ -94,8 +97,11 @@ export async function runGeminiSdkFixedTextTrial(
   const retired = new WeakSet<object>();
   const teardowns = new Map<object, Call>();
   const listeners: Array<[EventTarget, string, EventListener]> = [];
-  const failure = (cause: GeminiFixedTextTrialReason) =>
-    new Error('Gemini SDK trial failed.', { cause });
+  const failure = (cause: GeminiFixedTextTrialReason, diagnostic?: unknown) =>
+    attachGeminiNativeReceiveDiagnostic(
+      new Error('Gemini SDK trial failed.', { cause }),
+      diagnostic,
+    );
   function require(
     condition: unknown,
     cause: GeminiFixedTextTrialReason = 'capture',
@@ -467,9 +473,9 @@ export async function runGeminiSdkFixedTextTrial(
     }
     if (terminal) rejectPending?.(terminal);
   }
-  function stop(cause: GeminiFixedTextTrialReason) {
+  function stop(cause: GeminiFixedTextTrialReason, diagnostic?: GeminiNativeReceiveDiagnostic) {
     if (closed) return;
-    terminal = failure(cause);
+    terminal = failure(cause, diagnostic);
     closed = true;
     try {
       dispatch?.close();
@@ -537,8 +543,62 @@ export async function runGeminiSdkFixedTextTrial(
       );
     const captured = Object.freeze({ ...client });
     const { namespace, conversation, api, host, owner, consumer } = captured;
-    const nativeSession = profile === 'cold-webchannel' ? own(api, 'ub') : undefined;
-    const nativeRegistry = profile === 'cold-webchannel' ? own(api, 'Eb') : undefined;
+    const selectedEligibility = own(api, 'Aa'),
+      selectedMode = own(api, 'Ua'),
+      selectedHeaders = own(api, 'Eb');
+    const selectedObjects = [selectedEligibility, selectedMode, selectedHeaders];
+    const selectedClasses = ['CKd', 'cM', 'zKd'].map((name) => callable(own(namespace, name)));
+    const selectedPrototypes = selectedClasses.map((value) => own(value, 'prototype'));
+    require(selectedObjects.every(
+      (value, index) =>
+        value !== null &&
+        typeof value === 'object' &&
+        Object.getPrototypeOf(value) === selectedPrototypes[index],
+    ), 'client-current');
+    require(own(selectedEligibility, 'ka') === selectedMode &&
+      own(selectedHeaders, 'wa') === selectedMode, 'client-current');
+    const enabled = own(selectedEligibility, 'ha'),
+      override = own(selectedEligibility, 'oa'),
+      mode = own(selectedMode, 'ha');
+    require(typeof enabled === 'boolean' &&
+      typeof override === 'boolean' &&
+      typeof mode === 'number' &&
+      Number.isFinite(mode) &&
+      Number.isInteger(mode), 'client-current');
+    require((enabled && (override || (mode !== 42 && mode !== 43))) ===
+      (profile === 'cold-webchannel'), 'client-current');
+    const selectedFields: Array<[any, PropertyKey]> = [
+      [api, 'Aa'],
+      [api, 'Ua'],
+      [api, 'Eb'],
+      [selectedEligibility, 'ka'],
+      [selectedEligibility, 'ha'],
+      [selectedEligibility, 'oa'],
+      [selectedMode, 'ha'],
+      [selectedHeaders, 'wa'],
+      ...['CKd', 'cM', 'zKd'].map((name): [any, PropertyKey] => [namespace, name]),
+      ...selectedClasses.map((value): [any, PropertyKey] => [value, 'prototype']),
+    ];
+    const selectedDescriptors = selectedFields.map(([value, key]) => {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      require(descriptor && 'value' in descriptor, 'client-current');
+      return descriptor;
+    });
+    function selectedCurrent() {
+      require(selectedObjects.every(
+        (value, index) => Object.getPrototypeOf(value) === selectedPrototypes[index],
+      ), 'client-current');
+      for (const [index, [value, key]] of selectedFields.entries()) {
+        const descriptor = Object.getOwnPropertyDescriptor(value, key),
+          retained = selectedDescriptors[index]!;
+        require(descriptor &&
+          ['value', 'writable', 'configurable', 'enumerable', 'get', 'set'].every(
+            (field) => own(descriptor, field) === own(retained, field),
+          ), 'client-current');
+      }
+    }
+    const nativeSession = profile === 'cold-webchannel' ? own(api, 'Ab') : undefined;
+    const nativeRegistry = profile === 'cold-webchannel' ? own(api, 'Fb') : undefined;
     let nativeFactoryDescriptor: PropertyDescriptor | undefined;
     let nativeGateDescriptor: PropertyDescriptor | undefined;
     const emptyRepeatedField = own(namespace, 'Yd');
@@ -561,22 +621,22 @@ export async function runGeminiSdkFixedTextTrial(
     }
     const observablePrototype = prototype('st');
     const subscriptionPrototype = prototype('qt');
-    const continuationConstructor = callable(own(namespace, 'yL'));
+    const continuationConstructor = callable(own(namespace, 'vL'));
     const continuationPrototype = own(continuationConstructor, 'prototype');
     require(continuationPrototype !== null && typeof continuationPrototype === 'object');
     function continuationCurrent() {
       require(
-        own(namespace, 'yL') === continuationConstructor &&
+        own(namespace, 'vL') === continuationConstructor &&
           own(continuationConstructor, 'prototype') === continuationPrototype,
       );
     }
     const subscribe = callable(own(observablePrototype, 'subscribe'));
     unsubscribe = callable(own(subscriptionPrototype, 'unsubscribe'));
     const observable = callable(own(namespace, 'st'));
-    const ln = prototype('GN'),
-      hl = prototype('pM'),
-      storePrototype = prototype('tC');
-    const protectionPrototype = prototype('bM');
+    const ln = prototype('wN'),
+      hl = prototype('gM'),
+      storePrototype = prototype('uC');
+    const protectionPrototype = prototype('UL');
     require(Object.getPrototypeOf(conversation) === ln && Object.getPrototypeOf(api) === hl);
     const protection = own(api, 'Ja');
     require(protection &&
@@ -586,9 +646,9 @@ export async function runGeminiSdkFixedTextTrial(
     require(store && Object.getPrototypeOf(store) === storePrototype);
     const state = callable(own(store, 'state'));
     const source = own(store, 'source');
-    const statePrototype = prototype('gu');
-    const storeIdSelector = callable(own(namespace, 'AC'));
-    const threadSelector = callable(own(namespace, 'wC'));
+    const statePrototype = prototype('fu');
+    const storeIdSelector = callable(own(namespace, 'zC'));
+    const threadSelector = callable(own(namespace, 'xC'));
     function freshStore() {
       require(source && typeof source === 'object' && !Object.hasOwn(source, 'subscribe'));
       let at = Object.getPrototypeOf(source),
@@ -603,9 +663,9 @@ export async function runGeminiSdkFixedTextTrial(
           own(store, 'source') === source &&
           own(store, 'state') === state &&
           own(source, 'state') === state &&
-          own(namespace, 'AC') === storeIdSelector &&
-          own(namespace, 'wC') === threadSelector &&
-          ['closed', 'Ys', 'hasError'].every((key) => own(source, key) === false),
+          own(namespace, 'zC') === storeIdSelector &&
+          own(namespace, 'xC') === threadSelector &&
+          ['closed', 'Zs', 'hasError'].every((key) => own(source, key) === false),
       );
     }
     function currentStore() {
@@ -636,7 +696,7 @@ export async function runGeminiSdkFixedTextTrial(
         )
           return false;
         const expectedUrl =
-          (marker || rawFinal) && !final && location.href === home
+          (marker || rawFinal || final) && location.href === home
             ? home
             : ownedCid
               ? home + '/' + ownedCid.slice(2)
@@ -651,6 +711,7 @@ export async function runGeminiSdkFixedTextTrial(
             Object.keys(captured).every((key) => own(recaptured, key) === own(captured, key)),
         );
         currentStore();
+        selectedCurrent();
         require(
           document === doc &&
             window.top === window &&
@@ -677,15 +738,15 @@ export async function runGeminiSdkFixedTextTrial(
 
     for (const [value, name] of [
       [conversation, 'sendRequest'],
-      [conversation, 'Vg'],
-      [api, 'Zxb'],
+      [conversation, 'Tg'],
+      [api, 'ybb'],
     ] as const)
       require(!Object.hasOwn(value, name));
     const send = callable(own(ln, 'sendRequest')),
-      nextId = callable(own(ln, 'Vg')),
-      oub = callable(own(hl, 'Zxb'));
+      nextId = callable(own(ln, 'Tg')),
+      oub = callable(own(hl, 'ybb'));
     const streams = Object.fromEntries(
-      ['oa', 'ka', 'Qe', 'Oe', 'Jb', 'kKa', 'ri', 'cHa', 'Va', 'Ug', 'Ti'].map((name) => [
+      ['oa', 'ka', 'Te', 'Se', 'Jb', 'pKa', 'ui', 'hHa', 'Va', 'Vg', 'Si'].map((name) => [
         name,
         own(conversation, name),
       ]),
@@ -693,26 +754,26 @@ export async function runGeminiSdkFixedTextTrial(
     setupStage = 'capture-actions';
     const types = Object.fromEntries(
       [
-        '$Kd',
-        'aLd',
-        'jLd',
-        'mM',
-        'XKd',
-        'nLd',
-        'oLd',
-        'NKd',
-        'YKd',
         'uLd',
-        'wLd',
-        'gLd',
-        'WKd',
-        'pLd',
-        'tLd',
+        'vLd',
+        'ELd',
+        'dM',
         'rLd',
+        'ILd',
+        'JLd',
+        'hLd',
+        'sLd',
+        'PLd',
+        'RLd',
+        'BLd',
         'qLd',
-        'kMd',
-        'fMd',
-        'dMd',
+        'KLd',
+        'OLd',
+        'MLd',
+        'LLd',
+        'FMd',
+        'AMd',
+        'yMd',
       ].map((name) => {
         const creator = callable(own(namespace, name));
         const type = own(creator, 'type');
@@ -773,14 +834,16 @@ export async function runGeminiSdkFixedTextTrial(
           Object.keys(disconnect).every(
             (key) => Object.hasOwn(actual, key) && actual[key] === disconnect![key],
           ), 'response-event-3');
-        disconnectPayload(disconnect.BFc);
+        disconnectPayload(disconnect.jGc);
       } catch {
         throw failure('response-event-3');
       }
     }
     function readCurrent(checkModel = true) {
+      selectedCurrent();
       routingCurrent();
       lease();
+      selectedCurrent();
       routingCurrent();
       continuationCurrent();
       disconnectCurrent();
@@ -807,19 +870,19 @@ export async function runGeminiSdkFixedTextTrial(
       );
       require(
         own(ln, 'sendRequest') === send &&
-          own(ln, 'Vg') === nextId &&
-          own(hl, 'Zxb') === oub &&
+          own(ln, 'Tg') === nextId &&
+          own(hl, 'ybb') === oub &&
           !Object.hasOwn(conversation, 'sendRequest') &&
-          !Object.hasOwn(conversation, 'Vg'),
+          !Object.hasOwn(conversation, 'Tg'),
       );
-      if (installed) require(own(api, 'Zxb') === gate, 'dispatch-binding');
+      if (installed) require(own(api, 'ybb') === gate, 'dispatch-binding');
       for (const name of Object.keys(streams))
         require(own(conversation, name) === streams[name], 'capture');
       if (approved) {
         ownedConversation();
         require(latest.oa === approved.storeId &&
-          latest.kKa === approved.isPersonalContextDisabled, 'capture');
-        require(latest.cHa === '' && latest.Va === undefined && latest.Ug === 0, 'capture');
+          latest.pKa === approved.isPersonalContextDisabled, 'capture');
+        require(latest.hHa === '' && latest.Va === undefined && latest.Vg === 0, 'capture');
       }
       const expectedUrl =
         location.href === home
@@ -842,15 +905,15 @@ export async function runGeminiSdkFixedTextTrial(
           (key) => own(recaptured, key) === own(captured, key),
         ), 'client-current');
       if (profile === 'cold-webchannel') {
-        require(own(api, 'Aa') === true &&
-          own(api, 'ub') === nativeSession &&
-          own(nativeSession, 'oa') === false &&
-          own(api, 'Eb') === nativeRegistry &&
+        require(own(api, 'Aa') === selectedEligibility &&
+          own(api, 'Ab') === nativeSession &&
+          own(nativeSession, 'wa') === false &&
+          own(api, 'Fb') === nativeRegistry &&
           Object.isExtensible(api), 'client-current');
         if (installed) {
           for (const [value, key, retained] of [
-            [api, 'Zxb', nativeGateDescriptor],
-            [namespace, 'dKd', nativeFactoryDescriptor],
+            [api, 'ybb', nativeGateDescriptor],
+            [namespace, 'wKd', nativeFactoryDescriptor],
           ] as const) {
             const descriptor = Object.getOwnPropertyDescriptor(value, key);
             require(descriptor &&
@@ -869,11 +932,12 @@ export async function runGeminiSdkFixedTextTrial(
       if (packet && approved) {
         const admittedPacket = packet;
         assertGeminiTrialPacket(namespace, actualPacket, approved);
-        require(['request', 'g8a', 'h8a'].every(
+        require(['request', 't8a', 'u8a'].every(
           (key) => own(actualPacket, key) === admittedPacket[key],
         ), 'packet');
       }
       lease();
+      selectedCurrent();
       routingCurrent();
       continuationCurrent();
       disconnectCurrent();
@@ -1001,19 +1065,19 @@ export async function runGeminiSdkFixedTextTrial(
     function readRequest(value: unknown) {
       require(approved && initialRequest, 'response');
       const r = record(value);
-      require(r.ze === approved.storeId &&
+      require(r.Ae === approved.storeId &&
         r.clientTurnId === approved.clientTurnId &&
         r.textQuery === GEMINI_FIXED_TEXT_TRIAL_PROMPT &&
-        r.wi === approved.modeId, 'response');
+        r.ri === approved.modeId, 'response');
       require(typeof r.conversationId === 'string' &&
         /^c_[0-9a-fA-F]{1,16}$/.test(r.conversationId), 'response');
       require(!ownedCid || ownedCid === r.conversationId, 'response');
       for (const key of Object.keys(r))
         require(Object.hasOwn(initialRequest, key) ||
-          ['R2', 'Ie', 'rZb'].includes(key), 'response');
+          ['W2', 'Ke', 'IZb'].includes(key), 'response');
       for (const key of Object.keys(initialRequest))
         if (key !== 'conversationId') require(r[key] === initialRequest[key], 'response');
-      require(r.R2 === '' && empty(r.Ie) && empty(r.rZb), 'response');
+      require(r.W2 === '' && empty(r.Ke) && empty(r.IZb), 'response');
       return r;
     }
     function request(value: unknown) {
@@ -1036,22 +1100,22 @@ export async function runGeminiSdkFixedTextTrial(
             'request',
             'response',
             'xj',
-            'Ita',
-            'ajb',
-            'iga',
-            'LJb',
-            'MJb',
-            'mia',
-            'zj',
+            'Rta',
+            'sjb',
+            'oga',
+            'cKb',
+            'dKb',
+            'uia',
+            'yj',
           ].includes(key), 'response');
         for (const [key, metadataStage] of [
-          ['Ita', 'response-envelope-meta-1'],
-          ['ajb', 'response-envelope-meta-2'],
-          ['iga', 'response-envelope-meta-3'],
-          ['LJb', 'response-envelope-meta-4'],
-          ['MJb', 'response-envelope-meta-5'],
-          ['mia', 'response-envelope-meta-6'],
-          ['zj', 'response-envelope-meta-7'],
+          ['Rta', 'response-envelope-meta-1'],
+          ['sjb', 'response-envelope-meta-2'],
+          ['oga', 'response-envelope-meta-3'],
+          ['cKb', 'response-envelope-meta-4'],
+          ['dKb', 'response-envelope-meta-5'],
+          ['uia', 'response-envelope-meta-6'],
+          ['yj', 'response-envelope-meta-7'],
         ] as const) {
           stage = metadataStage;
           require(t[key] === undefined || t[key] === false, 'response');
@@ -1063,75 +1127,75 @@ export async function runGeminiSdkFixedTextTrial(
         require(typeof p.turnId === 'string' &&
           (nativeDispatch ? id(p.turnId) : /^r_[0-9a-fA-F]{1,16}$/.test(p.turnId)), 'response');
         stage = 'response-lists';
-        for (const key of ['No', 'K9', 'taa', 'xB']) require(empty(p[key]), 'response');
-        require(emptyProjected(p.a8a), 'response-turn');
+        for (const key of ['Oo', 'O9', 'xaa', 'yB']) require(empty(p[key]), 'response');
+        require(emptyProjected(p.n8a), 'response-turn');
         stage = 'response-flags';
         for (const [key, flagStage] of [
-          ['JL', 'response-flag-1'],
-          ['W7', 'response-flag-2'],
-          ['Hrg', 'response-flag-3'],
-          ['Fnf', 'response-flag-4'],
-          ['z7b', 'response-flag-5'],
+          ['RL', 'response-flag-1'],
+          ['d8', 'response-flag-2'],
+          ['ltg', 'response-flag-3'],
+          ['Xof', 'response-flag-4'],
+          ['R7b', 'response-flag-5'],
           ['aZd', 'response-flag-6'],
           ['Cs', 'response-flag-7'],
-          ['iDb', 'response-flag-8'],
+          ['BDb', 'response-flag-8'],
         ] as const) {
           stage = flagStage;
           require(p[key] === undefined ||
             p[key] === false ||
-            ((key === 'W7' || key === 'iDb') && p[key] === true), 'response');
+            ((key === 'd8' || key === 'BDb') && p[key] === true), 'response');
         }
         stage = 'response-extra';
         require(Object.keys(p).every((key) =>
           [
             'turnId',
             'draft',
-            'jof',
-            'yIa',
-            'lI',
+            'Bpf',
+            'CIa',
+            'kI',
             'Mx',
-            'No',
+            'Oo',
             'isFinal',
-            'JL',
-            'K9',
+            'RL',
+            'O9',
             'regionCode',
-            'Zr',
-            'Ile',
-            'Hrg',
-            'bV',
-            'W7',
-            'taa',
-            'Hof',
-            'vS',
-            'Fnf',
-            'iV',
-            'nPc',
-            'Xc',
-            'Vla',
+            'hs',
+            'Qme',
+            'ltg',
+            'eV',
+            'd8',
+            'xaa',
+            'Zpf',
+            'xS',
+            'Xof',
+            'lV',
+            'YPc',
+            'Vc',
+            'gma',
             'PN',
-            'iDb',
-            'Ozc',
-            'GAa',
-            'O0a',
+            'BDb',
+            'vAc',
+            'OAa',
+            'b1a',
             'thinkingLevel',
-            'Uo',
-            'Lj',
-            'z7b',
-            'zbg',
-            'a8a',
-            'xB',
+            'Wo',
+            'Nj',
+            'R7b',
+            'Ycg',
+            'n8a',
+            'yB',
             'aZd',
             'Cs',
-            'Soa',
+            'epa',
           ].includes(key),
         ), 'response');
-        for (const key of ['Mx', 'Zr', 'Ile', 'yIa', 'jof', 'zbg', 'nPc', 'Soa'])
+        for (const key of ['Mx', 'hs', 'Qme', 'CIa', 'Bpf', 'Ycg', 'YPc', 'epa'])
           require(p[key] === undefined, 'response');
         stage = 'response-metadata';
         require(typeof p.isFinal === 'boolean', 'response');
-        require(isGeminiTrialLanguage(p.bV) && isGeminiTrialAttribution(p.PN), 'response');
+        require(isGeminiTrialLanguage(p.eV) && isGeminiTrialAttribution(p.PN), 'response');
         stage = 'response-final-metadata';
-        for (const key of ['Vla', 'O0a', 'thinkingLevel', 'Uo', 'Lj', 'regionCode'] as const) {
+        for (const key of ['gma', 'b1a', 'thinkingLevel', 'Wo', 'Nj', 'regionCode'] as const) {
           const field = p[key];
           require(field === undefined ||
             (typeof field === 'string' &&
@@ -1147,7 +1211,7 @@ export async function runGeminiSdkFixedTextTrial(
           (!observedCandidateId || candidate.id === observedCandidateId) &&
           (candidate.completeness === 'PARTIAL' ||
             candidate.completeness === 'COMPLETE'), 'response');
-        const text = candidate.Z2;
+        const text = candidate.j3;
         require(p.isFinal
           ? candidate.completeness === 'COMPLETE' && text === GEMINI_FIXED_TEXT_TRIAL_ANSWER
           : text === undefined ||
@@ -1156,38 +1220,38 @@ export async function runGeminiSdkFixedTextTrial(
                 text.length <= GEMINI_FIXED_TEXT_TRIAL_ANSWER.length &&
                 GEMINI_FIXED_TEXT_TRIAL_ANSWER.startsWith(text)), 'response');
         stage = 'response-candidate-lists';
-        for (const key of ['Yn', 'mI', 'r3g']) require(empty(candidate[key]), 'response');
+        for (const key of ['Yn', 'lI', 'Z4g']) require(empty(candidate[key]), 'response');
         stage = 'response-candidate-extra';
         // Only the current source-owned outer candidate fields; Xc remains an opaque reference.
         require(Object.keys(candidate).every((key) =>
           [
             'id',
             'structuredContent',
-            'Mmc',
-            'Z2',
-            'pLa',
-            'KEc',
-            'Ku',
-            'jId',
-            'r3g',
-            'Xc',
+            'mnc',
+            'j3',
+            'tLa',
+            'sFc',
+            'Ju',
+            'oJd',
+            'Z4g',
+            'Vc',
             'completeness',
             'Yn',
             'safeMode',
-            'k$d',
-            'i1a',
-            'H9d',
-            'mI',
-            'rPd',
-            'Gaa',
-            'vV',
-            'oib',
-            'm9d',
-            'xSc',
-            'IEc',
+            'pae',
+            'v1a',
+            'M$d',
+            'lI',
+            'uQd',
+            'Laa',
+            'xV',
+            'Fib',
+            'r$d',
+            'kTc',
+            'qFc',
           ].includes(key),
         ), 'response');
-        for (const [key, fields] of [['pLa', ['PUb', 'LRa']]] as const) {
+        for (const [key, fields] of [['tLa', ['PUb', 'LRa']]] as const) {
           if (candidate[key] === undefined) continue;
           const metadata = record(candidate[key]);
           require(Object.keys(metadata).every((field) =>
@@ -1195,7 +1259,7 @@ export async function runGeminiSdkFixedTextTrial(
           ), 'response');
           for (const field of fields) require(empty(metadata[field]), 'response');
         }
-        for (const key of ['Mmc', 'Ku', 'rPd', 'k$d', 'oib', 'Gaa', 'vV', 'IEc'])
+        for (const key of ['mnc', 'Ju', 'uQd', 'pae', 'Fib', 'Laa', 'xV', 'qFc'])
           require(candidate[key] === undefined, 'response');
         stage = 'response-content';
         const content = record(candidate.structuredContent);
@@ -1216,14 +1280,14 @@ export async function runGeminiSdkFixedTextTrial(
           candidateId: candidate.id,
           answer: GEMINI_FIXED_TEXT_TRIAL_ANSWER,
         };
-        if (p.iDb !== undefined) result.Zzb = p.iDb as boolean;
+        if (p.BDb !== undefined) result.Zzb = p.BDb as boolean;
         stage = 'response-final-metadata';
         for (const [sourceKey, receiptKey] of [
-          ['Vla', 'Eka'],
-          ['O0a', 'tZa'],
+          ['gma', 'Eka'],
+          ['b1a', 'tZa'],
           ['thinkingLevel', 'thinkingLevel'],
-          ['Uo', 'Cq'],
-          ['Lj', 'Hj'],
+          ['Wo', 'Cq'],
+          ['Nj', 'Hj'],
           ['regionCode', 'regionCode'],
         ] as const) {
           const field = p[sourceKey];
@@ -1238,16 +1302,16 @@ export async function runGeminiSdkFixedTextTrial(
       const c = record(value),
         r = record(c.request);
       require(Object.keys(c).every((key) =>
-        ['ze', 'request', 'eOa', 'w2a', 'Azb', 'bJa', 'GRd'].includes(key),
+        ['Ae', 'request', 'hOa', 'J2a', 'Uzb', 'fJa', 'JSd'].includes(key),
       ) &&
-        c.eOa === undefined &&
-        c.w2a === undefined, 'response');
+        c.hOa === undefined &&
+        c.J2a === undefined, 'response');
       require(approved &&
-        c.ze === approved.storeId &&
+        c.Ae === approved.storeId &&
         r.clientTurnId === approved.clientTurnId &&
         r.textQuery === GEMINI_FIXED_TEXT_TRIAL_PROMPT &&
-        r.wi === approved.modeId, 'response');
-      require(c.Azb === false && c.bJa === false && c.GRd === false, 'response');
+        r.ri === approved.modeId, 'response');
+      require(c.Uzb === false && c.fJa === false && c.JSd === false, 'response');
       if (r.conversationId === '') {
         require(!receivedTurn &&
           initialRequest &&
@@ -1277,8 +1341,8 @@ export async function runGeminiSdkFixedTextTrial(
         responseType: 'ROUTING',
         conversationId: raw.conversationId,
         turnId: raw.turnId,
-        eqa: raw.routing!.epa,
-        ...(raw.routing!.Kzd === undefined ? {} : { bFd: raw.routing!.Kzd }),
+        pqa: raw.routing!.epa,
+        ...(raw.routing!.Kzd === undefined ? {} : { gGd: raw.routing!.Kzd }),
       };
       require(Object.keys(event).length === Object.keys(expected).length &&
         Object.keys(expected).every(
@@ -1291,7 +1355,7 @@ export async function runGeminiSdkFixedTextTrial(
       require(witness, 'response-action');
       const action = record(witness.source);
       // A context admitted before TURN keeps its original request after TURN.
-      const c = record(action.Wl);
+      const c = record(action.Yl);
       const r = record(c.request);
       for (const [fresh, snapshot] of [
         [action, witness.event],
@@ -1303,7 +1367,7 @@ export async function runGeminiSdkFixedTextTrial(
             (key) => Object.hasOwn(fresh, key) && fresh[key] === snapshot[key],
           ), 'response-action');
       if (r.conversationId !== '') request(c.request);
-      routingEvent(action.Xbd, pending.raw);
+      routingEvent(action.Wcd, pending.raw);
     }
     function routingCurrent() {
       for (const pending of routings) {
@@ -1377,7 +1441,7 @@ export async function runGeminiSdkFixedTextTrial(
         throw failure(cause === 'capture' ? 'capture-observation' : cause);
       }
     }
-    for (const name of ['oa', 'ka', 'Qe', 'Oe', 'kKa', 'ri', 'cHa', 'Va', 'Ug', 'Ti'])
+    for (const name of ['oa', 'ka', 'Te', 'Se', 'pKa', 'ui', 'hHa', 'Va', 'Vg', 'Si'])
       observe(name, (value) => {
         latest[name] = value;
         if (approved && latest.oa !== approved.storeId) stop('capture-store');
@@ -1386,27 +1450,27 @@ export async function runGeminiSdkFixedTextTrial(
     function initialState() {
       try {
         const initial = record(latest.ka),
-          initialTurns = record(latest.Qe);
+          initialTurns = record(latest.Te);
         require(id(latest.oa) &&
           initial.conversationId === '' &&
           initialTurns.id === '' &&
-          list(initial.Hj).length === 0 &&
+          list(initial.Kj).length === 0 &&
           Object.keys(record(initial.Wb)).length === 0 &&
           list(initialTurns.Wb).length === 0 &&
-          latest.Oe === undefined &&
+          latest.Se === undefined &&
           initial.xu === undefined &&
-          initial.saa === undefined &&
-          initial.mG !== 2 &&
-          initial.bG !== 2 &&
+          initial.waa === undefined &&
+          initial.pG !== 2 &&
+          initial.eG !== 2 &&
           empty(initial.YJ) &&
-          initial.vNc !== true &&
+          initial.gOc !== true &&
           initial.isTemporaryChat !== true, 'capture');
-        require(latest.kKa === undefined || typeof latest.kKa === 'boolean', 'capture');
-        require(latest.ri === undefined &&
-          latest.cHa === '' &&
+        require(latest.pKa === undefined || typeof latest.pKa === 'boolean', 'capture');
+        require(latest.ui === undefined &&
+          latest.hHa === '' &&
           latest.Va === undefined &&
-          latest.Ug === 0 &&
-          latest.Ti === false, 'capture');
+          latest.Vg === 0 &&
+          latest.Si === false, 'capture');
       } catch {
         throw failure('capture-state');
       }
@@ -1421,7 +1485,7 @@ export async function runGeminiSdkFixedTextTrial(
       storeId: latest.oa as string,
       clientTurnId,
       ...modeReceipt.metadata,
-      isPersonalContextDisabled: latest.kKa as boolean | undefined,
+      isPersonalContextDisabled: latest.pKa as boolean | undefined,
     });
     settingUp = false;
     observe('Jb', (value) => {
@@ -1433,102 +1497,102 @@ export async function runGeminiSdkFixedTextTrial(
       }
       const type = a.type;
       require(typeof type === 'string', 'response-action');
-      if (type !== types.aLd) active();
-      if (type === types.$Kd) {
-        context(a.Wl);
-      } else if (type === types.aLd) {
+      if (type !== types.vLd) active();
+      if (type === types.uLd) {
+        context(a.Yl);
+      } else if (type === types.vLd) {
         const pending = routings.find((entry) => !entry.action);
         require(pending?.source &&
           pending.forwarded &&
           !pairedActionInFlight &&
           !rawFrameInFlight &&
           Object.keys(a).length === 3 &&
-          Object.keys(a).every((key) => ['type', 'Xbd', 'Wl'].includes(key)) &&
-          a.Xbd === pending.source, 'response-action');
+          Object.keys(a).every((key) => ['type', 'Wcd', 'Yl'].includes(key)) &&
+          a.Wcd === pending.source, 'response-action');
         pairedActionInFlight = true;
-        routingEvent(a.Xbd, pending.raw);
-        const c = context(a.Wl);
+        routingEvent(a.Wcd, pending.raw);
+        const c = context(a.Yl);
         const r = record(c.request);
         pending.action = { source: value, event: a, context: c, request: r };
         active();
         require(!closed && routings.includes(pending), 'response-action');
         routingAction(pending);
         pairedActionInFlight = false;
-      } else if (type === types.jLd) {
-        context(a.Wl);
+      } else if (type === types.ELd) {
+        context(a.Yl);
         require(final || marker || rawFinal, 'response-action');
         actionSuccess = true;
         finished();
-      } else if (type === types.uLd) {
+      } else if (type === types.PLd) {
         require(Object.keys(a).length === 5 &&
           Object.keys(a).every((key) =>
-            ['type', 'turnId', 'conversationId', 'Soa', 'Wl'].includes(key),
+            ['type', 'turnId', 'conversationId', 'epa', 'Yl'].includes(key),
           ), 'response-action');
         const pending = continuations[0];
         require(pending &&
           !pairedActionInFlight &&
-          ['turnId', 'conversationId', 'Soa'].every(
+          ['turnId', 'conversationId', 'epa'].every(
             (key) => a[key] === pending[key],
           ), 'response-action');
         pairedActionInFlight = true;
-        context(a.Wl);
+        context(a.Yl);
         active(false);
         const fresh = record(value);
         require(Object.keys(fresh).length === 5 &&
           Object.keys(a).every(
             (key) => Object.hasOwn(fresh, key) && fresh[key] === a[key],
           ), 'response-action');
-        context(fresh.Wl);
+        context(fresh.Yl);
         require(!closed && continuations[0] === pending, 'response-action');
         continuations.shift();
         pairedActionInFlight = false;
-      } else if (type === types.wLd) {
+      } else if (type === types.RLd) {
         require(disconnect &&
           disconnectPending &&
           disconnectForwarding &&
           !pairedActionInFlight &&
           Object.keys(a).length === 5 &&
           Object.keys(a).every((key) =>
-            ['type', 'turnId', 'conversationId', 'BFc', 'Wl'].includes(key),
+            ['type', 'turnId', 'conversationId', 'jGc', 'Yl'].includes(key),
           ) &&
-          ['turnId', 'conversationId', 'BFc'].every(
+          ['turnId', 'conversationId', 'jGc'].every(
             (key) => a[key] === disconnect![key],
           ), 'response-action');
         pairedActionInFlight = true;
-        disconnectPayload(a.BFc);
-        context(a.Wl);
+        disconnectPayload(a.jGc);
+        context(a.Yl);
         active(false);
         const fresh = record(value);
         require(Object.keys(fresh).length === 5 &&
           Object.keys(a).every(
             (key) => Object.hasOwn(fresh, key) && fresh[key] === a[key],
           ), 'response-action');
-        context(fresh.Wl);
-        disconnectPayload(a.BFc);
+        context(fresh.Yl);
+        disconnectPayload(a.jGc);
         disconnectPending = false;
         pairedActionInFlight = false;
       } else if (
         [
-          types.mM,
-          types.XKd,
-          types.nLd,
-          types.oLd,
-          types.WKd,
-          types.pLd,
-          types.tLd,
+          types.dM,
           types.rLd,
+          types.ILd,
+          types.JLd,
           types.qLd,
-          types.kMd,
-          types.fMd,
-          types.dMd,
-          types.gLd,
+          types.KLd,
+          types.OLd,
+          types.MLd,
+          types.LLd,
+          types.FMd,
+          types.AMd,
+          types.yMd,
+          types.BLd,
         ].includes(type)
       )
         stop('response-action');
-      else if ([types.NKd, types.YKd].includes(type)) {
-        const c = record(a.VD),
+      else if ([types.hLd, types.sLd].includes(type)) {
+        const c = record(a.WD),
           r = record(c.request);
-        require(c.ze === approved!.storeId &&
+        require(c.Ae === approved!.storeId &&
           r.clientTurnId === approved!.clientTurnId, 'response-action');
       }
     });
@@ -1628,14 +1692,14 @@ export async function runGeminiSdkFixedTextTrial(
                     } else if (event.responseType === 'CONTINUATION_UPDATE') {
                       require(Object.keys(event).length === 4 &&
                         Object.keys(event).every((key) =>
-                          ['responseType', 'conversationId', 'turnId', 'Soa'].includes(key),
+                          ['responseType', 'conversationId', 'turnId', 'epa'].includes(key),
                         ) &&
                         Object.hasOwn(event, 'conversationId') &&
                         Object.hasOwn(event, 'turnId') &&
-                        event.Soa !== null &&
-                        typeof event.Soa === 'object' &&
-                        !Array.isArray(event.Soa) &&
-                        Object.getPrototypeOf(event.Soa) === continuationPrototype &&
+                        event.epa !== null &&
+                        typeof event.epa === 'object' &&
+                        !Array.isArray(event.epa) &&
+                        Object.getPrototypeOf(event.epa) === continuationPrototype &&
                         continuations.length < 128, 'response-event-2');
                       bindIds(event.conversationId, event.turnId, true);
                       continuations.push(event);
@@ -1646,11 +1710,11 @@ export async function runGeminiSdkFixedTextTrial(
                         continuations.length === 0, 'response-disconnect-3');
                       require(Object.keys(event).length === 4 &&
                         Object.keys(event).every((key) =>
-                          ['responseType', 'turnId', 'conversationId', 'BFc'].includes(key),
+                          ['responseType', 'turnId', 'conversationId', 'jGc'].includes(key),
                         ), 'response-disconnect-4');
                       require(event.conversationId === previousEvent.conversationId &&
                         event.turnId === previousEvent.turnId, 'response-disconnect-5');
-                      disconnectPayload(event.BFc, 'response-disconnect-6');
+                      disconnectPayload(event.jGc, 'response-disconnect-6');
                       disconnect = event;
                       disconnectSource = value;
                       disconnectPending = true;
@@ -1855,11 +1919,14 @@ export async function runGeminiSdkFixedTextTrial(
               !rawFrameInFlight, 'response-action');
             active(false);
           },
-          error: rawObserver.error,
+          error(diagnostic) {
+            const parsed = GeminiNativeReceiveDiagnostic.safeParse(diagnostic);
+            stop('dispatch-observation', parsed.success ? parsed.data : undefined);
+          },
         },
       );
       dispatch = nativeDispatch;
-      nativeFactoryDescriptor = Object.getOwnPropertyDescriptor(namespace, 'dKd');
+      nativeFactoryDescriptor = Object.getOwnPropertyDescriptor(namespace, 'wKd');
     } else {
       dispatch = armGeminiRpcDispatch(
         namespace,
@@ -1876,16 +1943,16 @@ export async function runGeminiSdkFixedTextTrial(
         rawObserver,
       );
     }
-    require(Object.isExtensible(api) && !Object.hasOwn(api, 'Zxb'), 'dispatch-descriptor');
-    Object.defineProperty(api, 'Zxb', { value: gate, configurable: true, writable: true });
-    if (nativeDispatch) nativeGateDescriptor = Object.getOwnPropertyDescriptor(api, 'Zxb');
+    require(Object.isExtensible(api) && !Object.hasOwn(api, 'ybb'), 'dispatch-descriptor');
+    Object.defineProperty(api, 'ybb', { value: gate, configurable: true, writable: true });
+    if (nativeDispatch) nativeGateDescriptor = Object.getOwnPropertyDescriptor(api, 'ybb');
     installed = true;
     active();
     started = true;
     let returned: unknown;
     try {
       returned = Reflect.apply(send, conversation, [
-        { textQuery: GEMINI_FIXED_TEXT_TRIAL_PROMPT, Rg: false, uh: false, clientTurnId },
+        { textQuery: GEMINI_FIXED_TEXT_TRIAL_PROMPT, Pg: false, oh: false, clientTurnId },
       ]);
     } catch (error) {
       stop(reason(error, nativeDispatch ? 'dispatch-native-n27' : 'dispatch'));
@@ -1949,6 +2016,9 @@ export async function runGeminiSdkFixedTextTrial(
     } catch {
       if (!nativeDispatch || !terminal) throw failure('cleanup');
     }
-    throw failure(!terminal && settingUp && cause === 'capture' ? setupStage : cause);
+    throw failure(
+      !terminal && settingUp && cause === 'capture' ? setupStage : cause,
+      readGeminiNativeReceiveErrorDiagnostic(terminal),
+    );
   }
 }

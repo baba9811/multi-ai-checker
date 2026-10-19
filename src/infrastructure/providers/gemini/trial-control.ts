@@ -1,6 +1,8 @@
 import {
   GeminiFixedTextTrialReason,
   GeminiFixedTextTrialResult,
+  GeminiFixedTextTrialErrorProgress,
+  readGeminiNativeReceiveErrorDiagnostic,
   type GeminiFixedTextTrialProgress,
 } from '../../../application/gemini-fixed-text-trial';
 import { LIMITS } from '../../../domains/crosscheck/model';
@@ -74,7 +76,20 @@ export function createGeminiTrialControl(
       });
       finish({ status: 'done', result: Object.freeze(result) });
     } catch (error) {
-      if (active()) finish({ status: 'error', reason: failure(error) });
+      if (active()) {
+        const reason = failure(error);
+        const diagnostic =
+          reason === 'dispatch-observation'
+            ? readGeminiNativeReceiveErrorDiagnostic(error)
+            : undefined;
+        finish(
+          GeminiFixedTextTrialErrorProgress.parse({
+            status: 'error',
+            reason,
+            ...(diagnostic ? { diagnostic } : {}),
+          }),
+        );
+      }
     }
   }
 
@@ -82,10 +97,10 @@ export function createGeminiTrialControl(
     current: () => active() && started,
     bootstrap: Object.freeze({ capability }),
     registry: Object.freeze({
-      terminalError(received: unknown): GeminiFixedTextTrialReason | null {
+      terminalError(received: unknown): GeminiFixedTextTrialErrorProgress | null {
         if (typeof received !== 'string' || received !== capability || !started || !closed)
           return null;
-        return progress.status === 'error' ? progress.reason : null;
+        return progress.status === 'error' ? progress : null;
       },
       lease(received: unknown): GeminiFixedTextTrialProgress {
         if (typeof received !== 'string' || received !== capability) return interrupted;

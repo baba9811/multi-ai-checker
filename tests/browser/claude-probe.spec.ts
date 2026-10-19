@@ -1,3 +1,4 @@
+import { installCollectorFixture } from '../fixtures/chrome/collector';
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
 import {
@@ -71,6 +72,7 @@ async function setup(page: Page, options: { partialTurn?: number; changedReadbac
       },
     };
   });
+  await page.evaluate(installCollectorFixture);
   await page.addScriptTag({ path: path.resolve('.output/chrome-mv3/bridge.js') });
   const snapshot = (await command(page, { type: 'snapshot' })).data;
   return { ...fixture, target: { documentId: snapshot.documentId, url: snapshot.url } };

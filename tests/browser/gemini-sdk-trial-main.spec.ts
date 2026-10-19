@@ -100,7 +100,10 @@ test('compiled MAIN first lease fails closed on a missing client and never start
     status: 'error',
     reason: 'client-initial-owner-context',
   });
-  expect(await control(page, bootstrap, 'terminalError')).toBe('client-initial-owner-context');
+  expect(await control(page, bootstrap, 'terminalError')).toEqual({
+    status: 'error',
+    reason: 'client-initial-owner-context',
+  });
   expect(await control(page, bootstrap, 'terminalError', 'wrong')).toBeNull();
   expect(await page.locator('[role="menu"]').count()).toBe(0);
   expect(await page.evaluate(() => (window as any).fixtureNetworkCalls)).toBe(0);
@@ -123,7 +126,7 @@ for (const change of ['draft', 'route'] as const) {
 }
 
 test.describe('compiled MAIN real native receive graph', () => {
-  for (const state of ['empty', 'saa', 'vNc'] as const) {
+  for (const state of ['empty', 'waa', 'gOc'] as const) {
     test(`Native62 compiled source initial state ${state} preserves admission and original completion/history`, async ({
       page,
     }) => {
@@ -132,17 +135,17 @@ test.describe('compiled MAIN real native receive graph', () => {
         await page.evaluate((state) => {
           const f = (window as any).fixtureNative;
           if (state !== 'empty')
-            f.thread.emit({ ...f.thread.latest, [state]: state === 'saa' ? {} : true });
+            f.thread.emit({ ...f.thread.latest, [state]: state === 'waa' ? {} : true });
           const root = f.conversation.store.state();
           return {
-            id: f.namespace.AC(root) === f.approved.storeId,
-            thread: f.namespace.wC(root) === f.thread.latest,
+            id: f.namespace.zC(root) === f.approved.storeId,
+            thread: f.namespace.xC(root) === f.thread.latest,
             fallback:
-              f.namespace.wC({
-                'bard-conversations': { ...root['bard-conversations'], Rm: {} },
-              }) === f.initialState.source.Sec,
-            turns: f.initialState.source.$ec(root),
-            legacy: Object.hasOwn(f.thread.latest, 'Gj'),
+              f.namespace.xC({
+                'bard-conversations': { ...root['bard-conversations'], Um: {} },
+              }) === f.initialState.source.cgc,
+            turns: f.initialState.source.kgc(root),
+            legacy: Object.hasOwn(f.thread.latest, 'Ij'),
           };
         }, state),
       ).toEqual({
@@ -209,62 +212,63 @@ test.describe('compiled MAIN real native receive graph', () => {
       });
     });
   }
-  test('Native63 compiled exact current construction waits for original completion and same-CID history', async ({
-    page,
-  }) => {
-    const { bootstrap } = await setup(page, true);
-    expect(
+  for (const survey of [false, true])
+    test(`Native63 compiled ${survey ? 'survey ignored' : 'exact current construction'} waits for original completion and same-CID history`, async ({
+      page,
+    }) => {
+      const { bootstrap } = await setup(page, true);
+      expect(
+        await page.evaluate(() => {
+          const f = (window as any).fixtureNative;
+          Object.assign(f.packet.request, f.sourceConstruction.privacy(f.packet.request, true));
+          f.change.deferSuccess();
+          return {
+            envelope: Object.keys(f.packet),
+            version: f.packet.request.xS,
+            privacy: f.packet.request.x5d.fl[0],
+          };
+        }),
+      ).toEqual({ envelope: ['request', 't8a', 'u8a'], version: '', privacy: 1 });
+      expect(await control(page, bootstrap, 'lease')).toEqual({ status: 'pending' });
+      await expect
+        .poll(() => page.evaluate(() => (window as any).fixtureNative.native.calls.query))
+        .toBe(1);
+      await receive(page, false, survey);
       await page.evaluate(() => {
         const f = (window as any).fixtureNative;
-        Object.assign(f.packet.request, f.sourceConstruction.privacy(f.packet.request, true));
-        f.change.deferSuccess();
-        return {
-          envelope: Object.keys(f.packet),
-          version: f.packet.request.vS,
-          privacy: f.packet.request.s4d.fl[0],
-        };
-      }),
-    ).toEqual({ envelope: ['request', 'g8a', 'h8a'], version: '', privacy: 1 });
-    expect(await control(page, bootstrap, 'lease')).toEqual({ status: 'pending' });
-    await expect
-      .poll(() => page.evaluate(() => (window as any).fixtureNative.native.calls.query))
-      .toBe(1);
-    await receive(page);
-    await page.evaluate(() => {
-      const f = (window as any).fixtureNative;
-      f.native.receive(f.native.nativeClose(5));
-    });
-    expect(await control(page, bootstrap, 'lease')).toEqual({ status: 'pending' });
-    expect(await page.evaluate(() => (window as any).fixtureNative.calls.history)).toBe(0);
-    await page.evaluate(() => (window as any).fixtureNative.success());
-    await expect
-      .poll(() => control(page, bootstrap, 'lease'))
-      .toEqual({
-        status: 'done',
-        result: { model: 'Automatic fixture', answer: 'CROSSCHECK_GEMINI_OK' },
+        f.native.receive(f.native.nativeClose(5));
       });
-    expect(
-      await page.evaluate(() => {
-        const f = (window as any).fixtureNative;
-        return {
-          query: f.native.calls.query,
-          history: f.calls.history,
-          cid: f.savedHistory.wrapper().requestMessage.fl[0],
-        };
-      }),
-    ).toEqual({ query: 1, history: 1, cid: 'c_47' });
-  });
-  for (const kind of ['legacy', 'mixed', 'privacy', 'g8a', 'h8a'] as const)
+      expect(await control(page, bootstrap, 'lease')).toEqual({ status: 'pending' });
+      expect(await page.evaluate(() => (window as any).fixtureNative.calls.history)).toBe(0);
+      await page.evaluate(() => (window as any).fixtureNative.success());
+      await expect
+        .poll(() => control(page, bootstrap, 'lease'))
+        .toEqual({
+          status: 'done',
+          result: { model: 'Automatic fixture', answer: 'CROSSCHECK_GEMINI_OK' },
+        });
+      expect(
+        await page.evaluate(() => {
+          const f = (window as any).fixtureNative;
+          return {
+            query: f.native.calls.query,
+            history: f.calls.history,
+            cid: f.savedHistory.wrapper().requestMessage.fl[0],
+          };
+        }),
+      ).toEqual({ query: 1, history: 1, cid: 'c_47' });
+    });
+  for (const kind of ['legacy', 'mixed', 'privacy', 't8a', 'u8a'] as const)
     test(`Native63 compiled refuses ${kind} without another query or history`, async ({ page }) => {
       const { bootstrap } = await setup(page, true);
       await page.evaluate((kind) => {
         const f = (window as any).fixtureNative;
         if (kind === 'legacy' || kind === 'mixed') {
-          f.packet.R7a = f.packet.g8a;
-          f.packet.S7a = f.packet.h8a;
+          f.packet.R7a = f.packet.t8a;
+          f.packet.S7a = f.packet.u8a;
           if (kind === 'legacy') {
-            delete f.packet.g8a;
-            delete f.packet.h8a;
+            delete f.packet.t8a;
+            delete f.packet.u8a;
           }
         } else if (kind === 'privacy')
           Object.assign(f.packet.request, f.sourceConstruction.privacy(f.packet.request, true));
@@ -276,8 +280,8 @@ test.describe('compiled MAIN real native receive graph', () => {
           .toBe(1);
         await page.evaluate((kind) => {
           const f = (window as any).fixtureNative;
-          if (kind === 'privacy') f.packet.request.s4d.fl[0] = 2;
-          else f.packet[kind] = kind === 'g8a' ? 'changed-valid-protection' : '1'.repeat(32);
+          if (kind === 'privacy') f.packet.request.x5d.fl[0] = 2;
+          else f.packet[kind] = kind === 't8a' ? 'changed-valid-protection' : '1'.repeat(32);
           try {
             f.native.flushOpen();
           } catch {}
@@ -305,7 +309,7 @@ test.describe('compiled MAIN real native receive graph', () => {
       });
     });
 
-  test('Native65 compiled default outbound and inbound oneof caches preserve original completion and same-CID history', async ({
+  test('Native70 compiled full original structured projection preserves original completion and same-CID history', async ({
     page,
   }) => {
     const bootstrap = await begin(page, true);
@@ -317,15 +321,41 @@ test.describe('compiled MAIN real native receive graph', () => {
           [config, query] = n.queued();
         f.change.deferSuccess();
         return {
-          config: config.fl[ns.dga].get(ns.eM),
+          config: config.fl[ns.dga].get(ns.XL),
           cloned: config.fl[0].fl[ns.dga] === undefined,
-          query: query.fl[ns.dga].get(ns.eM),
-          text: query.fl[1].fl[ns.dga].get(ns.cM),
+          query: query.fl[ns.dga].get(ns.XL),
+          text: query.fl[1].fl[ns.dga].get(ns.VL),
           sends: n.calls.nativeSends,
         };
       }),
     ).toEqual({ config: 1, cloned: true, query: 2, text: 9, sends: 0 });
-    expect(await receive(page)).toEqual([2, 7, 1, 4]);
+    expect(
+      await page.evaluate(() => {
+        const f = (window as any).fixtureNative,
+          n = f.native,
+          ns = n.namespace;
+        n.flushOpen();
+        const raw = n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true });
+        const node = new ns.oH([undefined, new ns.gH([undefined, 0, 'CROSSCHECK_GEMINI_OK'])]);
+        raw.fl[26] = [new ns.qH([[node]])];
+        raw.Fb = ns.Kaa;
+        raw.tcc = ns.Kaa;
+        raw.fl[1].Fb = ns.Kaa;
+        raw.fl[1].tcc = ns.Kaa;
+        let before: any;
+        n.onReceive((stage: string, value: any) => {
+          if (stage === 'RJd:before') before = value.fl;
+        });
+        n.receive(n.nativeEnvelope(raw), true);
+        return {
+          events: f.forwarded.map((event: any) => event.responseType),
+          ff: raw.fl[ns.dga].get(ns.HF),
+          node: raw.fl[26][0].fl[0][0].fl[ns.dga].get(ns.pH),
+          detached: raw.fl !== before,
+          deferred: n.deferredErrors.length,
+        };
+      }),
+    ).toEqual({ events: ['TURN_COMPLETED', 'TURN'], ff: 0, node: 2, detached: true, deferred: 0 });
     await page.evaluate(() => {
       const f = (window as any).fixtureNative;
       f.native.receive(f.native.nativeClose(5));
@@ -349,7 +379,84 @@ test.describe('compiled MAIN real native receive graph', () => {
         };
       }),
     ).toEqual({ query: 1, sends: 4, history: 1, cid: 'c_47' });
+    expect(page.url()).toBe('https://gemini.google.com/app');
+    expect(await control(page, bootstrap, 'stop')).toBe(true);
+    await page.evaluate(() => history.replaceState(null, '', '/app/99'));
+    expect(await control(page, bootstrap, 'stop')).toBe(false);
+    await page.evaluate(() => history.replaceState(null, '', '/app/47'));
+    expect(page.url()).toBe('https://gemini.google.com/app/47');
+    expect(await control(page, bootstrap, 'stop')).toBe(true);
   });
+  for (const detachment of [false, true])
+    test(`Native70 compiled source HF cache corruption retains exact refusal and inert terminal evidence with detach=${detachment}`, async ({
+      page,
+    }) => {
+      const bootstrap = await begin(page, true);
+      const expected = {
+        status: 'error',
+        reason: 'dispatch-observation',
+        diagnostic: { origin: 'receipt-currentness', predicate: 'cache-selection' },
+      };
+      await page.evaluate((detachment) => {
+        const f = (window as any).fixtureNative,
+          n = f.native,
+          ns = n.namespace;
+        n.flushOpen();
+        const raw = n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true });
+        if (detachment) {
+          raw.Fb = ns.Kaa;
+          raw.tcc = ns.Kaa;
+          raw.fl[1].Fb = ns.Kaa;
+          raw.fl[1].tcc = ns.Kaa;
+        }
+        (window as any).fixtureNative70Raw = raw;
+        n.onReceive((stage: string) => {
+          if (stage === 'RJd:after') {
+            Object.freeze(raw.fl[ns.dga]);
+            raw.fl[ns.dga].set(ns.HF, 21);
+          }
+        });
+        try {
+          n.receive(n.nativeEnvelope(raw), true);
+        } catch {}
+      }, detachment);
+      await expect.poll(() => control(page, bootstrap, 'lease')).toEqual(expected);
+      expect(await control(page, bootstrap, 'stop')).toBe(false);
+      const counters = () =>
+        page.evaluate(() => {
+          const f = (window as any).fixtureNative,
+            n = f.native;
+          return { query: n.calls.query, sends: n.calls.nativeSends, history: f.calls.history };
+        });
+      const before = await counters();
+      for (let i = 0; i < 3; i++)
+        expect(await control(page, bootstrap, 'terminalError')).toEqual(expected);
+      expect(await control(page, bootstrap, 'stop')).toBe(false);
+      expect(await counters()).toEqual(before);
+      expect(
+        await page.evaluate(() => {
+          const f = (window as any).fixtureNative,
+            n = f.native,
+            ns = n.namespace,
+            raw = (window as any).fixtureNative70Raw;
+          return {
+            query: n.calls.query,
+            history: f.calls.history,
+            complete: f.complete,
+            physicalState: n.graph().connection.wq.ha.hU,
+            retained: raw.fl[ns.dga].get(ns.HF) === 21,
+            deferred: n.deferredErrors.length,
+          };
+        }),
+      ).toEqual({
+        query: 1,
+        history: 0,
+        complete: false,
+        physicalState: 3,
+        retained: true,
+        deferred: 0,
+      });
+    });
   test('Native65 compiled frozen inbound cache mutation latches refusal and quarantine', async ({
     page,
   }) => {
@@ -363,9 +470,9 @@ test.describe('compiled MAIN real native receive graph', () => {
       n.onReceive((stage: string) => {
         if (stage === 'RJd:before') {
           Object.freeze(envelope.fl[ns.dga]);
-          envelope.fl[ns.dga].set(ns.hM, 4);
+          envelope.fl[ns.dga].set(ns.$L, 4);
         }
-        if (stage === 'RJd:after') envelope.fl[ns.dga].set(ns.hM, 2);
+        if (stage === 'RJd:after') envelope.fl[ns.dga].set(ns.$L, 2);
       });
       try {
         n.receive(envelope);
@@ -376,6 +483,7 @@ test.describe('compiled MAIN real native receive graph', () => {
       .toEqual({
         status: 'error',
         reason: 'dispatch-observation',
+        diagnostic: { origin: 'receipt-currentness', predicate: 'cache-selection' },
       });
     expect(await control(page, bootstrap, 'stop')).toBe(false);
     expect(
@@ -394,12 +502,12 @@ test.describe('compiled MAIN real native receive graph', () => {
         const n = (window as any).fixtureNative.native,
           ns = n.namespace,
           config = n.queued()[0];
-        (window as any).fixtureNative64 = { config, child: config.fl[0], originalGroup: ns.eM };
+        (window as any).fixtureNative64 = { config, child: config.fl[0], originalGroup: ns.XL };
         if (kind === 'cache') {
           Object.freeze(config.fl);
           Object.freeze(config.fl[ns.dga]);
-          config.fl[ns.dga].set(ns.eM, 2);
-        } else ns.eM = [...ns.eM];
+          config.fl[ns.dga].set(ns.XL, 2);
+        } else ns.XL = [...ns.XL];
         try {
           n.flushOpen();
         } catch {}
@@ -408,7 +516,7 @@ test.describe('compiled MAIN real native receive graph', () => {
         .poll(() => control(page, bootstrap, 'lease'))
         .toEqual({
           status: 'error',
-          reason: kind === 'cache' ? 'dispatch-native-n20' : 'dispatch-native-n10',
+          reason: kind === 'cache' ? 'dispatch-native-n20-forward-before' : 'dispatch-native-n10',
         });
       expect(
         await page.evaluate((kind) => {
@@ -419,8 +527,8 @@ test.describe('compiled MAIN real native receive graph', () => {
           return {
             changed:
               kind === 'cache'
-                ? retained.config.fl[ns.dga].get(ns.eM) === 2
-                : ns.eM !== retained.originalGroup,
+                ? retained.config.fl[ns.dga].get(ns.XL) === 2
+                : ns.XL !== retained.originalGroup,
             unchanged: retained.config.fl[0] === retained.child,
             query: n.calls.query,
             sends: n.calls.nativeSends,
@@ -437,12 +545,12 @@ test.describe('compiled MAIN real native receive graph', () => {
       await page.evaluate(() => {
         const f = (window as any).fixtureNative,
           ns = f.native.namespace;
-        const descriptor = Object.getOwnPropertyDescriptor(ns.PF.prototype, 'pG');
+        const descriptor = Object.getOwnPropertyDescriptor(ns.QF.prototype, 'sG');
         return {
-          registry: ns.uPb instanceof Map,
+          registry: ns.zPb instanceof Map,
           oldRegistry: Object.hasOwn(ns, 'fPb'),
           catalog: !!descriptor && 'value' in descriptor && typeof descriptor.value === 'function',
-          catalogReceiver: Object.getPrototypeOf(f.consumer.nb) === ns.PF.prototype,
+          catalogReceiver: Object.getPrototypeOf(f.consumer.nb) === ns.QF.prototype,
           oldCatalog: Object.hasOwn(ns, 'OK'),
         };
       }),
@@ -460,30 +568,33 @@ test.describe('compiled MAIN real native receive graph', () => {
       .toBe(1);
     return bootstrap;
   }
-  async function receive(page: Page, seed = false) {
-    return page.evaluate((seed) => {
-      const f = (window as any).fixtureNative,
-        n = f.native;
-      n.flushOpen();
-      if (seed) f.raw.fl[0][0][0][1] = f.approved.clientTurnId;
-      const envelope = n.nativeEnvelope(
-        n.nativeKf({ cid: 'c_47', ...(seed ? {} : { rid: 'r_48' }), final: true }),
-      );
-      n.receive(envelope);
-      let value = envelope;
-      return (
-        [
-          ['hM', 2],
-          ['gM', 7],
-          ['CJd', 1],
-          ['fM', 4],
-        ] as const
-      ).map(([key, field]) => {
-        const selected = value.fl[n.namespace.dga].get(n.namespace[key]);
-        value = value.fl[field - 1];
-        return selected;
-      });
-    }, seed);
+  async function receive(page: Page, seed = false, survey = false) {
+    return page.evaluate(
+      ({ seed, survey }) => {
+        const f = (window as any).fixtureNative,
+          n = f.native;
+        n.flushOpen();
+        if (seed) f.raw.fl[0][0][0][1] = f.approved.clientTurnId;
+        const raw = n.nativeKf({ cid: 'c_47', ...(seed ? {} : { rid: 'r_48' }), final: true });
+        if (survey) raw.fl[24] = [['SYNTHETIC_PRIVATE_SURVEY']];
+        const envelope = n.nativeEnvelope(raw);
+        n.receive(envelope);
+        let value = envelope;
+        return (
+          [
+            ['$L', 2],
+            ['ZL', 7],
+            ['SJd', 1],
+            ['iM', 4],
+          ] as const
+        ).map(([key, field]) => {
+          const selected = value.fl[n.namespace.dga].get(n.namespace[key]);
+          value = value.fl[field - 1];
+          return selected;
+        });
+      },
+      { seed, survey },
+    );
   }
   test('compiled MAIN waits for a cold whole-owner header transition through original completion and history', async ({
     page,
@@ -583,7 +694,7 @@ test.describe('compiled MAIN real native receive graph', () => {
       }),
     ).toEqual({ send: 1, query: 1, history: 1, cid: 'c_47' });
   });
-  test('compiled MAIN refuses equivalent original int64 raw type mutation before physical send', async ({
+  test('Native73 compiled MAIN propagates forward-before refusal for original int64 mutation', async ({
     page,
   }) => {
     const bootstrap = await begin(page, true);
@@ -601,7 +712,7 @@ test.describe('compiled MAIN real native receive graph', () => {
     ).toBe(true);
     await expect
       .poll(() => control(page, bootstrap, 'lease'))
-      .toEqual({ status: 'error', reason: 'dispatch-native-n20' });
+      .toEqual({ status: 'error', reason: 'dispatch-native-n20-forward-before' });
     expect(
       await page.evaluate(() => {
         const f = (window as any).fixtureNative;
@@ -684,7 +795,7 @@ test.describe('compiled MAIN real native receive graph', () => {
       const n = (window as any).fixtureNative.native;
       // A second configuration entry is refused before calling the original builder.
       try {
-        n.namespace.LJd(
+        n.namespace.aKd(
           n.graph(),
           n.ok,
           n.api.requestSource,
@@ -696,12 +807,14 @@ test.describe('compiled MAIN real native receive graph', () => {
     await expect
       .poll(() => control(page, bootstrap, 'lease'))
       .toEqual({ status: 'error', reason: 'dispatch-native-n15-config-state' });
-    expect(await control(page, bootstrap, 'terminalError')).toBe(
-      'dispatch-native-n15-config-state',
-    );
-    expect(await control(page, bootstrap, 'terminalError')).toBe(
-      'dispatch-native-n15-config-state',
-    );
+    expect(await control(page, bootstrap, 'terminalError')).toEqual({
+      status: 'error',
+      reason: 'dispatch-native-n15-config-state',
+    });
+    expect(await control(page, bootstrap, 'terminalError')).toEqual({
+      status: 'error',
+      reason: 'dispatch-native-n15-config-state',
+    });
     expect(
       await page.evaluate(() => {
         const f = (window as any).fixtureNative;
@@ -720,19 +833,22 @@ test.describe('compiled MAIN real native receive graph', () => {
     const bootstrap = await begin(page);
     await page.evaluate(() => {
       const n = (window as any).fixtureNative.native;
-      const source = n.namespace.LJd;
-      n.namespace.LJd = () => {};
+      const source = n.namespace.aKd;
+      n.namespace.aKd = () => {};
       try {
         n.flushOpen();
       } catch {
       } finally {
-        n.namespace.LJd = source;
+        n.namespace.aKd = source;
       }
     });
     await expect
       .poll(() => control(page, bootstrap, 'lease'))
       .toEqual({ status: 'error', reason: 'dispatch-native-n10' });
-    expect(await control(page, bootstrap, 'terminalError')).toBe('dispatch-native-n10');
+    expect(await control(page, bootstrap, 'terminalError')).toEqual({
+      status: 'error',
+      reason: 'dispatch-native-n10',
+    });
     expect(
       await page.evaluate(() => ({
         query: (window as any).fixtureNative.native.calls.query,
@@ -804,13 +920,13 @@ test.describe('compiled MAIN real native receive graph', () => {
       n.receive(n.nativeEnvelope(raw));
       const routing = f.forwarded[1],
         action = f.actions.latest,
-        request = action.Wl.request;
+        request = action.Yl.request;
       n.receive(n.nativeEnvelope(n.nativeKf({ cid: 'c_47', rid: 'r_48' })));
       const unchanged =
         first.response.turnId === f.approved.clientTurnId &&
         routing.turnId === f.approved.clientTurnId &&
-        action.Xbd === routing &&
-        action.Wl.request === request &&
+        action.Wcd === routing &&
+        action.Yl.request === request &&
         request.clientTurnId === f.approved.clientTurnId;
       n.receive(n.nativeEnvelope(n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true })));
       n.receive(n.nativeClose(5));
@@ -850,7 +966,7 @@ test.describe('compiled MAIN real native receive graph', () => {
               n.flushOpen();
             } else if (scenario === 'owner' || scenario === 'source') {
               if (scenario === 'owner') f.consumer.Oa = {};
-              else n.namespace.LJd = () => {};
+              else n.namespace.aKd = () => {};
               n.flushOpen();
             } else {
               n.flushOpen();
@@ -902,8 +1018,8 @@ test.describe('compiled MAIN real native receive graph', () => {
     const bootstrap = await begin(page);
     await page.evaluate(() => {
       const f = (window as any).fixtureNative;
-      Object.defineProperty(f.consumer.nb, 'pG', {
-        value: f.native.namespace.PF.prototype.pG,
+      Object.defineProperty(f.consumer.nb, 'sG', {
+        value: f.native.namespace.QF.prototype.sG,
         configurable: true,
       });
       try {
@@ -923,6 +1039,278 @@ test.describe('compiled MAIN real native receive graph', () => {
         };
       }),
     ).toEqual({ query: 1, nativeSends: 0, history: 0 });
+  });
+  for (const origin of ['capture', 'original-callback'] as const) {
+    test(`Native66 compiled MAIN ${origin} diagnostic through ${origin === 'capture' ? 'ordinary lease' : 'settled terminal fallback'}`, async ({
+      page,
+    }) => {
+      const expected = {
+        status: 'error',
+        reason: 'dispatch-observation',
+        diagnostic: {
+          origin,
+          predicate: origin === 'capture' ? 'dispatch-native-n15-wire-06' : 'unknown',
+        },
+      } as const;
+      const bootstrap = await begin(page);
+      await page.evaluate((origin) => {
+        const f = (window as any).fixtureNative,
+          n = f.native;
+        n.flushOpen();
+        const raw = n.nativeKf({ cid: 'c_47', rid: 'r_48' });
+        (window as any).fixtureNative66Raw = raw;
+        if (origin === 'capture') raw.fl.extra = 'SYNTHETIC_PRIVATE';
+        else
+          n.project(() => {
+            raw.fl[14] = true;
+            throw Error('SYNTHETIC_A');
+          });
+        try {
+          n.receive(n.nativeEnvelope(raw));
+        } catch {}
+        if (origin === 'original-callback') f.change.draft('SYNTHETIC_RESTORED_DRAFT');
+      }, origin);
+      const method = origin === 'capture' ? 'lease' : 'terminalError';
+      await expect.poll(() => control(page, bootstrap, method)).toEqual(expected);
+      expect(await control(page, bootstrap, 'terminalError', 'wrong')).toBeNull();
+      expect(
+        await page.evaluate(() => {
+          const f = (window as any).fixtureNative,
+            n = f.native;
+          return {
+            send: f.calls.send,
+            query: n.calls.query,
+            history: f.calls.history,
+            complete: f.complete,
+            physicalState: n.graph().connection.wq.ha.hU,
+          };
+        }),
+      ).toEqual({ send: 1, query: 1, history: 0, complete: false, physicalState: 3 });
+      expect(await control(page, bootstrap, 'stop')).toBe(false);
+      const counters = () =>
+        page.evaluate(() => {
+          const f = (window as any).fixtureNative,
+            n = f.native;
+          return {
+            query: n.calls.query,
+            nativeSends: n.calls.nativeSends,
+            history: f.calls.history,
+          };
+        });
+      const beforeQueries = await counters();
+      for (let query = 0; query < 3; query++)
+        expect(await control(page, bootstrap, 'terminalError')).toEqual(expected);
+      expect(await control(page, bootstrap, 'stop')).toBe(false);
+      expect(await counters()).toEqual(beforeQueries);
+      expect(
+        await page.evaluate((origin) => {
+          const f = (window as any).fixtureNative,
+            raw = (window as any).fixtureNative66Raw;
+          return {
+            physicalState: f.native.graph().connection.wq.ha.hU,
+            evidenceRetained:
+              origin === 'capture' ? raw.fl.extra === 'SYNTHETIC_PRIVATE' : raw.fl[14] === true,
+            draftRetained:
+              origin !== 'original-callback' || f.draft() === 'SYNTHETIC_RESTORED_DRAFT',
+          };
+        }, origin),
+      ).toEqual({ physicalState: 3, evidenceRetained: true, draftRetained: true });
+      // MAIN is compiled production code; provider/runtime, DOM and network are synthetic.
+      expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+      expect(await page.evaluate(() => (window as any).fixtureNetworkCalls)).toBe(0);
+    });
+  }
+  test('Native67 compiled MAIN raw text fields diagnostic P18-R3-P230 remains inert through terminal queries', async ({
+    page,
+  }) => {
+    const expected = {
+      status: 'error',
+      reason: 'dispatch-observation',
+      diagnostic: { origin: 'capture', predicate: 'fields-raw-text' },
+    } as const;
+    const bootstrap = await begin(page);
+    await page.evaluate(() => {
+      const f = (window as any).fixtureNative,
+        n = f.native;
+      n.flushOpen();
+      const raw = n.nativeKf({ cid: 'c_47', rid: 'r_48' });
+      (window as any).fixtureNative67Raw = raw;
+      raw.fl[4][0].fl[1].fl[1] = 'SYNTHETIC_PRIVATE';
+      try {
+        n.receive(n.nativeEnvelope(raw));
+      } catch {}
+    });
+    await expect.poll(() => control(page, bootstrap, 'terminalError')).toEqual(expected);
+    expect(await control(page, bootstrap, 'terminalError', 'wrong')).toBeNull();
+    const counters = () =>
+      page.evaluate(() => {
+        const f = (window as any).fixtureNative,
+          n = f.native;
+        return { query: n.calls.query, nativeSends: n.calls.nativeSends, history: f.calls.history };
+      });
+    const before = await counters();
+    for (let query = 0; query < 3; query++)
+      expect(await control(page, bootstrap, 'terminalError')).toEqual(expected);
+    expect(await control(page, bootstrap, 'stop')).toBe(false);
+    expect(await counters()).toEqual(before);
+    expect(
+      await page.evaluate(() => {
+        const f = (window as any).fixtureNative,
+          n = f.native;
+        return {
+          send: f.calls.send,
+          query: n.calls.query,
+          history: f.calls.history,
+          complete: f.complete,
+          physicalState: n.graph().connection.wq.ha.hU,
+          retained: (window as any).fixtureNative67Raw.fl[4][0].fl[1].fl[1] === 'SYNTHETIC_PRIVATE',
+        };
+      }),
+    ).toEqual({ send: 1, query: 1, history: 0, complete: false, physicalState: 3, retained: true });
+    expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+    expect(await page.evaluate(() => (window as any).fixtureNetworkCalls)).toBe(0);
+  });
+  test('Native68/69 compiled root preludes and ancillary family require original completion and bound history', async ({
+    page,
+  }) => {
+    const bootstrap = await begin(page);
+    const preludes = await page.evaluate(() => {
+      const f = (window as any).fixtureNative,
+        n = f.native;
+      f.change.deferSuccess();
+      n.flushOpen();
+      return [1, 3, 6].map((field) => {
+        n.receive(n.nativeIgnored('root', field));
+        return {
+          query: n.calls.query,
+          history: f.calls.history,
+          complete: f.complete,
+          deferredErrors: n.deferredErrors.length,
+        };
+      });
+    });
+    expect(preludes).toEqual(
+      Array(3).fill({ query: 1, history: 0, complete: false, deferredErrors: 0 }),
+    );
+    expect(await control(page, bootstrap, 'lease')).toEqual({ status: 'pending' });
+    expect(
+      await page.evaluate(() => {
+        const f = (window as any).fixtureNative,
+          n = f.native;
+        n.receive(
+          n.nativeEnvelope(n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true }), {
+            hjd: { 1: 7n, 4: [] },
+            ajd: { 1: true, 2: ['c_dead'] },
+            holder: { 1: [], 2: [], 3: [] },
+          }),
+        );
+        n.receive(n.nativeClose(5));
+        return {
+          deferredErrors: n.deferredErrors.length,
+          query: n.calls.query,
+          history: f.calls.history,
+        };
+      }),
+    ).toEqual({ deferredErrors: 0, query: 1, history: 0 });
+    expect(await control(page, bootstrap, 'lease')).toEqual({ status: 'pending' });
+    expect(await page.evaluate(() => (window as any).fixtureNative.calls.history)).toBe(0);
+    await page.evaluate(() => (window as any).fixtureNative.success());
+    await expect
+      .poll(() => control(page, bootstrap, 'lease'))
+      .toEqual({
+        status: 'done',
+        result: { model: 'Automatic fixture', answer: 'CROSSCHECK_GEMINI_OK' },
+      });
+    expect(
+      await page.evaluate(() => {
+        const f = (window as any).fixtureNative;
+        return {
+          query: f.native.calls.query,
+          history: f.calls.history,
+          cid: f.savedHistory.wrapper().requestMessage.fl[0],
+        };
+      }),
+    ).toEqual({ query: 1, history: 1, cid: 'c_47' });
+  });
+  test('Native68 compiled known ignored root with unknown extra stays closed and terminal reads inert', async ({
+    page,
+  }) => {
+    const bootstrap = await begin(page);
+    await page.evaluate(() => {
+      const f = (window as any).fixtureNative,
+        n = f.native;
+      n.flushOpen();
+      const envelope = n.nativeIgnored('root', 1);
+      envelope.fl[6] = [];
+      try {
+        n.receive(envelope);
+      } catch {}
+    });
+    const expected = {
+      status: 'error',
+      reason: 'dispatch-observation',
+      diagnostic: { origin: 'capture', predicate: 'fields-envelope-other' },
+    } as const;
+    await expect.poll(() => control(page, bootstrap, 'terminalError')).toEqual(expected);
+    const counters = () =>
+      page.evaluate(() => {
+        const f = (window as any).fixtureNative,
+          n = f.native;
+        return {
+          query: n.calls.query,
+          nativeSends: n.calls.nativeSends,
+          history: f.calls.history,
+          complete: f.complete,
+        };
+      });
+    const before = await counters();
+    expect(before).toMatchObject({ query: 1, history: 0, complete: false });
+    for (let i = 0; i < 3; i++)
+      expect(await control(page, bootstrap, 'terminalError')).toEqual(expected);
+    expect(await control(page, bootstrap, 'stop')).toBe(false);
+    expect(await counters()).toEqual(before);
+  });
+  test('Native69 compiled ancillary family with unknown HJd10 stays closed and terminal reads inert', async ({
+    page,
+  }) => {
+    const bootstrap = await begin(page);
+    await page.evaluate(() => {
+      const f = (window as any).fixtureNative,
+        n = f.native;
+      n.flushOpen();
+      const envelope = n.nativeEnvelope(n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true }), {
+        hjd: { 1: 7n, 4: [] },
+        ajd: { 1: true, 2: ['c_dead'] },
+        holder: { 1: [], 2: [], 3: [] },
+      });
+      envelope.fl[1][9] = [];
+      try {
+        n.receive(envelope);
+      } catch {}
+    });
+    const expected = {
+      status: 'error',
+      reason: 'dispatch-observation',
+      diagnostic: { origin: 'capture', predicate: 'fields-hjd-other' },
+    } as const;
+    await expect.poll(() => control(page, bootstrap, 'terminalError')).toEqual(expected);
+    const counters = () =>
+      page.evaluate(() => {
+        const f = (window as any).fixtureNative,
+          n = f.native;
+        return {
+          query: n.calls.query,
+          nativeSends: n.calls.nativeSends,
+          history: f.calls.history,
+          complete: f.complete,
+        };
+      });
+    const before = await counters();
+    expect(before).toMatchObject({ query: 1, history: 0, complete: false });
+    for (let i = 0; i < 3; i++)
+      expect(await control(page, bootstrap, 'terminalError')).toEqual(expected);
+    expect(await control(page, bootstrap, 'stop')).toBe(false);
+    expect(await counters()).toEqual(before);
   });
 });
 
@@ -957,7 +1345,10 @@ for (const [kind, reason] of [
       });
     expect(await counters()).toEqual({ menuClicks: 0, send: 0, query: 0, history: 0 });
     for (let query = 0; query < 3; query++) {
-      expect(await control(page, bootstrap, 'terminalError')).toBe(reason);
+      expect(await control(page, bootstrap, 'terminalError')).toEqual({
+        status: 'error',
+        reason: reason,
+      });
       expect(await control(page, bootstrap, 'lease')).toEqual({ status: 'error', reason });
     }
     expect(await control(page, bootstrap, 'terminalError', 'wrong')).toBeNull();

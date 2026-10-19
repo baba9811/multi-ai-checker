@@ -22,7 +22,7 @@ vi.mock('../../../src/infrastructure/providers/gemini/client-capability', () => 
       return {
         status: 'unsupported',
         reason: f.native
-          ? Object.hasOwn(f.api, 'Zxb')
+          ? Object.hasOwn(f.api, 'ybb')
             ? 'hook'
             : 'transport-webchannel'
           : 'transport-rpc',
@@ -75,7 +75,7 @@ beforeEach(() => {
       return {
         status: 'unsupported',
         reason: f.native
-          ? Object.hasOwn(f.api, 'Zxb')
+          ? Object.hasOwn(f.api, 'ybb')
             ? 'hook'
             : 'transport-webchannel'
           : 'transport-rpc',
@@ -94,26 +94,26 @@ describe('Native62 source-initialized current conversation state', () => {
   const noRequest = { requestId: 0, builder: 0, send: 0, oub: 0, inner: 0, history: 0 };
   it('executes current root/thread initializers and selectors including absent-thread fallback', () => {
     const root = f.conversation.store.state();
-    expect(root['bard-conversations'].eY).toBe(f.approved.storeId);
-    expect(f.namespace.AC(root)).toBe(f.approved.storeId);
-    expect(f.namespace.wC(root)).toBe(f.thread.latest);
+    expect(root['bard-conversations'].iY).toBe(f.approved.storeId);
+    expect(f.namespace.zC(root)).toBe(f.approved.storeId);
+    expect(f.namespace.xC(root)).toBe(f.thread.latest);
     expect(
-      f.namespace.wC({ 'bard-conversations': { ...root['bard-conversations'], Rm: {} } }),
-    ).toBe(f.initialState.source.Sec);
-    expect(f.initialState.source.$ec(root)).toEqual({ id: '', Wb: [] });
-    expect(f.initialState.source.ifc(root)).toBeUndefined();
+      f.namespace.xC({ 'bard-conversations': { ...root['bard-conversations'], Um: {} } }),
+    ).toBe(f.initialState.source.cgc);
+    expect(f.initialState.source.kgc(root)).toEqual({ id: '', Wb: [] });
+    expect(f.initialState.source.tgc(root)).toBeUndefined();
     expect(f.thread.latest).toMatchObject({
       conversationId: '',
-      Hj: [],
+      Kj: [],
       Wb: {},
       isTemporaryChat: false,
     });
-    expect(Object.hasOwn(f.thread.latest as object, 'Gj')).toBe(false);
+    expect(Object.hasOwn(f.thread.latest as object, 'Ij')).toBe(false);
     expect(Object.hasOwn(root['bard-conversations'], 'V_')).toBe(false);
-    expect(Object.hasOwn(root['bard-conversations'], 'jn')).toBe(false);
+    expect(Object.hasOwn(root['bard-conversations'], 'Lm')).toBe(false);
   });
   it('accepts the default current source state through fixed answer original completion and history', async () => {
-    expect(Object.hasOwn(f.thread.latest as object, 'Gj')).toBe(false);
+    expect(Object.hasOwn(f.thread.latest as object, 'Ij')).toBe(false);
     const result = start().then(
       (value) => ({ status: 'done', value }),
       (error) => ({ status: 'error', cause: error.cause }),
@@ -129,16 +129,16 @@ describe('Native62 source-initialized current conversation state', () => {
       attempts: { requestId: 1, send: 1, history: 1 },
     });
     expect(f.calls).toMatchObject({ builder: 1, oub: 1, inner: 1 });
-    expect(f.initialState.source.$ec(f.conversation.store.state())).toEqual(f.turns.latest);
+    expect(f.initialState.source.kgc(f.conversation.store.state())).toEqual(f.turns.latest);
   });
-  it.each(['saa', 'vNc'] as const)(
+  it.each(['waa', 'gOc'] as const)(
     'rejects unsafe current %s with an explicitly test-only legacy Gj alias control',
     async (field) => {
       // Test-only legacy alias isolates the two stale safety reads before the separate Gj fix.
       f.thread.emit({
         ...(f.thread.latest as object),
-        Gj: [],
-        [field]: field === 'saa' ? {} : true,
+        Ij: [],
+        [field]: field === 'waa' ? {} : true,
       });
       const result = start().then(
         (value) => ({ status: 'done', value }),
@@ -158,26 +158,26 @@ describe('Native62 source-initialized current conversation state', () => {
     },
   );
   it.each([undefined, 'malformed', ['unmaterialized-turn']])(
-    'rejects missing malformed or nonempty current Hj: %j',
+    'rejects missing malformed or nonempty current Kj: %j',
     async (value) => {
-      const state: any = { ...(f.thread.latest as object), Hj: value };
-      if (value === undefined) delete state.Hj;
+      const state: any = { ...(f.thread.latest as object), Kj: value };
+      if (value === undefined) delete state.Kj;
       f.thread.emit(state);
       expect(f.turns.latest).toEqual({ id: '', Wb: [] });
       await expect(start()).rejects.toMatchObject({ cause: 'capture-state' });
       expect(f.calls).toMatchObject(noRequest);
     },
   );
-  it.each(['saa', 'vNc'] as const)('rejects current %s without any legacy alias', async (field) => {
-    f.thread.emit({ ...(f.thread.latest as object), [field]: field === 'saa' ? {} : true });
-    expect(Object.hasOwn(f.thread.latest as object, 'Gj')).toBe(false);
-    expect(f.namespace.wC(f.conversation.store.state())).toBe(f.thread.latest);
+  it.each(['waa', 'gOc'] as const)('rejects current %s without any legacy alias', async (field) => {
+    f.thread.emit({ ...(f.thread.latest as object), [field]: field === 'waa' ? {} : true });
+    expect(Object.hasOwn(f.thread.latest as object, 'Ij')).toBe(false);
+    expect(f.namespace.xC(f.conversation.store.state())).toBe(f.thread.latest);
     await expect(start()).rejects.toMatchObject({ cause: 'capture-state' });
     expect(f.calls).toMatchObject(noRequest);
   });
 });
 
-it.each(['Hj', 'saa', 'vNc'] as const)(
+it.each(['Kj', 'waa', 'gOc'] as const)(
   'Native62 rejects an initial %s getter without invoking it',
   async (field) => {
     const getter = vi.fn(() => {
@@ -354,7 +354,7 @@ describe('Gemini fixed SDK capture failure stages', () => {
   );
 
   describe('bounded setup stages', () => {
-    const unused = ['UId', 'yJd', 'zJd', 'AJd', 'rPd', '$Id', 'HJd', 'IJd'];
+    const unused = ['jJd', 'yJd', 'PJd', 'QJd', 'uQd', '$Id', 'XJd', 'IJd'];
 
     it.each(['readiness', 'editor', 'bindings', 'actions', 'request-id'] as const)(
       'classifies %s before any request and releases existing observations',
@@ -367,8 +367,8 @@ describe('Gemini fixed SDK capture failure stages', () => {
           };
         if (stage === 'editor') f.change.draft('SYNTHETIC_PRIVATE');
         if (stage === 'bindings') f.namespace.st = undefined;
-        if (stage === 'actions') f.namespace.jLd = undefined;
-        if (stage === 'request-id') f.namespace.GN.prototype.Vg = () => '';
+        if (stage === 'actions') f.namespace.ELd = undefined;
+        if (stage === 'request-id') f.namespace.wN.prototype.Tg = () => '';
         await expect(start()).rejects.toMatchObject({
           message: 'Gemini SDK trial failed.',
           cause: `capture-${stage}`,
@@ -391,11 +391,11 @@ describe('Gemini fixed SDK capture failure stages', () => {
     it.each(['missing', 'accessor', 'duplicate'] as const)(
       'does not acquire unused action definitions that are %s',
       async (kind) => {
-        const getter = vi.fn(() => f.namespace.jLd);
+        const getter = vi.fn(() => f.namespace.ELd);
         for (const name of unused) {
           if (kind === 'missing') delete f.namespace[name];
           else if (kind === 'accessor') Object.defineProperty(f.namespace, name, { get: getter });
-          else f.namespace[name] = f.namespace.jLd;
+          else f.namespace[name] = f.namespace.ELd;
         }
         const pending = start();
         await ready();
@@ -419,14 +419,14 @@ describe('Gemini fixed SDK capture failure stages', () => {
 
     it('rejects a required creator accessor without invoking it', async () => {
       const getter = vi.fn(() => () => {});
-      Object.defineProperty(f.namespace, 'jLd', { get: getter });
+      Object.defineProperty(f.namespace, 'ELd', { get: getter });
       await expect(start()).rejects.toHaveProperty('cause', 'capture-actions');
       expect(getter).not.toHaveBeenCalled();
       expect(f.calls).toMatchObject({ send: 0, oub: 0, inner: 0, history: 0 });
     });
 
     it('retains uniqueness across required completion and negative actions', async () => {
-      f.namespace.mM.type = f.namespace.jLd.type;
+      f.namespace.dM.type = f.namespace.ELd.type;
       await expect(start()).rejects.toHaveProperty('cause', 'capture-actions');
       expect(f.calls).toMatchObject({ send: 0, oub: 0, inner: 0, history: 0 });
     });
@@ -809,16 +809,16 @@ describe('Gemini fixed SDK runner', () => {
     f.end();
     await expect(pending).resolves.toHaveProperty('answer', 'CROSSCHECK_GEMINI_OK');
     expect(f.calls).toMatchObject({ send: 1, oub: 1, inner: 1, history: 1 });
-    expect(f.packet.request.Rg).toBe(false);
-    expect(f.packet.request.uh).toBe(false);
+    expect(f.packet.request.Pg).toBe(false);
+    expect(f.packet.request.oh).toBe(false);
   });
 
   it('maps current source completion metadata into the unchanged receipt contract', async () => {
     Object.assign(f.final.response, {
-      Vla: 'synthetic-choice',
-      O0a: 'MODE_CATEGORY_FAST',
-      Uo: 'synthetic-route',
-      Lj: 'synthetic-effort',
+      gma: 'synthetic-choice',
+      b1a: 'MODE_CATEGORY_FAST',
+      Wo: 'synthetic-route',
+      Nj: 'synthetic-effort',
       regionCode: 'synthetic-region',
     });
     Object.assign(f.response.fl, {
@@ -844,7 +844,7 @@ describe('Gemini fixed SDK runner', () => {
     });
   });
 
-  it.each(['N5', 'W5'])('refuses unsupported outer candidate %s metadata', async (key) => {
+  it.each(['N5', 'P5'])('refuses unsupported outer candidate %s metadata', async (key) => {
     f.final.response.draft[key] = { UGd: [], ccc: [], Yhc: [], Q_f: 0 };
     const pending = start();
     await ready();
@@ -899,26 +899,26 @@ describe('Gemini fixed SDK runner', () => {
       async (kind) => {
         if (kind === 'response')
           Object.assign(f.final.response, {
-            lI: undefined,
-            bV: undefined,
-            Hof: undefined,
-            vS: undefined,
-            iV: undefined,
-            Xc: { eu: undefined, R6: undefined },
+            kI: undefined,
+            eV: undefined,
+            Zpf: undefined,
+            xS: undefined,
+            lV: undefined,
+            Vc: { eu: undefined, R6: undefined },
             PN: undefined,
-            Ozc: undefined,
-            GAa: undefined,
+            vAc: undefined,
+            OAa: undefined,
           });
         else
           Object.assign(f.final.response.draft, {
-            KEc: undefined,
-            jId: undefined,
-            Xc: { o6: undefined, rbc: undefined },
+            sFc: undefined,
+            oJd: undefined,
+            Vc: { o6: undefined, rbc: undefined },
             safeMode: undefined,
-            i1a: undefined,
-            H9d: undefined,
-            m9d: undefined,
-            xSc: undefined,
+            v1a: undefined,
+            M$d: undefined,
+            r$d: undefined,
+            kTc: undefined,
           });
         const pending = start();
         await ready();
@@ -938,8 +938,8 @@ describe('Gemini fixed SDK runner', () => {
   describe('request-owned raw receiving contract', () => {
     it('leaves registered processor copies intact and proves the same raw/history final', async () => {
       f.change.processedTurn((value) => {
-        const snapshot = { ...value, response: { ...value.response, No: [], JNa: 1, rjb: 1 } };
-        return { ...snapshot, KAb: snapshot, request: { ...snapshot.request, Ie: [] } };
+        const snapshot = { ...value, response: { ...value.response, Oo: [], JNa: 1, rjb: 1 } };
+        return { ...snapshot, KAb: snapshot, request: { ...snapshot.request, Ke: [] } };
       });
       const pending = start();
       await ready();
@@ -1023,7 +1023,7 @@ describe('Gemini fixed SDK runner', () => {
     ] as const)('keeps %s-aJd downstream %s terminal before history', async (when, kind) => {
       const fail = () => {
         if (kind === 'error') throw new Error('SYNTHETIC_PRIVATE');
-        if (kind === 'stop') f.actions.emit({ type: f.namespace.mM.type });
+        if (kind === 'stop') f.actions.emit({ type: f.namespace.dM.type });
         if (kind === 'lease') f.change.active(false);
       };
       if (when === 'before') f.change.beforeComplete(fail);
@@ -1082,7 +1082,7 @@ describe('Gemini fixed SDK runner', () => {
       await expect(pending).rejects.toHaveProperty('cause', 'capture-current');
       expect(f.calls.history).toBe(0);
     });
-    it.each(['$Kd', 'jLd'] as const)('retains approved context validation for %s', async (type) => {
+    it.each(['uLd', 'ELd'] as const)('retains approved context validation for %s', async (type) => {
       f.change.deferSuccess();
       const pending = start();
       await ready();
@@ -1090,12 +1090,12 @@ describe('Gemini fixed SDK runner', () => {
       f.actions.emit({
         type: f.namespace[type].type,
         turn: Object.create({}),
-        Wl: {
-          ze: f.approved.storeId,
+        Yl: {
+          Ae: f.approved.storeId,
           request: { ...f.final.request, clientTurnId: 'SYNTHETIC_PRIVATE' },
-          Azb: false,
-          bJa: false,
-          GRd: false,
+          Uzb: false,
+          fJa: false,
+          JSd: false,
         },
       });
       f.end();
@@ -1119,13 +1119,13 @@ describe('Gemini fixed SDK runner', () => {
       ['record', undefined],
       ['kind', undefined],
       ['keys', undefined],
-      ['meta-1', 'Ita'],
-      ['meta-2', 'ajb'],
-      ['meta-3', 'iga'],
-      ['meta-4', 'LJb'],
-      ['meta-5', 'MJb'],
-      ['meta-6', 'mia'],
-      ['meta-7', 'zj'],
+      ['meta-1', 'Rta'],
+      ['meta-2', 'sjb'],
+      ['meta-3', 'oga'],
+      ['meta-4', 'cKb'],
+      ['meta-5', 'dKb'],
+      ['meta-6', 'uia'],
+      ['meta-7', 'yj'],
     ] as const)(
       'reports only the fixed %s envelope boundary in its existing caller',
       async (stage, field) => {
@@ -1173,7 +1173,7 @@ describe('Gemini fixed SDK runner', () => {
       async (stage) => {
         if (stage === 'shape') f.final.extra = undefined;
         if (stage === 'metadata') f.final.response.isFinal = 'SYNTHETIC_PRIVATE';
-        if (stage === 'answer') f.final.response.draft.Z2 = 'SYNTHETIC_PRIVATE';
+        if (stage === 'answer') f.final.response.draft.j3 = 'SYNTHETIC_PRIVATE';
         if (stage === 'content')
           f.final.response.draft.structuredContent.children[0].text = 'SYNTHETIC_PRIVATE';
         const pending = start();
@@ -1200,13 +1200,13 @@ describe('Gemini fixed SDK runner', () => {
     ] as const)(
       'reports only the fixed %s group without history or another attempt',
       async (group) => {
-        if (group === 'lists') f.final.response.No = ['SYNTHETIC_PRIVATE'];
-        if (group === 'flags') f.final.response.JL = 'SYNTHETIC_PRIVATE';
+        if (group === 'lists') f.final.response.Oo = ['SYNTHETIC_PRIVATE'];
+        if (group === 'flags') f.final.response.RL = 'SYNTHETIC_PRIVATE';
         if (group === 'extra') f.final.response.Mx = 'SYNTHETIC_PRIVATE';
         if (group === 'candidate-lists') f.final.response.draft.Yn = ['SYNTHETIC_PRIVATE'];
         if (group === 'candidate-extra')
-          f.final.response.draft.N5 = { fHd: [], Nbc: [], Khc: [], i_f: 'SYNTHETIC_PRIVATE' };
-        if (group === 'final-metadata') f.final.response.Vla = { text: 'SYNTHETIC_PRIVATE' };
+          f.final.response.draft.N5 = { kId: [], Nbc: [], Khc: [], i_f: 'SYNTHETIC_PRIVATE' };
+        if (group === 'final-metadata') f.final.response.gma = { text: 'SYNTHETIC_PRIVATE' };
         const pending = start();
         await ready();
         f.emit();
@@ -1222,14 +1222,14 @@ describe('Gemini fixed SDK runner', () => {
 
   describe('projected flag diagnostic codes', () => {
     it.each([
-      ['JL', 1, 'false'],
-      ['W7', 2, 1],
-      ['Hrg', 3, true],
-      ['Fnf', 4, 0],
-      ['z7b', 5, true],
+      ['RL', 1, 'false'],
+      ['d8', 2, 1],
+      ['ltg', 3, true],
+      ['Xof', 4, 0],
+      ['R7b', 5, true],
       ['aZd', 6, true],
       ['Cs', 7, true],
-      ['iDb', 8, null],
+      ['BDb', 8, null],
     ] as const)(
       'reports the fixed code for ordered flag %s without exposing its value',
       async (field, code, value) => {
@@ -1251,7 +1251,7 @@ describe('Gemini fixed SDK runner', () => {
     it.each(['partial', 'final'] as const)(
       'preserves a genuine true %s DTO and collects only its owned fixed final',
       async (kind) => {
-        f.final.response.W7 = true;
+        f.final.response.d8 = true;
         const partial = {
           ...f.final,
           response: {
@@ -1260,7 +1260,7 @@ describe('Gemini fixed SDK runner', () => {
             draft: {
               ...f.final.response.draft,
               completeness: 'PARTIAL',
-              Z2: 'CROSSCHECK',
+              j3: 'CROSSCHECK',
               structuredContent: { children: [{ nodeType: 18, text: 'CROSSCHECK' }] },
             },
           },
@@ -1281,8 +1281,8 @@ describe('Gemini fixed SDK runner', () => {
         expect(f.forwarded).toHaveLength(kind === 'partial' ? 2 : 1);
         if (kind === 'partial') expect(f.forwarded[0]).toBe(partial);
         expect(f.forwarded.at(-1)).toBe(f.final);
-        expect(f.final.response.W7).toBe(true);
-        expect(partial.response.W7).toBe(true);
+        expect(f.final.response.d8).toBe(true);
+        expect(partial.response.d8).toBe(true);
         expect(f.calls).toMatchObject({ builder: 1, send: 1, oub: 1, inner: 1, history: 1 });
       },
     );
@@ -1290,7 +1290,7 @@ describe('Gemini fixed SDK runner', () => {
     it.each([1, 0, 'true', 'false', null])(
       'refuses non-Boolean data %j with the same fixed code',
       async (value) => {
-        f.final.response.W7 = value;
+        f.final.response.d8 = value;
         const pending = start();
         await ready();
         f.emit();
@@ -1305,7 +1305,7 @@ describe('Gemini fixed SDK runner', () => {
 
     it('refuses a response flag accessor before projection without invoking it', async () => {
       const getter = vi.fn(() => true);
-      Object.defineProperty(f.final.response, 'W7', { get: getter });
+      Object.defineProperty(f.final.response, 'd8', { get: getter });
       const pending = start();
       await ready();
       f.emit();
@@ -1323,7 +1323,7 @@ describe('Gemini fixed SDK runner', () => {
     it.each([true, 1] as const)(
       'binds a true final to canonical saved %j without public metadata',
       async (saved) => {
-        f.final.response.iDb = true;
+        f.final.response.BDb = true;
         f.response.fl[28] = saved;
         const partial = {
           ...f.final,
@@ -1341,14 +1341,14 @@ describe('Gemini fixed SDK runner', () => {
         });
         expect(f.forwarded[0]).toBe(partial);
         expect(f.forwarded[1]).toBe(f.final);
-        expect(f.final.response.iDb).toBe(true);
+        expect(f.final.response.BDb).toBe(true);
         expect(f.calls).toMatchObject({ builder: 1, send: 1, oub: 1, inner: 1, history: 1 });
       },
     );
     it.each([undefined, false, 0] as const)(
       'refuses a true final with saved %j without retry',
       async (saved) => {
-        f.final.response.iDb = true;
+        f.final.response.BDb = true;
         f.response.fl[28] = saved;
         const pending = start();
         await ready();
@@ -1361,27 +1361,27 @@ describe('Gemini fixed SDK runner', () => {
         expect(f.calls).toMatchObject({ builder: 1, send: 1, oub: 1, inner: 1, history: 1 });
       },
     );
-    it.each(['action', 'ka', 'Qe', 'Oe', 'missing'] as const)(
+    it.each(['action', 'ka', 'Te', 'Se', 'missing'] as const)(
       'retains the raw receipt when downstream UI copy %s changes',
       async (copy) => {
-        f.final.response.iDb = true;
+        f.final.response.BDb = true;
         f.response.fl[28] = true;
         if (copy === 'action')
           f.change.processedTurn((value) => ({
             ...value,
-            response: { ...value.response, iDb: false },
+            response: { ...value.response, BDb: false },
           }));
         f.change.afterFinal(() => {
-          const changed = { ...f.final, response: { ...f.final.response, iDb: false } };
+          const changed = { ...f.final, response: { ...f.final.response, BDb: false } };
           if (copy === 'ka')
             f.thread.emit({
               ...(f.thread.latest as object),
               Wb: { [f.completed.turnId]: changed },
             });
-          if (copy === 'Qe') f.turns.emit({ id: f.completed.conversationId, Wb: [changed] });
-          if (copy === 'Oe') f.last.emit(changed);
+          if (copy === 'Te') f.turns.emit({ id: f.completed.conversationId, Wb: [changed] });
+          if (copy === 'Se') f.last.emit(changed);
           if (copy === 'missing') {
-            delete changed.response.iDb;
+            delete changed.response.BDb;
             f.last.emit(changed);
           }
         });
@@ -1393,14 +1393,14 @@ describe('Gemini fixed SDK runner', () => {
           model: 'Synthetic Auto',
           answer: 'CROSSCHECK_GEMINI_OK',
         });
-        expect(f.final.response.iDb).toBe(true);
+        expect(f.final.response.BDb).toBe(true);
         expect(f.calls).toMatchObject({ builder: 1, send: 1, oub: 1, inner: 1, history: 1 });
       },
     );
     it.each([1, 0, 'true', 'false', null])(
       'refuses malformed live Boolean %j at G8',
       async (value) => {
-        f.final.response.iDb = value;
+        f.final.response.BDb = value;
         const pending = start();
         await ready();
         f.emit();
@@ -1419,14 +1419,14 @@ describe('Gemini fixed SDK runner', () => {
       'reports only the fixed %s stage without a readback or another attempt',
       async (stage) => {
         if (stage === 'request') f.final.request.clientTurnId = 'synthetic-other';
-        if (stage === 'turn') f.final.response.draft.Z2 = 'SYNTHETIC_PRIVATE';
+        if (stage === 'turn') f.final.response.draft.j3 = 'SYNTHETIC_PRIVATE';
         if (stage === 'owner')
           f.change.afterFinal(() =>
             f.thread.emit({ ...(f.thread.latest as object), conversationId: 'c_99' }),
           );
         const pending = start();
         await ready();
-        if (stage === 'action') f.actions.emit({ type: f.namespace.mM.type });
+        if (stage === 'action') f.actions.emit({ type: f.namespace.dM.type });
         else if (stage === 'stream') f.error(new Error('SYNTHETIC_PRIVATE'));
         else {
           f.emit();
@@ -1450,10 +1450,10 @@ describe('Gemini fixed SDK runner', () => {
 
   describe('source SDK empty arrays', () => {
     it('accepts the exact frozen namespace empty field alongside ordinary empty metadata', async () => {
-      f.final.response.a8a = f.namespace.Yd;
+      f.final.response.n8a = f.namespace.Yd;
       Object.assign(f.final.response.draft, {
-        Xc: { W5: { UGd: [], ccc: [], Yhc: [], Q_f: 0 } },
-        pLa: { PUb: [], LRa: [] },
+        Vc: { W5: { UGd: [], ccc: [], Yhc: [], Q_f: 0 } },
+        tLa: { PUb: [], LRa: [] },
       });
       expect(Object.isFrozen(f.namespace.Yd)).toBe(true);
       expect(Object.getOwnPropertyDescriptor(f.namespace.Yd, f.namespace.La)?.value).toBe(7);
@@ -1498,8 +1498,8 @@ describe('Gemini fixed SDK runner', () => {
         if (kind === 'foreign-prototype') Object.setPrototypeOf(value, null);
         if (kind !== 'mutable') Object.freeze(value);
         if (kind !== 'clone') f.namespace.Yd = value;
-        if (kind === 'clone') f.final.response.No = value;
-        else f.final.response.a8a = value;
+        if (kind === 'clone') f.final.response.Oo = value;
+        else f.final.response.n8a = value;
         const pending = start();
         await ready();
         f.emit();
@@ -1513,7 +1513,7 @@ describe('Gemini fixed SDK runner', () => {
     it.each(['Yd', 'La'] as const)(
       'rejects a replaced namespace %s binding after capture',
       async (key) => {
-        f.final.response.a8a = f.namespace.Yd;
+        f.final.response.n8a = f.namespace.Yd;
         const pending = start();
         await ready();
         f.namespace[key] = key === 'La' ? Symbol('replacement') : [];
@@ -1525,7 +1525,7 @@ describe('Gemini fixed SDK runner', () => {
     );
 
     it('does not read an accessor standing in for the namespace empty constant', async () => {
-      f.final.response.a8a = f.namespace.Yd;
+      f.final.response.n8a = f.namespace.Yd;
       const getter = vi.fn(() => []);
       const pending = start();
       await ready();
@@ -1538,7 +1538,7 @@ describe('Gemini fixed SDK runner', () => {
     });
 
     it('does not read an accessor replacing the namespace flag binding', async () => {
-      f.final.response.a8a = f.namespace.Yd;
+      f.final.response.n8a = f.namespace.Yd;
       const getter = vi.fn(() => Symbol('replacement'));
       const pending = start();
       await ready();
@@ -1554,7 +1554,7 @@ describe('Gemini fixed SDK runner', () => {
   describe('source projected z5a', () => {
     it('accepts the immutable explicitly present empty field distinct from Eb', async () => {
       expect(f.explicitUsage).not.toBe(f.namespace.Yd);
-      f.final.response.a8a = f.explicitUsage;
+      f.final.response.n8a = f.explicitUsage;
       const pending = start();
       await ready();
       f.emit();
@@ -1578,7 +1578,7 @@ describe('Gemini fixed SDK runner', () => {
         );
         if (kind === 'extra') Object.defineProperty(value, 'extra', { value: undefined });
         if (kind !== 'mutable') Object.freeze(value);
-        f.final.response.a8a = value;
+        f.final.response.n8a = value;
         const pending = start();
         await ready();
         f.emit();
@@ -1590,7 +1590,7 @@ describe('Gemini fixed SDK runner', () => {
     );
 
     it('does not admit the distinct repeated-field representation in other fields', async () => {
-      f.final.request.Ie = f.explicitUsage;
+      f.final.request.Ke = f.explicitUsage;
       const pending = start();
       await ready();
       f.emit();
@@ -1657,8 +1657,8 @@ describe('Gemini fixed SDK runner', () => {
   });
   it('accepts source-normal empty candidate metadata without treating it as rich content', async () => {
     Object.assign(f.final.response.draft, {
-      Xc: { W5: { UGd: [], ccc: [], Yhc: [], Q_f: 0 } },
-      pLa: { PUb: [], LRa: [] },
+      Vc: { W5: { UGd: [], ccc: [], Yhc: [], Q_f: 0 } },
+      tLa: { PUb: [], LRa: [] },
     });
     const pending = start();
     await ready();
@@ -1695,15 +1695,15 @@ describe('Gemini fixed SDK runner', () => {
   ] as const)('rejects %s response without returning or reading history', async (kind) => {
     if (kind === 'foreign-CID') f.final.request.conversationId = 'SYNTHETIC_PRIVATE';
     if (kind === 'foreign-client') f.final.request.clientTurnId = 'other';
-    if (kind === 'foreign-Ae') f.final.request.ze = 'other';
-    if (kind === 'wrong-text') f.final.response.draft.Z2 = 'other';
-    if (kind === 'wrong-mode') f.final.request.wi = 'other';
+    if (kind === 'foreign-Ae') f.final.request.Ae = 'other';
+    if (kind === 'wrong-text') f.final.response.draft.j3 = 'other';
+    if (kind === 'wrong-mode') f.final.request.ri = 'other';
     if (kind === 'rich-node')
-      f.final.response.draft.structuredContent.children.push({ nodeType: 0, Xj: [{}] });
+      f.final.response.draft.structuredContent.children.push({ nodeType: 0, Yj: [{}] });
     if (kind === 'stopped') f.final.response.draft.completeness = 'STOPPED';
     if (kind === 'not-final') f.final.response.isFinal = false;
     if (kind === 'candidate') f.final.response.draft.id = '';
-    if (kind === 'nonempty-parents') f.final.request.yj = 'r_old';
+    if (kind === 'nonempty-parents') f.final.request.ej = 'r_old';
     const pending = start();
     await ready();
     f.emit();
@@ -1787,7 +1787,7 @@ describe('Gemini fixed SDK runner', () => {
   it('refuses a second Xub before any second original delegation', async () => {
     const pending = start();
     await ready();
-    expect(() => f.api.Zxb(f.packet)).toThrow();
+    expect(() => f.api.ybb(f.packet)).toThrow();
     await expect(pending).rejects.toHaveProperty('cause', 'dispatch-spent');
     expect(f.calls.oub).toBe(1);
     expect(f.calls.inner).toBe(1);
@@ -1856,7 +1856,7 @@ describe('Gemini fixed SDK runner', () => {
     await expect(bounded).rejects.toHaveProperty('cause', 'interrupted');
   });
   it('preserves the genuine current privacy preference in the final approval', async () => {
-    f.conversation.kKa.emit(false);
+    f.conversation.pKa.emit(false);
     Object.assign(f.packet.request, { isPersonalContextDisabled: false });
     f.final.request.isPersonalContextDisabled = false;
     const pending = start();
@@ -1913,30 +1913,44 @@ describe('Gemini fixed SDK runner', () => {
     } catch {}
     await expect(pending).rejects.toHaveProperty('cause', 'cleanup');
   });
-  it('binds only a page-local boolean ownership checker, surviving result and closed leases', async () => {
-    let check: (() => boolean) | undefined;
-    const bind = vi.fn((value: () => boolean) => {
-      check = value;
-    });
-    const pending = runGeminiSdkFixedTextTrial(f.controller.signal, f.current, bind);
-    void pending.catch(() => {});
-    await ready();
-    expect(bind).toHaveBeenCalledTimes(1);
-    expect(check?.()).toBe(true);
-    f.emit();
-    f.location.href = 'https://gemini.google.com/app/47';
-    f.end();
-    const result = await pending;
-    f.change.active(false);
-    f.change.model(false);
-    f.controller.abort();
-    expect(check?.()).toBe(true);
-    expect(Object.keys(result).sort()).toEqual(['answer', 'model']);
-    expect(() => f.api.Zxb(f.packet)).toThrow();
-    expect(f.calls.inner).toBe(1);
-    f.location.href = 'https://gemini.google.com/app/99';
-    expect(check?.()).toBe(false);
-  });
+  it.each(['home', 'owned'] as const)(
+    'binds only a page-local boolean ownership checker at %s, surviving result and closed leases',
+    async (route) => {
+      let check: (() => boolean) | undefined;
+      const bind = vi.fn((value: () => boolean) => {
+        check = value;
+      });
+      const pending = runGeminiSdkFixedTextTrial(f.controller.signal, f.current, bind);
+      void pending.catch(() => {});
+      await ready();
+      expect(bind).toHaveBeenCalledTimes(1);
+      expect(check?.()).toBe(true);
+      f.emit();
+      if (route === 'owned') f.location.href = 'https://gemini.google.com/app/47';
+      f.end();
+      const result = await pending;
+      expect(check?.()).toBe(true);
+      f.change.active(false);
+      f.change.model(false);
+      f.controller.abort();
+      expect(check?.()).toBe(true);
+      expect(result).toEqual({ model: 'Synthetic Auto', answer: f.completed.answer });
+      expect(() => f.api.ybb(f.packet)).toThrow();
+      expect(f.calls).toMatchObject({ inner: 1, history: 1, cancel: 1 });
+      for (const suffix of ['/99', '?other', '#other', '/47?other', '/47#other']) {
+        f.location.href = 'https://gemini.google.com/app' + suffix;
+        expect(check?.()).toBe(false);
+      }
+      f.location.href = 'https://gemini.google.com/app';
+      expect(check?.()).toBe(true);
+      f.conversation.oa.emit('other');
+      expect(check?.()).toBe(false);
+      f.conversation.oa.emit(f.approved.storeId);
+      expect(check?.()).toBe(true);
+      f.thread.emit({ ...(f.thread.latest as object), conversationId: 'c_99' });
+      expect(check?.()).toBe(false);
+    },
+  );
   it.each(['owner', 'namespace', 'consumer'] as const)(
     'retirement rejects a replaced %s after completion',
     async (key) => {
@@ -1990,7 +2004,7 @@ describe('Gemini fixed SDK runner', () => {
         f.packet.request = {
           ...f.packet.request,
           ...(kind === 'model'
-            ? { wi: 'other' }
+            ? { ri: 'other' }
             : { Cc: { wAa: { projectId: 'synthetic-other' } } }),
         };
       });
@@ -2009,7 +2023,7 @@ describe('source terminal marker and informational continuation', () => {
     candidate: any = {
       ...f.final.response.draft,
       completeness: 'PARTIAL',
-      Z2: 'CROSSCHECK',
+      j3: 'CROSSCHECK',
       structuredContent: { children: [{ nodeType: 18, text: 'CROSSCHECK' }] },
     },
   ) => ({ ...f.final, response: { ...f.final.response, isFinal: false, draft: candidate } });
@@ -2078,7 +2092,7 @@ describe('source terminal marker and informational continuation', () => {
                   ? {}
                   : {
                       completeness: 'PARTIAL',
-                      Z2: 'CROSSCHECK',
+                      j3: 'CROSSCHECK',
                       structuredContent: { children: [{ nodeType: 18, text: 'CROSSCHECK' }] },
                     }),
               };
@@ -2109,10 +2123,10 @@ describe('source terminal marker and informational continuation', () => {
       if (kind === 'status') value.response.draft.completeness = 'STOPPED';
       if (kind === 'getter') Object.defineProperty(value.response.draft, 'id', { get: getter });
       if (kind === 'extra') value.response.draft.syntheticUnknown = undefined;
-      if (kind === 'rich') value.response.draft.Mmc = {};
-      if (kind === 'prefix') value.response.draft.Z2 = 'OTHER';
-      if (kind === 'empty-rich') value.response.draft.Z2 = '';
-      if (kind === 'metadata') value.response.Vla = {};
+      if (kind === 'rich') value.response.draft.mnc = {};
+      if (kind === 'prefix') value.response.draft.j3 = 'OTHER';
+      if (kind === 'empty-rich') value.response.draft.j3 = '';
+      if (kind === 'metadata') value.response.gma = {};
       const pending = start();
       void pending.catch(() => {});
       await ready();
@@ -2150,7 +2164,7 @@ describe('source terminal marker and informational continuation', () => {
   );
 
   it('keeps a later valid ordinary full final as the stronger live-to-saved receipt', async () => {
-    f.final.response.iDb = true;
+    f.final.response.BDb = true;
     f.response.fl[28] = true;
     const history = vi.spyOn(f, 'history');
     const pending = start();
@@ -2172,12 +2186,12 @@ describe('source terminal marker and informational continuation', () => {
       void pending.catch(() => {});
       await ready();
       f.emit(f.marker);
-      if (kind === 'answer') f.final.response.draft.Z2 = 'OTHER';
-      if (kind === 'flags') f.final.response.JL = true;
-      if (kind === 'candidate') f.final.response.draft.Mmc = {};
+      if (kind === 'answer') f.final.response.draft.j3 = 'OTHER';
+      if (kind === 'flags') f.final.response.RL = true;
+      if (kind === 'candidate') f.final.response.draft.mnc = {};
       if (kind === 'CID') f.final.request.conversationId = 'c_99';
       if (kind === 'RID') f.final.response.turnId = 'r_99';
-      if (kind === 'saved') f.final.response.iDb = true;
+      if (kind === 'saved') f.final.response.BDb = true;
       f.emit();
       f.end();
       await expect(pending).rejects.toHaveProperty('cause');
@@ -2226,10 +2240,10 @@ describe('source terminal marker and informational continuation', () => {
       if (kind === 'continuation') f.emit(f.continuation);
       if (kind === 'promotion')
         f.actions.emit({
-          type: f.namespace.PKd.type,
+          type: f.namespace.jLd.type,
           turnId: f.completed.turnId,
           conversationId: f.completed.conversationId,
-          Wl: f.context(),
+          Yl: f.context(),
         });
       f.end();
       await expect(pending).rejects.toHaveProperty('cause', 'response-completion');
@@ -2248,15 +2262,15 @@ describe('source terminal marker and informational continuation', () => {
     'function',
   ] as const)('refuses a %s continuation envelope', async (kind) => {
     const value: any = { ...f.continuation };
-    const getter = vi.fn(() => f.continuation.Soa);
+    const getter = vi.fn(() => f.continuation.epa);
     if (kind === 'extra') value.syntheticUnknown = undefined;
-    if (kind === 'prototype') value.Soa = {};
-    if (kind === 'getter') Object.defineProperty(value, 'Soa', { get: getter });
+    if (kind === 'prototype') value.epa = {};
+    if (kind === 'getter') Object.defineProperty(value, 'epa', { get: getter });
     if (kind === 'CID') value.conversationId = 'c_99';
     if (kind === 'RID') value.turnId = 'r_99';
     if (kind === 'undefined-CID') value.conversationId = undefined;
     if (kind === 'undefined-RID') value.turnId = undefined;
-    if (kind === 'function') value.Soa = Object.setPrototypeOf(() => {}, f.namespace.yL.prototype);
+    if (kind === 'function') value.epa = Object.setPrototypeOf(() => {}, f.namespace.vL.prototype);
     const pending = start();
     void pending.catch(() => {});
     await ready();
@@ -2272,7 +2286,7 @@ describe('source terminal marker and informational continuation', () => {
   it.each(['unsolicited', 'duplicate', 'opaque', 'CID', 'RID', 'context'] as const)(
     'requires exactly one unchanged mJd correlation (%s)',
     async (kind) => {
-      const action: any = { type: f.namespace.uLd.type, ...f.continuation, Wl: f.context() };
+      const action: any = { type: f.namespace.PLd.type, ...f.continuation, Yl: f.context() };
       delete action.responseType;
       const pending = start();
       void pending.catch(() => {});
@@ -2282,11 +2296,11 @@ describe('source terminal marker and informational continuation', () => {
         f.change.suppressContinuation();
         f.emit(f.continuation);
       }
-      if (kind === 'opaque') action.Soa = new f.namespace.yL([]);
+      if (kind === 'opaque') action.epa = new f.namespace.vL([]);
       if (kind === 'CID') action.conversationId = 'c_99';
       if (kind === 'RID') action.turnId = 'r_99';
       if (kind === 'context')
-        action.Wl = { ...action.Wl, request: { ...f.packet.request, yj: 'r_other' } };
+        action.Yl = { ...action.Yl, request: { ...f.packet.request, ej: 'r_other' } };
       f.actions.emit(action);
       if (kind === 'duplicate') f.actions.emit(action);
       f.end();
@@ -2328,7 +2342,7 @@ describe('source terminal marker and informational continuation', () => {
     },
   );
 
-  it.each(['extra', 'missing', 'parents', 'privacy', 'nested', 's4d'] as const)(
+  it.each(['extra', 'missing', 'parents', 'privacy', 'nested', 'x5d'] as const)(
     'validates blank original context and live packet %s after marker',
     async (kind) => {
       f.change.deferSuccess();
@@ -2339,32 +2353,32 @@ describe('source terminal marker and informational continuation', () => {
       f.end();
       const request: any = { ...f.packet.request };
       if (kind === 'extra') request.syntheticUnknown = undefined;
-      if (kind === 'missing') delete request.kka;
-      if (kind === 'parents') request.yj = 'r_other';
+      if (kind === 'missing') delete request.rka;
+      if (kind === 'parents') request.ej = 'r_other';
       if (kind === 'privacy') request.isPersonalContextDisabled = true;
       if (kind === 'nested') (f.packet.request.Cc as any).hidden = {};
-      if (kind === 's4d') (f.packet.request as any).s4d = new f.namespace.wxd(f.wire({ 1: 9 }));
-      f.actions.emit({ type: f.namespace.jLd.type, Wl: { ...f.context(), request } });
+      if (kind === 'x5d') (f.packet.request as any).x5d = new f.namespace.Ixd(f.wire({ 1: 9 }));
+      f.actions.emit({ type: f.namespace.ELd.type, Yl: { ...f.context(), request } });
       await expect(pending).rejects.toHaveProperty('cause');
       expect(f.calls.history).toBe(0);
     },
   );
 
   it.each([
-    'mM',
-    'XKd',
-    'nLd',
-    'oLd',
-    'WKd',
-    'pLd',
-    'tLd',
+    'dM',
     'rLd',
+    'ILd',
+    'JLd',
     'qLd',
-    'kMd',
-    'fMd',
-    'dMd',
-    'wLd',
-    'gLd',
+    'KLd',
+    'OLd',
+    'MLd',
+    'LLd',
+    'FMd',
+    'AMd',
+    'yMd',
+    'RLd',
+    'BLd',
   ] as const)('keeps negative %s active after marker', async (type) => {
     const pending = start();
     void pending.catch(() => {});
@@ -2376,7 +2390,7 @@ describe('source terminal marker and informational continuation', () => {
     expect(f.calls.history).toBe(0);
   });
 
-  it.each(['lease', 'draft', 'owner', 'privacy', 'input', 'Zxb', 'subscription'] as const)(
+  it.each(['lease', 'draft', 'owner', 'privacy', 'input', 'ybb', 'subscription'] as const)(
     'keeps %s protection after terminal marker',
     async (kind) => {
       const pending = start();
@@ -2386,9 +2400,9 @@ describe('source terminal marker and informational continuation', () => {
       if (kind === 'lease') f.change.active(false);
       if (kind === 'draft') f.change.draft('SYNTHETIC_PRIVATE');
       if (kind === 'owner') f.host.isConnected = false;
-      if (kind === 'privacy') f.conversation.kKa.emit(true);
+      if (kind === 'privacy') f.conversation.pKa.emit(true);
       if (kind === 'input') f.document.dispatchEvent(new Event('input'));
-      if (kind === 'Zxb') expect(() => f.api.Zxb(f.packet)).toThrow();
+      if (kind === 'ybb') expect(() => f.api.ybb(f.packet)).toThrow();
       if (kind === 'subscription') expect(() => f.wrapper().subscribe({ next() {} })).toThrow();
       f.end();
       await expect(pending).rejects.toHaveProperty('cause');
@@ -2462,7 +2476,7 @@ describe('source terminal marker and informational continuation', () => {
       expect(check?.()).toBe(true);
       if (kind === 'CID') f.thread.emit({ ...(f.thread.latest as object), conversationId: 'c_99' });
       if (kind === 'state') f.conversation.store.state = () => ({});
-      if (kind === 'store') f.conversation.store = new f.namespace.tC();
+      if (kind === 'store') f.conversation.store = new f.namespace.uC();
       if (kind === 'draft') f.change.draft('SYNTHETIC_PRIVATE');
       if (kind === 'Doc') f.editor.ownerDocument = {};
       expect(check?.()).toBe(false);
@@ -2471,7 +2485,7 @@ describe('source terminal marker and informational continuation', () => {
 });
 
 describe('fresh marker retirement source lifetime', () => {
-  it.each(['closed', 'Ys', 'hasError', 'source', 'selector', 'reentrant'] as const)(
+  it.each(['closed', 'Zs', 'hasError', 'source', 'selector', 'reentrant'] as const)(
     'rejects stale or replaced %s source after observations close',
     async (kind) => {
       let check: (() => boolean) | undefined;
@@ -2484,10 +2498,10 @@ describe('fresh marker retirement source lifetime', () => {
       f.end();
       await pending;
       expect(check?.()).toBe(true);
-      if (kind === 'closed' || kind === 'Ys' || kind === 'hasError')
+      if (kind === 'closed' || kind === 'Zs' || kind === 'hasError')
         f.conversation.store.source[kind] = true;
       if (kind === 'source') f.conversation.store.source = {};
-      if (kind === 'selector') f.namespace.AC = () => f.approved.storeId;
+      if (kind === 'selector') f.namespace.zC = () => f.approved.storeId;
       if (kind === 'reentrant')
         f.change.beforeStoreRead(() => {
           f.conversation.store.source.closed = true;
@@ -2507,8 +2521,8 @@ describe('continuation and terminal context bounds', () => {
     f.emit(f.marker);
     f.end();
     f.actions.emit({
-      type: f.namespace.jLd.type,
-      Wl: { ...f.context(), request: f.packet.request },
+      type: f.namespace.ELd.type,
+      Yl: { ...f.context(), request: f.packet.request },
     });
     await expect(pending).rejects.toHaveProperty('cause', 'response-action');
     expect(f.calls.history).toBe(0);
@@ -2543,11 +2557,11 @@ describe('marker completion callback reentry', () => {
     f.change.suppressContinuation();
     f.change.beforeComplete(() =>
       f.actions.emit({
-        type: f.namespace.uLd.type,
+        type: f.namespace.PLd.type,
         turnId: f.continuation.turnId,
         conversationId: f.continuation.conversationId,
-        Soa: f.continuation.Soa,
-        Wl: f.context(),
+        epa: f.continuation.epa,
+        Yl: f.context(),
       }),
     );
     const pending = start();
@@ -2585,7 +2599,7 @@ describe('marker completion callback reentry', () => {
 });
 
 describe('source closed original downstream context', () => {
-  it.each(['$Kd', 'jLd', 'uLd'] as const)(
+  it.each(['uLd', 'ELd', 'PLd'] as const)(
     'refuses unsupported own fields in %s context before history',
     async (type) => {
       const pending = start();
@@ -2593,18 +2607,18 @@ describe('source closed original downstream context', () => {
       await ready();
       f.emit(f.marker);
       const context: any = { ...f.context(), syntheticUnknown: undefined };
-      if (type === 'uLd') {
+      if (type === 'PLd') {
         f.change.suppressContinuation();
         f.emit(f.continuation);
       }
       f.actions.emit({
         type: f.namespace[type].type,
-        Wl: context,
-        ...(type === 'uLd'
+        Yl: context,
+        ...(type === 'PLd'
           ? {
               turnId: f.continuation.turnId,
               conversationId: f.continuation.conversationId,
-              Soa: f.continuation.Soa,
+              epa: f.continuation.epa,
             }
           : {}),
       });
@@ -2614,12 +2628,12 @@ describe('source closed original downstream context', () => {
     },
   );
 
-  it.each(['eOa', 'w2a'] as const)('refuses unapproved %s in the source context', async (field) => {
+  it.each(['hOa', 'J2a'] as const)('refuses unapproved %s in the source context', async (field) => {
     const pending = start();
     void pending.catch(() => {});
     await ready();
     f.emit(f.marker);
-    f.actions.emit({ type: f.namespace.jLd.type, Wl: { ...f.context(), [field]: true } });
+    f.actions.emit({ type: f.namespace.ELd.type, Yl: { ...f.context(), [field]: true } });
     f.end();
     await expect(pending).rejects.toHaveProperty('cause', 'response-action');
     expect(f.calls.history).toBe(0);
@@ -2632,22 +2646,22 @@ describe('captured opaque continuation constructor lifetime', () => {
     async (kind) => {
       const ctor: any = () => {};
       Object.defineProperty(ctor, 'prototype', { value: {}, writable: true, configurable: true });
-      f.namespace.yL = ctor;
-      f.continuation.Soa = Object.create(ctor.prototype);
+      f.namespace.vL = ctor;
+      f.continuation.epa = Object.create(ctor.prototype);
       const pending = start();
       void pending.catch(() => {});
       await ready();
       f.emit(f.marker);
-      const getter = vi.fn(() => (kind === 'namespace-getter' ? ctor : f.continuation.Soa));
+      const getter = vi.fn(() => (kind === 'namespace-getter' ? ctor : f.continuation.epa));
       if (kind === 'constructor') {
-        f.namespace.yL = class {};
-        f.continuation.Soa = Object.create(f.namespace.yL.prototype);
+        f.namespace.vL = class {};
+        f.continuation.epa = Object.create(f.namespace.vL.prototype);
       }
       if (kind === 'prototype') {
         ctor.prototype = {};
-        f.continuation.Soa = Object.create(ctor.prototype);
+        f.continuation.epa = Object.create(ctor.prototype);
       }
-      if (kind === 'namespace-getter') Object.defineProperty(f.namespace, 'yL', { get: getter });
+      if (kind === 'namespace-getter') Object.defineProperty(f.namespace, 'vL', { get: getter });
       if (kind === 'prototype-getter') Object.defineProperty(ctor, 'prototype', { get: getter });
       f.emit(f.continuation);
       f.end();
@@ -2663,7 +2677,7 @@ describe('captured opaque continuation constructor lifetime', () => {
     void pending.catch(() => {});
     await ready();
     f.change.beforeStoreRead(() => {
-      f.namespace.yL = class {};
+      f.namespace.vL = class {};
     });
     f.emit(f.continuation);
     f.end();
@@ -2681,7 +2695,7 @@ describe('captured opaque continuation constructor lifetime', () => {
     f.end();
     await ready();
     expect(f.calls.history).toBe(1);
-    f.namespace.yL = class {};
+    f.namespace.vL = class {};
     f.change.resolveHistory();
     await expect(pending).rejects.toHaveProperty('cause');
     expect(f.calls).toMatchObject({ send: 1, oub: 1, inner: 1, history: 1 });
@@ -2690,11 +2704,11 @@ describe('captured opaque continuation constructor lifetime', () => {
 
 describe('source terminal disconnect after marker and consumed continuation', () => {
   const action = () => ({
-    type: f.namespace.wLd.type,
+    type: f.namespace.RLd.type,
     turnId: f.disconnect.turnId,
     conversationId: f.disconnect.conversationId,
-    BFc: f.disconnect.BFc,
-    Wl: f.context(),
+    jGc: f.disconnect.jGc,
+    Yl: f.context(),
   });
   const emitTerminal = () => {
     f.emit(f.marker);
@@ -2729,16 +2743,23 @@ describe('source terminal disconnect after marker and consumed continuation', ()
     },
   );
 
-  it.each(['complete', 'jLd'] as const)(
-    'does not derive the missing %s witness from disconnect or oJd',
+  it.each(['complete', 'ELd'] as const)(
+    'does not derive the missing %s witness from disconnect or current jLd steering removal',
     async (missing) => {
-      if (missing === 'jLd') f.change.suppressSuccess();
+      if (missing === 'ELd') f.change.suppressSuccess();
       const pending = start();
       void pending.catch(() => {});
       await ready();
       emitTerminal();
-      if (missing === 'jLd') f.end();
-      else f.success();
+      if (missing === 'ELd') {
+        f.end();
+        f.actions.emit({
+          type: f.namespace.jLd.type,
+          turnId: f.completed.turnId,
+          conversationId: f.completed.conversationId,
+          Yl: f.context(),
+        });
+      } else f.success();
       await ready();
       expect(f.calls.history).toBe(0);
       f.controller.abort();
@@ -2759,18 +2780,18 @@ describe('source terminal disconnect after marker and consumed continuation', ()
   ] as const)(
     'refuses the non-source %s disconnect payload without evaluating getters',
     async (kind) => {
-      const value: any = { ...f.disconnect, BFc: {} };
+      const value: any = { ...f.disconnect, jGc: {} };
       const getter = vi.fn(() => undefined);
-      if (kind === 'extra') value.BFc.reason = undefined;
+      if (kind === 'extra') value.jGc.reason = undefined;
       if (kind === 'nonenumerable')
-        Object.defineProperty(value.BFc, 'reason', { value: undefined });
-      if (kind === 'symbol') value.BFc[Symbol('synthetic')] = undefined;
-      if (kind === 'getter') Object.defineProperty(value.BFc, 'reason', { get: getter });
-      if (kind === 'null-prototype') value.BFc = Object.create(null);
-      if (kind === 'array') value.BFc = [];
-      if (kind === 'null') value.BFc = null;
-      if (kind === 'boolean') value.BFc = true;
-      if (kind === 'function') value.BFc = () => {};
+        Object.defineProperty(value.jGc, 'reason', { value: undefined });
+      if (kind === 'symbol') value.jGc[Symbol('synthetic')] = undefined;
+      if (kind === 'getter') Object.defineProperty(value.jGc, 'reason', { get: getter });
+      if (kind === 'null-prototype') value.jGc = Object.create(null);
+      if (kind === 'array') value.jGc = [];
+      if (kind === 'null') value.jGc = null;
+      if (kind === 'boolean') value.jGc = true;
+      if (kind === 'function') value.jGc = () => {};
       const pending = start();
       void pending.catch(() => {});
       await ready();
@@ -2789,10 +2810,10 @@ describe('source terminal disconnect after marker and consumed continuation', ()
     'rejects a malformed %s four-key disconnect envelope',
     async (kind) => {
       const value: any = { ...f.disconnect };
-      const getter = vi.fn(() => f.disconnect.BFc);
+      const getter = vi.fn(() => f.disconnect.jGc);
       if (kind === 'extra') value.synthetic = undefined;
       if (kind === 'missing') delete value.turnId;
-      if (kind === 'getter') Object.defineProperty(value, 'BFc', { get: getter });
+      if (kind === 'getter') Object.defineProperty(value, 'jGc', { get: getter });
       if (kind === 'CID') value.conversationId = 'c_99';
       if (kind === 'RID') value.turnId = 'r_99';
       if (kind === 'undefined-CID') value.conversationId = undefined;
@@ -2866,14 +2887,14 @@ describe('source terminal disconnect after marker and consumed continuation', ()
       emitTerminal();
     }
     const value: any = action();
-    const getter = vi.fn(() => f.disconnect.BFc);
+    const getter = vi.fn(() => f.disconnect.jGc);
     if (kind === 'CID') value.conversationId = 'c_99';
     if (kind === 'RID') value.turnId = 'r_99';
-    if (kind === 'reference') value.BFc = {};
-    if (kind === 'getter') Object.defineProperty(value, 'BFc', { get: getter });
+    if (kind === 'reference') value.jGc = {};
+    if (kind === 'getter') Object.defineProperty(value, 'jGc', { get: getter });
     if (kind === 'extra') value.synthetic = undefined;
     if (kind === 'context')
-      value.Wl = { ...value.Wl, request: { ...f.packet.request, yj: 'r_other' } };
+      value.Yl = { ...value.Yl, request: { ...f.packet.request, ej: 'r_other' } };
     if (kind === 'nested-scope') (f.packet.request.Cc as any).synthetic = {};
     if (kind !== 'missing') f.actions.emit(value);
     if (kind === 'duplicate') f.actions.emit(value);
@@ -2900,13 +2921,13 @@ describe('source terminal disconnect after marker and consumed continuation', ()
     'refuses a changed disconnect payload at %s',
     async (when) => {
       const change = () => {
-        (f.disconnect.BFc as any).synthetic = undefined;
+        (f.disconnect.jGc as any).synthetic = undefined;
       };
       if (when === 'before-action') f.change.beforeDisconnect(change);
       if (when === 'after-action') f.change.afterDisconnect(change);
       if (when === 'reference')
         f.change.afterDisconnect(() => {
-          f.disconnect.BFc = {};
+          f.disconnect.jGc = {};
         });
       if (when === 'history') f.change.deferHistory();
       const pending = start();
@@ -2936,7 +2957,7 @@ describe('source terminal disconnect after marker and consumed continuation', ()
         if (kind === 'draft') f.change.draft('SYNTHETIC_PRIVATE');
         if (kind === 'owner') f.host.isConnected = false;
         if (kind === 'lease') f.change.active(false);
-        if (kind === 'negative') f.actions.emit({ type: f.namespace.mM.type });
+        if (kind === 'negative') f.actions.emit({ type: f.namespace.dM.type });
         if (kind === 'error') throw new Error('SYNTHETIC_PRIVATE');
       });
       const pending = start();
@@ -2967,7 +2988,7 @@ describe('source terminal disconnect after marker and consumed continuation', ()
   );
 
   it('preserves a later full final as the stronger receipt after a source disconnect', async () => {
-    f.final.response.iDb = true;
+    f.final.response.BDb = true;
     f.response.fl[28] = true;
     const history = vi.spyOn(f, 'history');
     const pending = start();
@@ -2985,7 +3006,7 @@ describe('source terminal disconnect after marker and consumed continuation', ()
     void pending.catch(() => {});
     await ready();
     emitTerminal();
-    f.final.response.draft.Z2 = 'OTHER';
+    f.final.response.draft.j3 = 'OTHER';
     f.emit();
     f.end();
     await expect(pending).rejects.toHaveProperty('cause', 'response-answer');
@@ -3001,7 +3022,7 @@ describe('source terminal disconnect after marker and consumed continuation', ()
         draft: {
           ...f.final.response.draft,
           completeness: 'PARTIAL',
-          Z2: 'CROSSCHECK',
+          j3: 'CROSSCHECK',
           structuredContent: { children: [{ nodeType: 18, text: 'CROSSCHECK' }] },
         },
       },
@@ -3014,8 +3035,8 @@ describe('source terminal disconnect after marker and consumed continuation', ()
     emitTerminal();
     expect(f.thread.latest).toMatchObject({
       conversationId: f.completed.conversationId,
-      mG: 3,
-      bG: 3,
+      pG: 3,
+      eG: 3,
       xu: undefined,
     });
     expect((f.thread.latest as any).Wb[f.completed.turnId].response.draft.completeness).toBe(
@@ -3030,10 +3051,10 @@ describe('source terminal disconnect after marker and consumed continuation', ()
   it('keeps a further PId/Xub attempt spent after disconnect acknowledgement', async () => {
     f.change.afterDisconnect(() => {
       f.actions.emit({
-        type: f.namespace.YKd.type,
-        VD: { ze: f.approved.storeId, request: f.packet.request },
+        type: f.namespace.sLd.type,
+        WD: { Ae: f.approved.storeId, request: f.packet.request },
       });
-      expect(() => f.api.Zxb(f.packet)).toThrow();
+      expect(() => f.api.ybb(f.packet)).toThrow();
     });
     const pending = start();
     void pending.catch(() => {});
@@ -3076,11 +3097,11 @@ describe('source terminal disconnect after marker and consumed continuation', ()
 
 describe('terminal disconnect correlation callback reentry', () => {
   const action = () => ({
-    type: f.namespace.wLd.type,
+    type: f.namespace.RLd.type,
     turnId: f.disconnect.turnId,
     conversationId: f.disconnect.conversationId,
-    BFc: f.disconnect.BFc,
-    Wl: f.context(),
+    jGc: f.disconnect.jGc,
+    Yl: f.context(),
   });
 
   it('reserves the matching oJd while branch validation invokes the lease callback', async () => {
@@ -3142,11 +3163,11 @@ describe('shared paired-action validation reservation', () => {
       checks = 0,
       injected = false;
     const first = () => ({
-      type: f.namespace.uLd.type,
+      type: f.namespace.PLd.type,
       turnId: f.continuation.turnId,
       conversationId: f.continuation.conversationId,
-      Soa: f.continuation.Soa,
-      Wl: f.context(),
+      epa: f.continuation.epa,
+      Yl: f.context(),
     });
     f.current = () => {
       // Target the branch callback after the observer's two initial checks.
@@ -3162,7 +3183,7 @@ describe('shared paired-action validation reservation', () => {
     await ready();
     f.emit(f.marker);
     f.emit(f.continuation);
-    const second = { ...f.continuation, Soa: new f.namespace.yL([]) };
+    const second = { ...f.continuation, epa: new f.namespace.vL([]) };
     f.emit(second);
     armed = true;
     f.actions.emit(first());
@@ -3207,11 +3228,11 @@ describe('shared paired-action validation reservation', () => {
       if (!injected) {
         injected = true;
         f.actions.emit({
-          type: f.namespace.wLd.type,
+          type: f.namespace.RLd.type,
           turnId: f.disconnect.turnId,
           conversationId: f.disconnect.conversationId,
-          BFc: f.disconnect.BFc,
-          Wl: f.context(),
+          jGc: f.disconnect.jGc,
+          Yl: f.context(),
         });
       }
     });
@@ -3242,7 +3263,7 @@ describe('source disconnect projection ownership', () => {
 });
 
 describe('continuation action identity after callbacks', () => {
-  it.each(['Soa', 'Wl'] as const)(
+  it.each(['epa', 'Yl'] as const)(
     'refuses original mJd %s replacement during branch validation',
     async (field) => {
       let armed = false,
@@ -3254,9 +3275,9 @@ describe('continuation action identity after callbacks', () => {
         if (armed && ++checks === 3 && !changed) {
           changed = true;
           value[field] =
-            field === 'Soa'
-              ? new f.namespace.yL([])
-              : { ...f.context(), request: { ...f.packet.request, yj: 'r_other' } };
+            field === 'epa'
+              ? new f.namespace.vL([])
+              : { ...f.context(), request: { ...f.packet.request, ej: 'r_other' } };
         }
         return true;
       };
@@ -3267,11 +3288,11 @@ describe('continuation action identity after callbacks', () => {
       f.emit(f.marker);
       f.emit(f.continuation);
       value = {
-        type: f.namespace.uLd.type,
+        type: f.namespace.PLd.type,
         turnId: f.continuation.turnId,
         conversationId: f.continuation.conversationId,
-        Soa: f.continuation.Soa,
-        Wl: f.context(),
+        epa: f.continuation.epa,
+        Yl: f.context(),
       };
       armed = true;
       f.actions.emit(value);
@@ -3295,11 +3316,11 @@ describe('fixed original disconnect refusal diagnostics', () => {
       await ready();
       if (stage !== 2) f.emit(f.marker);
       if (stage !== 3) f.emit(f.continuation);
-      const value: any = { ...f.disconnect, BFc: {} };
+      const value: any = { ...f.disconnect, jGc: {} };
       if (stage === 1) f.emit(f.disconnect);
       if (stage === 4) value.synthetic = undefined;
       if (stage === 5) value.turnId = 'r_99';
-      if (stage === 6) value.BFc.synthetic = undefined;
+      if (stage === 6) value.jGc.synthetic = undefined;
       f.emit(value);
       f.end();
       await expect(pending).rejects.toMatchObject({
@@ -3315,7 +3336,7 @@ describe('fixed original disconnect refusal diagnostics', () => {
 
   it('keeps the shared payload lifetime refusal under the existing H3 fallback', async () => {
     f.change.afterDisconnect(() => {
-      (f.disconnect.BFc as any).synthetic = undefined;
+      (f.disconnect.jGc as any).synthetic = undefined;
     });
     const pending = start();
     void pending.catch(() => {});
@@ -3397,7 +3418,7 @@ describe('owned raw final before SDK projection', () => {
     ['response-identity', (f) => (f.identity.fl[0] = 'invalid identity')],
     ['response-candidate-lists', (f) => f.live.fl[4].push(f.candidate)],
     ['response-answer', (f) => (f.candidate.fl[0] = '')],
-    ['response-candidate-extra', (f) => (f.candidate.fl[12] = f.message('bw', { 1: 1 }))],
+    ['response-candidate-extra', (f) => (f.candidate.fl[12] = f.message('$v', { 1: 1 }))],
     ['response-final-metadata', (f) => (f.status[0] = 3)],
     ['response-content', (f) => (f.text.fl[0] = 'SYNTHETIC_PRIVATE_MARKER')],
     ['response-completion', (f) => delete f.candidate.fl[8]],
@@ -3504,7 +3525,7 @@ describe('owned raw final before SDK projection', () => {
     void pending.catch(() => {});
     await ready();
     f.rawEmit();
-    f.final.response.draft.Z2 = 'Wrong answer';
+    f.final.response.draft.j3 = 'Wrong answer';
     f.emit();
     f.end();
     await expect(pending).rejects.toHaveProperty('cause', 'response-answer');
@@ -3598,7 +3619,7 @@ describe('raw receiving ownership through history', () => {
     f.live.fl[57] = true;
     f.response.fl[28] = true;
     f.rawEmit();
-    f.final.response.iDb = false;
+    f.final.response.BDb = false;
     f.emit();
     f.end();
     await expect(pending).rejects.toHaveProperty('cause', 'response-final-metadata');
@@ -3676,7 +3697,7 @@ describe('same-generation routing correlation', () => {
       const pending = start();
       await ready();
       if (supplement !== undefined) f.rawRouting.fl[17] = supplement;
-      const event = { ...f.routing, ...(supplement ? { bFd: supplement } : {}) };
+      const event = { ...f.routing, ...(supplement ? { gGd: supplement } : {}) };
       f.rawEmit(f.rawRouting);
       f.emit(event as any);
       const partial = {
@@ -3704,7 +3725,7 @@ describe('same-generation routing correlation', () => {
   it('does not accept an unsolicited source routing action', async () => {
     const pending = start();
     await ready();
-    f.actions.emit({ type: f.namespace.aLd.type, Xbd: f.routing, Wl: f.context() });
+    f.actions.emit({ type: f.namespace.vLd.type, Wcd: f.routing, Yl: f.context() });
     f.rawEmit();
     f.emit();
     f.end();
@@ -3733,13 +3754,13 @@ describe('closed original routing/action ownership', () => {
       if (kind === 'wrong-Kzd' || kind === 'omitted-Kzd') f.rawRouting.fl[17] = 'SYNTHETIC_SURVEY';
       f.rawEmit(f.rawRouting);
     }
-    if (kind === 'wrong-epa') event.eqa = 'SYNTHETIC_OTHER';
+    if (kind === 'wrong-epa') event.pqa = 'SYNTHETIC_OTHER';
     if (kind === 'wrong-cid') event.conversationId = 'c_99';
     if (kind === 'wrong-rid') event.turnId = 'r_99';
     if (kind === 'extra') event.extra = undefined;
-    if (kind === 'missing') delete event.eqa;
-    if (kind === 'added-empty-Kzd') event.bFd = '';
-    if (kind === 'wrong-Kzd') event.bFd = 'SYNTHETIC_OTHER';
+    if (kind === 'missing') delete event.pqa;
+    if (kind === 'added-empty-Kzd') event.gGd = '';
+    if (kind === 'wrong-Kzd') event.gGd = 'SYNTHETIC_OTHER';
     f.emit(event);
     if (kind === 'duplicate') f.emit(event);
     f.rawEmit();
@@ -3767,18 +3788,18 @@ describe('closed original routing/action ownership', () => {
     f.change.suppressRouting();
     f.rawEmit(f.rawRouting);
     f.emit(f.routing as any);
-    const action: any = { type: f.namespace.aLd.type, Xbd: f.routing, Wl: f.context() };
-    action.Wl.request = { ...action.Wl.request };
-    if (kind === 'copied-event') action.Xbd = { ...f.routing };
+    const action: any = { type: f.namespace.vLd.type, Wcd: f.routing, Yl: f.context() };
+    action.Yl.request = { ...action.Yl.request };
+    if (kind === 'copied-event') action.Wcd = { ...f.routing };
     if (kind === 'extra') action.extra = undefined;
-    if (kind === 'missing') delete action.Wl;
-    if (kind === 'wrong-store') action.Wl.ze = 'SYNTHETIC_OTHER';
-    if (kind === 'wrong-client') action.Wl.request.clientTurnId = 'SYNTHETIC_OTHER';
-    if (kind === 'wrong-model') action.Wl.request.wi = 'SYNTHETIC_OTHER';
-    if (kind === 'wrong-prompt') action.Wl.request.textQuery = 'SYNTHETIC_OTHER';
-    if (kind === 'scope') action.Wl.request.uh = true;
-    if (kind === 'cancelled') action.Wl.Azb = true;
-    if (kind === 'mutated-event') f.routing.eqa = 'SYNTHETIC_OTHER';
+    if (kind === 'missing') delete action.Yl;
+    if (kind === 'wrong-store') action.Yl.Ae = 'SYNTHETIC_OTHER';
+    if (kind === 'wrong-client') action.Yl.request.clientTurnId = 'SYNTHETIC_OTHER';
+    if (kind === 'wrong-model') action.Yl.request.ri = 'SYNTHETIC_OTHER';
+    if (kind === 'wrong-prompt') action.Yl.request.textQuery = 'SYNTHETIC_OTHER';
+    if (kind === 'scope') action.Yl.request.oh = true;
+    if (kind === 'cancelled') action.Yl.Uzb = true;
+    if (kind === 'mutated-event') f.routing.pqa = 'SYNTHETIC_OTHER';
     if (kind !== 'missing-action') f.actions.emit(action);
     if (kind === 'duplicate') f.actions.emit(action);
     f.rawEmit();
@@ -3809,30 +3830,30 @@ describe('closed original routing/action ownership', () => {
     const pending = start();
     await ready();
     f.change.afterRouting((event) => {
-      if (kind === 'event') event.eqa = 'SYNTHETIC_OTHER';
+      if (kind === 'event') event.pqa = 'SYNTHETIC_OTHER';
       if (kind === 'lease') f.change.active(false);
       if (kind === 'cancel') f.controller.abort();
       if (kind === 'reentry') {
         f.emit(f.routing as any);
-        event.eqa = 'SYNTHETIC_ROUTING';
+        event.pqa = 'SYNTHETIC_ROUTING';
       }
       if (kind === 'second-generation') {
         try {
-          f.api.Zxb(f.packet);
+          f.api.ybb(f.packet);
         } catch {}
       }
     });
     if (['action', 'context', 'request'].includes(kind)) {
       f.change.suppressRouting();
       f.change.beforeRouting((event) => {
-        const action: any = { type: f.namespace.aLd.type, Xbd: event, Wl: f.context() };
+        const action: any = { type: f.namespace.vLd.type, Wcd: event, Yl: f.context() };
         let changed = false;
         callback = () => {
           if (changed) return;
           changed = true;
-          if (kind === 'action') action.Xbd = { ...event };
-          if (kind === 'context') action.Wl.ze = 'SYNTHETIC_OTHER';
-          if (kind === 'request') action.Wl.request.uh = true;
+          if (kind === 'action') action.Wcd = { ...event };
+          if (kind === 'context') action.Yl.Ae = 'SYNTHETIC_OTHER';
+          if (kind === 'request') action.Yl.request.oh = true;
         };
         f.actions.emit(action);
       });
@@ -3849,14 +3870,14 @@ describe('closed original routing/action ownership', () => {
     const pending = start();
     await ready();
     f.change.suppressRouting();
-    const second = { ...f.routing, eqa: 'SYNTHETIC_SECOND' };
-    const rawSecond = f.message('HF', { 2: f.identity, 21: ['SYNTHETIC_SECOND'] });
+    const second = { ...f.routing, pqa: 'SYNTHETIC_SECOND' };
+    const rawSecond = f.message('IF', { 2: f.identity, 21: ['SYNTHETIC_SECOND'] });
     f.rawEmit(f.rawRouting);
     f.rawEmit(rawSecond);
     f.emit(f.routing as any);
     f.emit(second as any);
     for (const event of [f.routing, second])
-      f.actions.emit({ type: f.namespace.aLd.type, Xbd: event, Wl: f.context() });
+      f.actions.emit({ type: f.namespace.vLd.type, Wcd: event, Yl: f.context() });
     f.rawEmit();
     f.emit();
     f.end();
@@ -3873,11 +3894,11 @@ describe('closed original routing/action ownership', () => {
       if (kind === 'routing-only') f.emit(f.routing as any);
       if (kind === 'reordered') {
         f.change.suppressRouting();
-        const second = { ...f.routing, eqa: 'SYNTHETIC_SECOND' };
-        f.rawEmit(f.message('HF', { 2: f.identity, 21: ['SYNTHETIC_SECOND'] }));
+        const second = { ...f.routing, pqa: 'SYNTHETIC_SECOND' };
+        f.rawEmit(f.message('IF', { 2: f.identity, 21: ['SYNTHETIC_SECOND'] }));
         f.emit(f.routing as any);
         f.emit(second as any);
-        f.actions.emit({ type: f.namespace.aLd.type, Xbd: second, Wl: f.context() });
+        f.actions.emit({ type: f.namespace.vLd.type, Wcd: second, Yl: f.context() });
       }
       if (kind !== 'routing-only') {
         f.rawEmit();
@@ -3889,7 +3910,7 @@ describe('closed original routing/action ownership', () => {
     },
   );
   it('requires SId creator identity even when no routing frame arrives', async () => {
-    delete f.namespace.aLd;
+    delete f.namespace.vLd;
     await expect(start()).rejects.toHaveProperty('cause', 'capture-actions');
     expect(f.calls.send).toBe(0);
   });
@@ -3902,11 +3923,11 @@ it.each(['action', 'context', 'request'] as const)(
     await ready();
     f.change.suppressRouting();
     f.change.beforeRouting((event) => {
-      const action: any = { type: f.namespace.aLd.type, Xbd: event, Wl: f.context() };
+      const action: any = { type: f.namespace.vLd.type, Wcd: event, Yl: f.context() };
       f.actions.emit(action);
-      if (kind === 'action') action.Xbd = { ...event };
-      if (kind === 'context') action.Wl.Azb = true;
-      if (kind === 'request') action.Wl.request = { ...action.Wl.request };
+      if (kind === 'action') action.Wcd = { ...event };
+      if (kind === 'context') action.Yl.Uzb = true;
+      if (kind === 'request') action.Yl.request = { ...action.Yl.request };
     });
     f.rawEmit(f.rawRouting);
     f.emit(f.routing as any);
@@ -3939,7 +3960,7 @@ it('allows delayed routing action during original completion before its successf
   f.rawEmit();
   f.emit();
   f.change.beforeComplete(() =>
-    f.actions.emit({ type: f.namespace.aLd.type, Xbd: f.routing, Wl: f.context() }),
+    f.actions.emit({ type: f.namespace.vLd.type, Wcd: f.routing, Yl: f.context() }),
   );
   f.end();
   await expect(pending).resolves.toHaveProperty('answer', f.completed.answer);
@@ -3992,11 +4013,11 @@ it.each(['action', 'context', 'request'] as const)(
     f.rawEmit();
     f.emit();
     f.change.beforeComplete(() => {
-      const action: any = { type: f.namespace.aLd.type, Xbd: f.routing, Wl: f.context() };
+      const action: any = { type: f.namespace.vLd.type, Wcd: f.routing, Yl: f.context() };
       f.actions.emit(action);
-      if (kind === 'action') action.Xbd = { ...f.routing };
-      if (kind === 'context') action.Wl.Azb = true;
-      if (kind === 'request') action.Wl.request = { ...action.Wl.request };
+      if (kind === 'action') action.Wcd = { ...f.routing };
+      if (kind === 'context') action.Yl.Uzb = true;
+      if (kind === 'request') action.Yl.request = { ...action.Yl.request };
     });
     f.end();
     await expect(pending).rejects.toHaveProperty('cause', 'response-action');
@@ -4018,18 +4039,18 @@ it.each(
   const pending = start();
   await ready();
   f.change.suppressRouting();
-  const action: any = { type: f.namespace.aLd.type, Xbd: f.routing, Wl: f.context() };
-  const request = action.Wl.request;
+  const action: any = { type: f.namespace.vLd.type, Wcd: f.routing, Yl: f.context() };
+  const request = action.Yl.request;
   const mutate = () => {
-    if (kind === 'event') f.routing.eqa = 'SYNTHETIC_OTHER';
-    if (kind === 'action') action.Xbd = { ...f.routing };
-    if (kind === 'context') action.Wl.Azb = true;
-    if (kind === 'request') action.Wl.request = { ...request };
+    if (kind === 'event') f.routing.pqa = 'SYNTHETIC_OTHER';
+    if (kind === 'action') action.Wcd = { ...f.routing };
+    if (kind === 'context') action.Yl.Uzb = true;
+    if (kind === 'request') action.Yl.request = { ...request };
     restore = () => {
-      f.routing.eqa = 'SYNTHETIC_ROUTING';
-      action.Xbd = f.routing;
-      action.Wl.Azb = false;
-      action.Wl.request = request;
+      f.routing.pqa = 'SYNTHETIC_ROUTING';
+      action.Wcd = f.routing;
+      action.Yl.Uzb = false;
+      action.Yl.request = request;
     };
   };
   f.change.beforeRouting(() => f.actions.emit(action));
@@ -4049,7 +4070,7 @@ it.each(
 });
 
 it.each(
-  (['Ie', 'rZb'] as const).flatMap((key) =>
+  (['Ke', 'IZb'] as const).flatMap((key) =>
     [false, true].map((restore) => [key, restore] as const),
   ),
 )(
@@ -4137,7 +4158,7 @@ describe('empty raw client65 through the normal runner', () => {
       await ready();
       f.live.fl[64] = [[]];
       if (kind === 'success') f.change.suppressSuccess();
-      if (kind === 'metadata-only') f.rawEmit(f.message('HF', { 65: [[]] }));
+      if (kind === 'metadata-only') f.rawEmit(f.message('IF', { 65: [[]] }));
       else f.rawEmit();
       if (kind === 'late-invalid') {
         f.live.fl[64] = [[[]]];
@@ -4174,17 +4195,17 @@ describe('empty raw client65 through the normal runner', () => {
 it.each(
   [false, true].flatMap((sparse) =>
     [
-      { location: [], projected: { N1a: '', I4c: '', TOc: false, m$f: '' } },
+      { location: [], projected: { N1a: '', I4c: '', EPc: false, m$f: '' } },
       {
         location: ['SYNTHETIC_PRIVATE_LOCATION', 'unknown-description', 1, null, ''],
         projected: {
           N1a: 'SYNTHETIC_PRIVATE_LOCATION',
           I4c: 'unknown-description',
-          TOc: true,
+          EPc: true,
           m$f: '',
         },
       },
-      { location: [{ 3: true }], projected: { N1a: '', I4c: '', TOc: true, m$f: '' } },
+      { location: [{ 3: true }], projected: { N1a: '', I4c: '', EPc: true, m$f: '' } },
     ].map(({ location, projected }) => [sparse, location, projected] as const),
   ),
 )(
@@ -4212,7 +4233,7 @@ it.each(
         20: 'ko',
         43: 'SYNTHETIC_PRIVATE_ATTRIBUTION',
       };
-      const value = Object.create(f.namespace.HF.prototype);
+      const value = Object.create(f.namespace.IF.prototype);
       value.fl = JSON.parse(JSON.stringify(sparse ? [fields] : f.wire(fields)));
       Object.defineProperty(value.fl, f.namespace.La, { value: 2146 | (sparse ? 1 << 14 : 0) });
       return value;
@@ -4225,14 +4246,14 @@ it.each(
     const first = f.sourceRawEmit(partial)!;
     expect(first).toBeDefined();
     expect(f.calls.history).toBe(0);
-    expect(first.response.lI).toEqual(projected);
-    expect(first.response.bV).toBe('ko');
-    expect(first.response.draft.Xc.bV).toBe('ko');
+    expect(first.response.kI).toEqual(projected);
+    expect(first.response.eV).toBe('ko');
+    expect(first.response.draft.Vc.eV).toBe('ko');
     expect(first.response.PN).toBe('SYNTHETIC_PRIVATE_ATTRIBUTION');
     expect((f.last.latest as any).response.PN).toBe(first.response.PN);
-    expect((f.last.latest as any).response.draft.Xc).toBe(first.response.draft.Xc);
+    expect((f.last.latest as any).response.draft.Vc).toBe(first.response.draft.Vc);
     expect(f.forwarded[0]).toBe(first);
-    expect((f.last.latest as any).response.lI).toBe(first.response.lI);
+    expect((f.last.latest as any).response.kI).toBe(first.response.kI);
     expect(JSON.stringify(partial)).toBe(partialBefore);
     const finalRaw = raw(true);
     const finalBefore = JSON.stringify(finalRaw);
@@ -4242,10 +4263,10 @@ it.each(
     expect(f.rawForwarded[0]).toBe(partial);
     expect(f.rawForwarded[1]).toBe(finalRaw);
     expect(f.forwarded[1]).toBe(final);
-    expect(final.response.bV).toBe('ko');
-    expect(final.response.draft.Xc.bV).toBe('ko');
+    expect(final.response.eV).toBe('ko');
+    expect(final.response.draft.Vc.eV).toBe('ko');
     expect(final.response.PN).toBe('SYNTHETIC_PRIVATE_ATTRIBUTION');
-    expect((f.last.latest as any).response.lI).toBe(final.response.lI);
+    expect((f.last.latest as any).response.kI).toBe(final.response.kI);
     expect(JSON.stringify(finalRaw)).toBe(finalBefore);
     f.emit(f.continuation);
     f.emit(f.disconnect);
@@ -4285,7 +4306,7 @@ it.each([
     f.text.fl[0] = 'CROSSCHECK';
   }
   if (kind === 'incomplete') f.text.fl[0] = 'CROSSCHECK';
-  if (kind === 'metadata-only') f.rawEmit(f.message('HF', { 6: f.live.fl[5] }));
+  if (kind === 'metadata-only') f.rawEmit(f.message('IF', { 6: f.live.fl[5] }));
   else f.rawEmit();
   if (kind === 'late-invalid') {
     f.live.fl[5] = [null, null, false, null, 'image'];
@@ -4324,15 +4345,15 @@ it.each([
 });
 
 it.each([
-  ['bV', null],
-  ['bV', true],
-  ['bV', 20],
-  ['bV', {}],
-  ['bV', []],
-  ['bV', new String('ko')],
-  ['bV', 'KO'],
-  ['bV', 'ko-KR'],
-  ['bV', 'zz'],
+  ['eV', null],
+  ['eV', true],
+  ['eV', 20],
+  ['eV', {}],
+  ['eV', []],
+  ['eV', new String('ko')],
+  ['eV', 'AO'],
+  ['eV', 'ko-KR'],
+  ['eV', 'vz'],
   ['PN', null],
   ['PN', true],
   ['PN', 43],
@@ -4368,7 +4389,7 @@ it.each([
     const pending = start();
     void pending.catch(() => {});
     await ready();
-    const raw = f.message('HF', {
+    const raw = f.message('IF', {
       2: [f.completed.conversationId, f.completed.turnId],
       5: [f.wire({ 1: f.completed.candidateId, 2: [f.completed.answer], 9: [2] })],
       15: true,
@@ -4376,12 +4397,12 @@ it.each([
       43: attribution,
     });
     const event = f.sourceRawEmit(raw)!;
-    expect(event.response.bV).toBe(language ?? '');
-    expect(event.response.draft.Xc.bV).toBe(language ?? '');
+    expect(event.response.eV).toBe(language ?? '');
+    expect(event.response.draft.Vc.eV).toBe(language ?? '');
     expect(event.response.PN).toBe(attribution ?? '');
     f.end();
     expect(await pending).toEqual({ model: 'Synthetic Auto', answer: 'CROSSCHECK_GEMINI_OK' });
-    expect((f.last.latest as any).response.bV).toBe(language ?? '');
+    expect((f.last.latest as any).response.eV).toBe(language ?? '');
     expect((f.last.latest as any).response.PN).toBe(attribution ?? '');
     expect(f.calls).toMatchObject({ send: 1, inner: 1, history: 1 });
   },
@@ -4438,13 +4459,13 @@ describe('real cold WebChannel runner integration', () => {
   });
   for (const codec of ['json', 'protobuf'] as const)
     it.each([true, false])(
-      `uses the real owning reader with registered-idle enabled=%s through ${codec}`,
+      `uses the real owning reader with registered-idle exclusion=%s through ${codec}`,
       async (enabled) => {
         const n = install(codec),
           manager = n.registerIdle(enabled);
         const read = await realReader();
-        const session = f.api.ub,
-          registry = f.api.Eb,
+        const session = f.api.Ab,
+          registry = f.api.Fb,
           consumer = f.conversation;
         expect(read()).toEqual({ status: 'unsupported', reason: 'transport-webchannel' });
         expect(Object.hasOwn(manager, 'wa')).toBe(false);
@@ -4453,14 +4474,15 @@ describe('real cold WebChannel runner integration', () => {
         await ready();
         expect(read()).toEqual({ status: 'unsupported', reason: 'hook' });
         for (const key of ['wa', 'Ja']) {
-          expect(Object.hasOwn(manager, key)).toBe(enabled);
-          if (enabled)
-            expect(Object.getOwnPropertyDescriptor(manager, key)).toEqual({
-              value: undefined,
-              writable: true,
-              enumerable: true,
-              configurable: true,
-            });
+          expect(Object.hasOwn(manager, key)).toBe(true);
+          expect(manager.Za).toBe(enabled);
+
+          expect(Object.getOwnPropertyDescriptor(manager, key)).toEqual({
+            value: undefined,
+            writable: true,
+            enumerable: true,
+            configurable: true,
+          });
         }
         expect(registry.ha).toBe(manager);
         expect(manager.Na).toBe(session);
@@ -4469,8 +4491,8 @@ describe('real cold WebChannel runner integration', () => {
         n.receive(n.nativeEnvelope(n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true })));
         n.receive(n.nativeClose(5));
         expect(await pending).toEqual(result);
-        expect(f.api.ub).toBe(session);
-        expect(f.api.Eb).toBe(registry);
+        expect(f.api.Ab).toBe(session);
+        expect(f.api.Fb).toBe(registry);
         expect(registry.ha).toBe(manager);
         expect(manager.Na).toBe(session);
         expect(manager.Oa).toBe(consumer);
@@ -4488,7 +4510,7 @@ describe('real cold WebChannel runner integration', () => {
       await ready();
       expect(read()).toEqual({ status: 'unsupported', reason: 'hook' });
       if (change === 'activation') manager.ha = {};
-      else f.api.Eb.ha = Object.assign(Object.create(Object.getPrototypeOf(manager)), manager);
+      else f.api.Fb.ha = Object.assign(Object.create(Object.getPrototypeOf(manager)), manager);
       expect(() => n.flushOpen()).toThrow();
       f.controller.abort();
       expect(await pending).toBeInstanceOf(Error);
@@ -4539,7 +4561,7 @@ describe('real cold WebChannel runner integration', () => {
         await ready();
         n.flushOpen();
         const raw = kind === 'routing' ? nativeRouting(n) : n.nativeKf({ cid: 'c_47' });
-        if (kind === 'continuation') raw.fl[45] = new f.namespace.yL([]);
+        if (kind === 'continuation') raw.fl[45] = new f.namespace.vL([]);
         n.receive(n.nativeEnvelope(raw));
         const original = f.forwarded.at(-1) as any;
         expect(original.turnId).toBe(f.approved.clientTurnId);
@@ -4569,12 +4591,12 @@ describe('real cold WebChannel runner integration', () => {
       });
       n.receive(n.nativeEnvelope(nativeRouting(n)));
       const original = f.forwarded[1] as any;
-      expect(originalAction.Xbd).toBe(original);
-      const oldRequest = originalAction.Wl.request;
+      expect(originalAction.Wcd).toBe(original);
+      const oldRequest = originalAction.Yl.request;
       n.receive(n.nativeEnvelope(n.nativeKf({ cid: 'c_47', rid: 'r_48' })));
       expect(first.response.turnId).toBe(f.approved.clientTurnId);
       expect(original.turnId).toBe(f.approved.clientTurnId);
-      expect(originalAction.Wl.request).toBe(oldRequest);
+      expect(originalAction.Yl.request).toBe(oldRequest);
       expect(oldRequest.clientTurnId).toBe(f.approved.clientTurnId);
       n.receive(n.nativeEnvelope(n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true })));
       n.receive(n.nativeClose(5));
@@ -4643,7 +4665,7 @@ describe('real cold WebChannel runner integration', () => {
         await ready();
         n.flushOpen();
         const raw = n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true });
-        raw.fl[45] = new f.namespace.yL([]);
+        raw.fl[45] = new f.namespace.vL([]);
         raw.fl[51] = [];
         n.receive(n.nativeEnvelope(raw));
         const disconnect = f.forwarded.at(-1) as any;
@@ -4676,8 +4698,8 @@ describe('real cold WebChannel runner integration', () => {
       expect(() => scripts.forEach((script) => new Script(script))).not.toThrow();
       expect(scripts).toHaveLength(5);
       expect(scripts[3]).toBe(source.replaceAll('</script', '<\\/script'));
-      expect(scripts[3]).toContain('_.Yh=function(a,b,c){a=a.fl;return Ooa(Noa(a),a,void 0,b,c)}');
-      expect(scripts[3]).toContain('_.Zh=function(a,b,c,d){return _.Yh(a,b,d)===c?c:-1}');
+      expect(scripts[3]).toContain('_.Xh=function(a,b,c){a=a.fl;return Ooa(Noa(a),a,void 0,b,c)}');
+      expect(scripts[3]).toContain('_.Yh=function(a,b,c,d){return _.Xh(a,b,d)===c?c:-1}');
       expect(scripts[3]).toContain('var Noa,Ooa,Nba,Oba;');
       expect(scripts[3]).toContain('$&');
       expect(scripts[3]).toContain('$`');
@@ -4706,7 +4728,7 @@ describe('real cold WebChannel runner integration', () => {
     const envelope: any = n.nativeEnvelope(original);
     n.receive(envelope);
     expect(n.decoded()).toBe(envelope);
-    expect(envelope.fl[n.namespace.dga].get(n.namespace.hM)).toBe(2);
+    expect(envelope.fl[n.namespace.dga].get(n.namespace.$L)).toBe(2);
     expect(n.receiveTrace[0]!.value).not.toBe(original);
     n.receive(n.nativeClose(5));
     expect(await pending).toEqual(result);
@@ -4727,20 +4749,49 @@ describe('real cold WebChannel runner integration', () => {
       await realReader();
       const pending = start().catch((error) => error);
       await ready();
-      if (change === 'gate') Object.defineProperty(f.api, 'Zxb', { enumerable: true });
-      if (change === 'factory') n.namespace.dKd = () => {};
+      if (change === 'gate') Object.defineProperty(f.api, 'ybb', { enumerable: true });
+      if (change === 'factory') n.namespace.wKd = () => {};
       if (change === 'factory-descriptor')
-        Object.defineProperty(n.namespace, 'dKd', { writable: false });
+        Object.defineProperty(n.namespace, 'wKd', { writable: false });
       if (change === 'protection') f.api.Ja.isEnabled = false;
       if (change === 'route') f.api.Aa = false;
       if (change === 'session')
-        f.api.ub = Object.assign(Object.create(Object.getPrototypeOf(f.api.ub)), f.api.ub);
-      if (change === 'registry') f.api.Eb = Object.create(Object.getPrototypeOf(f.api.Eb));
+        f.api.Ab = Object.assign(Object.create(Object.getPrototypeOf(f.api.Ab)), f.api.Ab);
+      if (change === 'registry') f.api.Fb = Object.create(Object.getPrototypeOf(f.api.Fb));
       expect(() => n.flushOpen()).toThrow();
       f.controller.abort();
       expect(await pending).toBeInstanceOf(Error);
       expect(n.calls.nativeSends).toBe(0);
       expect(f.calls.history).toBe(0);
+    },
+  );
+
+  it.each(['json', 'protobuf'] as const)(
+    'Native75 ignores survey through original %s completion and strict history',
+    async (codec) => {
+      const n = install(codec);
+      f.change.deferSuccess();
+      const pending = start().catch((error) => error);
+      await ready();
+      n.flushOpen();
+      const raw: any = n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true });
+      const getter = vi.fn(() => {
+        throw Error('SYNTHETIC_PRIVATE_SURVEY');
+      });
+      const survey = Object.defineProperty([['SYNTHETIC_PRIVATE_SURVEY']], 'nested', {
+        get: getter,
+      });
+      raw.fl[24] = survey;
+      n.receive(n.nativeEnvelope(raw));
+      n.receive(n.nativeClose(5));
+      await ready();
+      expect(f.calls.history).toBe(0);
+      f.success();
+      expect(await pending).toEqual(result);
+      expect(f.calls.history).toBe(1);
+      expect(raw.fl[24]).toBe(survey);
+      expect(getter).not.toHaveBeenCalled();
+      expect(f.savedHistory!.wrapper().requestMessage.fl[0]).toBe('c_47');
     },
   );
 
@@ -4760,7 +4811,7 @@ describe('real cold WebChannel runner integration', () => {
     expect(f.calls.history).toBe(1);
     expect(f.savedHistory!.wrapper().requestMessage.fl[0]).toBe('c_47');
   });
-  it.each(['privacy', 'g8a', 'h8a'] as const)(
+  it.each(['privacy', 't8a', 'u8a'] as const)(
     'Native63 native retained %s refuses before physical send',
     async (kind) => {
       const n = install();
@@ -4768,8 +4819,8 @@ describe('real cold WebChannel runner integration', () => {
         Object.assign(f.packet.request, f.sourceConstruction.privacy(f.packet.request, true));
       const pending = start().catch((error) => error);
       await ready();
-      if (kind === 'privacy') f.packet.request.s4d.fl[0] = 2;
-      else f.packet[kind] = kind === 'g8a' ? 'changed-valid-protection' : '1'.repeat(32);
+      if (kind === 'privacy') f.packet.request.x5d.fl[0] = 2;
+      else f.packet[kind] = kind === 't8a' ? 'changed-valid-protection' : '1'.repeat(32);
       expect(() => n.flushOpen()).toThrow();
       expect(await pending).toHaveProperty(
         'cause',
@@ -4840,11 +4891,11 @@ describe('real cold WebChannel runner integration', () => {
         const cache = envelope.fl[n.namespace.dga];
         if (stage === 'RJd:before') {
           Object.freeze(cache);
-          cache.set(n.namespace.hM, 4);
+          cache.set(n.namespace.$L, 4);
           changed = true;
         }
         if (stage === 'RJd:after' && restore) {
-          cache.set(n.namespace.hM, 2);
+          cache.set(n.namespace.$L, 2);
           restored = true;
         }
       });
@@ -4897,7 +4948,7 @@ describe('real cold WebChannel runner integration', () => {
       n.onReceive((stage) => {
         if (stage === 'RJd:before') {
           f.wrapperSubscription().error(new Error('SYNTHETIC_PRIVATE'));
-          listeners = n.graph().tB.observers.length;
+          listeners = n.graph().wB.observers.length;
         }
       });
       expect(() =>
@@ -5044,7 +5095,7 @@ describe('real cold WebChannel runner integration', () => {
       n.onReceive((stage) => {
         if (stage === 'RJd:before') {
           f.controller.abort();
-          listeners = n.graph().tB.observers.length;
+          listeners = n.graph().wB.observers.length;
           expect(retirement()).toBe(false);
         }
       });
@@ -5082,10 +5133,10 @@ describe('real cold WebChannel runner integration', () => {
         return error;
       });
       await ready();
-      const source = n.namespace.LJd;
-      n.namespace.LJd = () => {};
+      const source = n.namespace.aKd;
+      n.namespace.aKd = () => {};
       expect(() => n.flushOpen()).toThrow();
-      if (restore) n.namespace.LJd = source;
+      if (restore) n.namespace.aKd = source;
       await vi.advanceTimersByTimeAsync(100);
       expect(settled).toHaveProperty('cause', 'dispatch-native-n10');
       expect(await pending).toBe(settled);
@@ -5146,10 +5197,10 @@ describe('real cold WebChannel runner integration', () => {
     },
   );
   it.each([true, undefined, null, 0] as const)(
-    'refuses metadata admission with native oa=%s before original send',
+    'refuses metadata admission with native wa=%s before original send',
     async (oa) => {
       install();
-      f.api.ub.oa = oa;
+      f.api.Ab.wa = oa;
       expect(await start().catch((error) => error)).toHaveProperty('cause', 'client-current');
       expect(f.calls.send).toBe(0);
       expect(f.native!.calls.factory).toBe(0);
@@ -5226,7 +5277,7 @@ describe('current shared recovery runner retirement', () => {
         .observer()
         .error(Object.assign(Error('synthetic-network'), { syntheticNetwork: true }));
       expect(n.shared.pending()).toBe(1);
-      expect(state.Da.closed).toBe(false);
+      expect(state.Ca.closed).toBe(false);
       n.shared.failProbeUnsubscribe();
       f.controller.abort();
       expect(await pending).toHaveProperty('cause', 'interrupted');
@@ -5238,13 +5289,13 @@ describe('current shared recovery runner retirement', () => {
   );
 });
 
-it.each(['g8a', 'h8a'] as const)(
+it.each(['t8a', 'u8a'] as const)(
   'Native63 retains current %s identity before delayed original subscription',
   async (key) => {
     let changed = false;
     f.change.beforeSubscribe(() => {
       changed = true;
-      f.packet[key] = key === 'g8a' ? 'synthetic-changed-attestation' : '1'.repeat(32);
+      f.packet[key] = key === 't8a' ? 'synthetic-changed-attestation' : '1'.repeat(32);
     });
     const pending = start().catch((error) => error);
     await ready();
@@ -5479,7 +5530,7 @@ it.each(['configuration', 'query'] as const)(
     value.fl[kind === 'configuration' ? 0 : 1].fl[kind === 'configuration' ? 1 : 0] =
       kind === 'configuration' ? '0' : '1';
     expect(() => n.flushOpen()).toThrow();
-    expect(await pending).toHaveProperty('cause', 'dispatch-native-n20');
+    expect(await pending).toHaveProperty('cause', 'dispatch-native-n20-forward-before');
     expect(f.calls).toMatchObject({ send: 1, history: 0 });
     expect(n.calls).toMatchObject({ query: 1, nativeSends: 0 });
   },
@@ -5545,7 +5596,7 @@ it('Native57 preserves the actual configuration-state predicate through poll and
   }).catch((error) => error);
   await ready();
   expect(() =>
-    n.namespace.LJd(
+    n.namespace.aKd(
       n.graph(),
       n.ok,
       n.api.requestSource,
@@ -5564,9 +5615,9 @@ it.each(['data', 'accessor'] as const)(
   'Native58 refuses late inherited ZKa %s before delayed physical dispatch without history',
   async (kind) => {
     const getter = vi.fn(() => false);
-    const previous = Object.getOwnPropertyDescriptor(Object.prototype, 'ZKa');
+    const previous = Object.getOwnPropertyDescriptor(Object.prototype, 'dLa');
     f.change.beforeSubscribe(() =>
-      Object.defineProperty(Object.prototype, 'ZKa', {
+      Object.defineProperty(Object.prototype, 'dLa', {
         configurable: true,
         ...(kind === 'data' ? { value: false } : { get: getter }),
       }),
@@ -5577,8 +5628,8 @@ it.each(['data', 'accessor'] as const)(
       expect(f.calls.history).toBe(0);
       expect(getter).not.toHaveBeenCalled();
     } finally {
-      if (previous) Object.defineProperty(Object.prototype, 'ZKa', previous);
-      else Reflect.deleteProperty(Object.prototype, 'ZKa');
+      if (previous) Object.defineProperty(Object.prototype, 'dLa', previous);
+      else Reflect.deleteProperty(Object.prototype, 'dLa');
     }
   },
 );
@@ -5636,7 +5687,7 @@ it.each(
 it('Native63 source privacy construction belongs to the native receiving namespace', () => {
   const native = fixture('json');
   native.packet.request = native.sourceConstruction.privacy(native.packet.request, true);
-  expect(Object.getPrototypeOf(native.packet.request.s4d)).toBe(native.namespace.wxd.prototype);
+  expect(Object.getPrototypeOf(native.packet.request.x5d)).toBe(native.namespace.Ixd.prototype);
 });
 
 it('Native64 late cache-only mutation stays uncertain with no history and unsafe retirement', async () => {
@@ -5655,12 +5706,351 @@ it('Native64 late cache-only mutation stays uncertain with no history and unsafe
     ns = n.namespace;
   Object.freeze(config.fl);
   Object.freeze(config.fl[ns.dga]);
-  config.fl[ns.dga].set(ns.eM, 2);
+  config.fl[ns.dga].set(ns.XL, 2);
   expect(() => n.flushOpen()).toThrow();
-  expect(await pending).toHaveProperty('cause', 'dispatch-native-n20');
+  expect(await pending).toHaveProperty('cause', 'dispatch-native-n20-forward-before');
   expect(retirement()).toBe(false);
   expect(config.fl[0]).toBe(child);
-  expect(config.fl[ns.dga].get(ns.eM)).toBe(2);
+  expect(config.fl[ns.dga].get(ns.XL)).toBe(2);
   expect(f.calls).toMatchObject({ send: 1, history: 0 });
   expect(n.calls).toMatchObject({ factory: 1, config: 1, query: 1, nativeSends: 0 });
 });
+
+it.each(['capture', 'original-callback'] as const)(
+  'Native66 runner retains first %s through its local P18 wrappers and original cleanup',
+  async (origin) => {
+    f = fixture('json');
+    vi.stubGlobal('window', f.window);
+    vi.stubGlobal('document', f.document);
+    vi.stubGlobal('location', f.location);
+    const n = f.native!;
+    let retirement = () => true;
+    const pending = runGeminiSdkFixedTextTrial(f.controller.signal, f.current, (check) => {
+      retirement = check;
+    }).catch((error) => error);
+    await ready();
+    n.flushOpen();
+    const raw: any = n.nativeKf({ cid: 'c_47', rid: 'r_48' });
+    if (origin === 'capture') raw.fl.extra = 'SYNTHETIC_PRIVATE';
+    else
+      n.project(() => {
+        raw.fl[14] = true;
+        throw Error('SYNTHETIC_A');
+      });
+    try {
+      n.receive(n.nativeEnvelope(raw));
+    } catch {}
+    const error = await pending;
+    expect(error.cause).toBe('dispatch-observation');
+    expect(Object.getOwnPropertyDescriptor(error, 'geminiNativeReceiveDiagnostic')).toMatchObject({
+      value: {
+        origin,
+        predicate: origin === 'capture' ? 'dispatch-native-n15-wire-06' : 'unknown',
+      },
+      writable: false,
+      configurable: false,
+    });
+    expect(n.calls).toMatchObject({ factory: 1, config: 1, query: 1 });
+    expect(f.calls.history).toBe(0);
+    expect(f.complete).toBe(false);
+    expect(retirement()).toBe(false);
+  },
+);
+
+it.each(['json', 'protobuf'] as const)(
+  'Native68 %s ignored preludes require original completion and strict saved history',
+  async (codec) => {
+    f = fixture(codec);
+    vi.stubGlobal('window', f.window);
+    vi.stubGlobal('document', f.document);
+    vi.stubGlobal('location', f.location);
+    const n = f.native!,
+      pending = start();
+    void pending.catch(() => {});
+    await ready();
+    n.flushOpen();
+    f.change.deferSuccess();
+    for (const [owner, field] of [
+      ['root', 1],
+      ['root', 3],
+      ['root', 6],
+    ] as const) {
+      n.receive(n.nativeIgnored(owner, field));
+      expect(f.calls.history).toBe(0);
+      expect(f.complete).toBe(false);
+    }
+    expect(n.deferredErrors).toEqual([]);
+    n.receive(n.nativeEnvelope(n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true })));
+    expect(f.calls.history).toBe(0);
+    n.receive(n.nativeClose(5));
+    expect(f.calls.history).toBe(0);
+    f.success();
+    await expect(pending).resolves.toMatchObject({ answer: 'CROSSCHECK_GEMINI_OK' });
+    expect(f.calls).toMatchObject({ send: 1, history: 1 });
+    expect(n.calls).toMatchObject({ factory: 1, config: 1, query: 1 });
+  },
+);
+
+it('Native68 ignored-only remains pending until interruption and never reaches history', async () => {
+  f = fixture('json');
+  vi.stubGlobal('window', f.window);
+  vi.stubGlobal('document', f.document);
+  vi.stubGlobal('location', f.location);
+  let settled = false;
+  const pending = start().finally(() => {
+    settled = true;
+  });
+  void pending.catch(() => {});
+  await ready();
+  const n = f.native!;
+  n.flushOpen();
+  try {
+    n.receive(n.nativeIgnored('root', 1));
+    for (let i = 0; i < 20; i++) await Promise.resolve();
+    expect(settled).toBe(false);
+    expect(f.calls.history).toBe(0);
+    expect(f.complete).toBe(false);
+  } finally {
+    f.controller.abort();
+  }
+  await expect(pending).rejects.toBeInstanceOf(Error);
+  expect(f.calls.history).toBe(0);
+  expect(n.calls.query).toBe(1);
+});
+
+it.each(['hjd', 'bjd', 'ajd'] as const)(
+  'Native68 nested ignored %s stays uncertain without output/history',
+  async (owner) => {
+    f = fixture('json');
+    vi.stubGlobal('window', f.window);
+    vi.stubGlobal('document', f.document);
+    vi.stubGlobal('location', f.location);
+    const n = f.native!;
+    let retirement = () => true;
+    const pending = runGeminiSdkFixedTextTrial(f.controller.signal, f.current, (check) => {
+      retirement = check;
+    }).catch((error) => error);
+    await ready();
+    n.flushOpen();
+    try {
+      n.receive(n.nativeIgnored(owner, owner === 'ajd' ? 3 : 2));
+    } catch {}
+    const error = await pending;
+    expect(error.cause).toBe('dispatch-observation');
+    expect(Object.getOwnPropertyDescriptor(error, 'geminiNativeReceiveDiagnostic')?.value).toEqual({
+      origin: 'capture',
+      predicate: 'fields-' + owner + '-ignored-branch',
+    });
+    expect(f.calls.history).toBe(0);
+    expect(f.complete).toBe(false);
+    expect(n.calls.query).toBe(1);
+    expect(retirement()).toBe(false);
+  },
+);
+
+it('Native68 ignored prelude followed only by source close cannot authorize output or history', async () => {
+  f = fixture('json');
+  vi.stubGlobal('window', f.window);
+  vi.stubGlobal('document', f.document);
+  vi.stubGlobal('location', f.location);
+  const pending = start().catch((error) => error);
+  await ready();
+  const n = f.native!;
+  n.flushOpen();
+  n.receive(n.nativeIgnored('root', 3));
+  try {
+    n.receive(n.nativeClose(5));
+  } catch {}
+  expect(await pending).toBeInstanceOf(Error);
+  expect(f.calls.history).toBe(0);
+  expect(f.complete).toBe(false);
+  expect(n.calls.query).toBe(1);
+});
+
+it.each(['json', 'protobuf'] as const)(
+  'Native69 %s ancillary response needs original completion and strict same-CID history',
+  async (codec) => {
+    f = fixture(codec);
+    vi.stubGlobal('window', f.window);
+    vi.stubGlobal('document', f.document);
+    vi.stubGlobal('location', f.location);
+    const n = f.native!,
+      pending = start();
+    void pending.catch(() => {});
+    await ready();
+    n.flushOpen();
+    f.change.deferSuccess();
+    n.receive(
+      n.nativeEnvelope(n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true }), {
+        hjd: { 1: 7n, 4: [] },
+        ajd: { 1: true, 2: ['c_dead'] },
+        holder: { 1: [], 2: [], 3: [] },
+      }),
+    );
+    expect(n.deferredErrors).toEqual([]);
+    expect(f.calls.history).toBe(0);
+    expect(f.complete).toBe(false);
+    n.receive(n.nativeClose(codec === 'json' ? 4 : 5));
+    expect(f.calls.history).toBe(0);
+    f.success();
+    await expect(pending).resolves.toMatchObject({ answer: 'CROSSCHECK_GEMINI_OK' });
+    expect(f.savedHistory!.wrapper().requestMessage.fl[0]).toBe('c_47');
+    expect(f.calls).toMatchObject({ send: 1, history: 1 });
+    expect(n.calls).toMatchObject({ factory: 1, config: 1, query: 1 });
+  },
+);
+it.each([
+  ['hjd', 10, 'fields-hjd-other'],
+  ['bjd', 3, 'fields-bjd-other'],
+  ['ajd', 5, 'fields-ajd-other'],
+  ['holder', 5, 'fields-native-holder'],
+] as const)(
+  'Native69 unknown %s/%s with ancillary metadata remains uncertain and cannot reach history',
+  async (owner, field, predicate) => {
+    f = fixture('json');
+    vi.stubGlobal('window', f.window);
+    vi.stubGlobal('document', f.document);
+    vi.stubGlobal('location', f.location);
+    const n = f.native!;
+    let retirement = () => true;
+    const pending = runGeminiSdkFixedTextTrial(f.controller.signal, f.current, (check) => {
+      retirement = check;
+    }).catch((error) => error);
+    await ready();
+    n.flushOpen();
+    const envelope: any = n.nativeEnvelope(n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true }), {
+      hjd: { 1: 7n, 4: [] },
+      ajd: { 1: true, 2: ['c_dead'] },
+      holder: { 1: [], 2: [], 3: [] },
+    });
+    const hjd = envelope.fl[1],
+      bjd = hjd[6],
+      ajd = bjd[0],
+      holder = ajd[3];
+    ({ hjd, bjd, ajd, holder })[owner][field - 1] = [];
+    try {
+      n.receive(envelope);
+    } catch {}
+    const error = await pending;
+    expect(error.cause).toBe('dispatch-observation');
+    expect(Object.getOwnPropertyDescriptor(error, 'geminiNativeReceiveDiagnostic')?.value).toEqual({
+      origin: 'capture',
+      predicate,
+    });
+    expect(f.calls.history).toBe(0);
+    expect(f.complete).toBe(false);
+    expect(n.calls.query).toBe(1);
+    expect(retirement()).toBe(false);
+  },
+);
+
+for (const codec of ['json', 'protobuf'] as const)
+  it.each([false, true])(
+    `Native70 ${codec} full source structured final with singleton=%s waits for completion/action/history`,
+    async (singleton) => {
+      f = fixture(codec);
+      vi.stubGlobal('window', f.window);
+      vi.stubGlobal('document', f.document);
+      vi.stubGlobal('location', f.location);
+      const n = f.native!,
+        ns = n.namespace,
+        pending = start();
+      void pending.catch(() => {});
+      await ready();
+      n.flushOpen();
+      n.singletonFormat(singleton);
+      f.change.deferSuccess();
+      const raw: any = n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true });
+      const node = new ns.oH([undefined, new ns.gH([undefined, 0, 'CROSSCHECK_GEMINI_OK'])]);
+      raw.fl[26] = [new ns.qH([[node]])];
+      raw.Fb = ns.Kaa;
+      raw.tcc = ns.Kaa;
+      raw.fl[1].Fb = ns.Kaa;
+      raw.fl[1].tcc = ns.Kaa;
+      let before: any;
+      n.onReceive((stage, value: any) => {
+        if (stage === 'RJd:before') before = value.fl;
+      });
+      n.receive(n.nativeEnvelope(raw));
+      expect(f.forwarded.map((event: any) => event.responseType)).toEqual([
+        'TURN_COMPLETED',
+        'TURN',
+      ]);
+      expect((f.forwarded[1] as any).response.draft).toMatchObject({
+        id: 'rc_49',
+        j3: 'CROSSCHECK_GEMINI_OK',
+        completeness: 'COMPLETE',
+        structuredContent: { children: [{ nodeType: 18, text: 'CROSSCHECK_GEMINI_OK' }] },
+      });
+      expect(raw.fl[ns.dga].get(ns.HF)).toBe(0);
+      expect(raw.fl).not.toBe(before);
+      expect(raw.fl[26][0].fl[0][0].fl[ns.dga].get(ns.pH)).toBe(2);
+      expect(n.deferredErrors).toEqual([]);
+      expect(f.complete).toBe(false);
+      expect(f.calls.history).toBe(0);
+      n.receive(n.nativeClose(codec === 'json' ? 4 : 5));
+      expect(n.deferredErrors).toEqual([]);
+      expect(f.complete).toBe(true);
+      expect(f.calls.history).toBe(0);
+      f.success();
+      await expect(pending).resolves.toMatchObject({ answer: 'CROSSCHECK_GEMINI_OK' });
+      expect(f.savedHistory!.wrapper().requestMessage.fl[0]).toBe('c_47');
+      expect(f.calls).toMatchObject({ send: 1, history: 1 });
+      expect(n.calls.query).toBe(1);
+    },
+  );
+
+it.each(['cache', 'cancellation'] as const)(
+  'Native70 %s between original marker and TURN cannot collect output or history',
+  async (kind) => {
+    f = fixture('json');
+    vi.stubGlobal('window', f.window);
+    vi.stubGlobal('document', f.document);
+    vi.stubGlobal('location', f.location);
+    let retirement = () => true;
+    const pending = runGeminiSdkFixedTextTrial(f.controller.signal, f.current, (check) => {
+      retirement = check;
+    }).catch((error) => error);
+    await ready();
+    const n = f.native!,
+      ns = n.namespace;
+    n.flushOpen();
+    const raw: any = n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true });
+    let markerCalls = 0;
+    f.change.afterMarker(() => {
+      markerCalls++;
+      if (kind === 'cache') raw.fl[ns.dga].set(ns.HF, 21);
+      else f.controller.abort();
+    });
+    try {
+      n.receive(n.nativeEnvelope(raw));
+    } catch {}
+    const error = await pending;
+    expect(error).toBeInstanceOf(Error);
+    expect(markerCalls).toBe(1);
+    if (kind === 'cache')
+      expect(
+        Object.getOwnPropertyDescriptor(error, 'geminiNativeReceiveDiagnostic')?.value,
+      ).toEqual({ origin: 'receipt-currentness', predicate: 'cache-selection' });
+    expect(f.calls.history).toBe(0);
+    expect(n.calls.query).toBe(1);
+    expect(f.complete).toBe(false);
+    expect(retirement()).toBe(false);
+  },
+);
+
+it.each(['mode', 'selected-service'] as const)(
+  'Native71 retains selected route evidence across original send: %s',
+  async (change) => {
+    f.change.beforeSend(() => {
+      if (change === 'mode') f.api.Ua.ha = 67;
+      else f.api.Aa = Object.assign(Object.create(Object.getPrototypeOf(f.api.Aa)), f.api.Aa);
+    });
+    const pending = start().catch((error) => error);
+    await ready();
+    f.emit();
+    f.end();
+    expect(await pending).toHaveProperty('cause', 'client-current');
+    expect(f.calls.history).toBe(0);
+  },
+);

@@ -1,4 +1,4 @@
-import { LIMITS, ConversationContext, Run } from '../domains/crosscheck/model';
+import { LIMITS, ConversationContext, Run, type PromptOptions } from '../domains/crosscheck/model';
 import { createRun, nextStage, updateJob } from '../domains/crosscheck/workflow';
 import type { Binding, ProviderId } from '../domains/providers/model';
 import type { Conversation, Platform, Workspace } from './ports';
@@ -39,6 +39,7 @@ export function importedRun(
   selected: ProviderId[],
   mode: Run['mode'],
   attachments: Attachment[] = [],
+  promptOptions?: PromptOptions,
 ): Run {
   const { binding, snapshot } = source;
   if (
@@ -83,6 +84,7 @@ export function importedRun(
     mode,
     attachments,
     context,
+    promptOptions,
   );
   return {
     ...run,
@@ -95,10 +97,20 @@ export function importedRun(
   };
 }
 
-export function importedClaudePeerRun(source: Conversation, attachments: Attachment[] = []): Run {
+export function importedClaudePeerRun(
+  source: Conversation,
+  attachments: Attachment[] = [],
+  promptOptions?: PromptOptions,
+): Run {
   if (source.binding.provider === 'claude') throw new Error('다른 AI의 원래 대화를 선택해주세요.');
   return Run.parse({
-    ...importedRun(source, [source.binding.provider, 'claude'], 'economy', attachments),
+    ...importedRun(
+      source,
+      [source.binding.provider, 'claude'],
+      'economy',
+      attachments,
+      promptOptions,
+    ),
     kind: 'claude-peer',
   });
 }
@@ -118,6 +130,7 @@ export async function executeAutomatic(
     );
   let run = initial;
   const peer = run.kind === 'claude-peer';
+  const background = run.execution === 'background';
   const bindings = { ...saved, [run.chair]: run.main };
   const publish = () => checkpoint({ run, bindings: { ...bindings } });
   const checkAbort = () => {
@@ -137,9 +150,12 @@ export async function executeAutomatic(
       .map((job) => ({ question: job.prompt, answer: job.answer }));
   checkAbort();
   if (run.context) {
-    if (!peer) await platform.reveal(run.main);
-    checkAbort();
+    if (!peer && !background) {
+      await platform.reveal(run.main);
+      checkAbort();
+    }
     const source = await platform.inspect(run.main);
+    checkAbort();
     if (source.url !== run.main.url || source.documentId !== run.main.documentId)
       throw new Error('메인 대화가 바뀌었습니다.');
     assertCapturedContext(run.context, source, ownMainTurns());
@@ -169,7 +185,8 @@ export async function executeAutomatic(
         provider,
         savedPeer,
         peer ? run.id : undefined,
-        peer ? signal : undefined,
+        signal,
+        background,
       );
     } catch (error) {
       checkAbort();
@@ -196,7 +213,8 @@ export async function executeAutomatic(
           if (source.url !== run.main!.url || source.documentId !== run.main!.documentId)
             throw new Error('메인 대화가 바뀌었습니다.');
           assertCapturedContext(run.context, source);
-        } else await platform.reveal(target);
+        } else if (!background) await platform.reveal(target);
+        else if (job.provider !== run.chair) await platform.prepareAutomaticTarget(target, signal);
         checkAbort();
         const snap = await platform.inspect(target);
         if (snap.url !== target.url || snap.documentId !== target.documentId)

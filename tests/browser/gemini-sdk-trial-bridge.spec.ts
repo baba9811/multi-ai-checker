@@ -1,3 +1,4 @@
+import { installCollectorFixture } from '../fixtures/chrome/collector';
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
 import { geminiReadinessPage } from '../fixtures/providers/gemini-readiness';
@@ -37,6 +38,7 @@ async function setup(page: Page): Promise<Target> {
       },
     };
   });
+  await page.evaluate(installCollectorFixture);
   const bridge = await page.addScriptTag({ path: path.resolve('.output/chrome-mv3/bridge.js') });
   await bridge.evaluate((element) => element.parentNode?.removeChild(element));
   const snapshot = await command(page, { type: 'snapshot' });

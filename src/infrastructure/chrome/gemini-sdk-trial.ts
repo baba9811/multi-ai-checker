@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import {
   GeminiFixedTextTrialBootstrap,
+  GeminiFixedTextTrialErrorProgress,
+  attachGeminiNativeReceiveDiagnostic,
+  readGeminiNativeReceiveErrorDiagnostic,
+  type GeminiNativeReceiveDiagnostic,
   GeminiFixedTextTrialProgress,
   GeminiFixedTextTrialReason,
   GeminiFixedTextTrialRecord,
@@ -53,6 +57,7 @@ export async function startGeminiSdkTrial(
   let nativeDocument: string | undefined;
   let bootstrap: GeminiFixedTextTrialBootstrap | undefined;
   let leased = false;
+  let receiveDiagnostic: GeminiNativeReceiveDiagnostic | undefined;
   let persisted = false;
   let released = false;
   let removed = false;
@@ -212,7 +217,7 @@ export async function startGeminiSdkTrial(
           if (!reserved.ready && leased && !touched && !removed) {
             try {
               const terminal = single(
-                GeminiFixedTextTrialReason.nullable(),
+                GeminiFixedTextTrialErrorProgress.nullable(),
                 await chrome.scripting.executeScript({
                   target: { tabId: target.tabId, documentIds: [nativeDocument] },
                   world: 'MAIN',
@@ -220,7 +225,11 @@ export async function startGeminiSdkTrial(
                   args: [bootstrap.handle, bootstrap.capability, 'terminal-error'],
                 }),
               );
-              if (!touched && !removed && terminal !== null) reason = terminal;
+              if (!touched && !removed && terminal !== null) {
+                reason = terminal.reason;
+                receiveDiagnostic =
+                  terminal.reason === 'dispatch-observation' ? terminal.diagnostic : undefined;
+              }
             } catch {}
           }
           signal.throwIfAborted();
@@ -240,6 +249,8 @@ export async function startGeminiSdkTrial(
         signal.throwIfAborted();
         if (progress.status === 'error') {
           reason = progress.reason;
+          receiveDiagnostic =
+            progress.reason === 'dispatch-observation' ? progress.diagnostic : undefined;
           throw new Error();
         }
         if (progress.status === 'done') {
@@ -262,7 +273,10 @@ export async function startGeminiSdkTrial(
       if (signal.aborted) reason = 'interrupted';
       if (persisted)
         await chrome.storage.session.set({ [key]: { id, status: 'uncertain' } }).catch(() => {});
-      throw new Error(failure, { cause: reason });
+      throw attachGeminiNativeReceiveDiagnostic(
+        new Error(failure, { cause: reason }),
+        receiveDiagnostic,
+      );
     }
     try {
       await chrome.storage.session.set({ [key]: { id, status: 'done' } });
@@ -278,7 +292,10 @@ export async function startGeminiSdkTrial(
     const parsed = GeminiFixedTextTrialReason.safeParse(cause);
     if (persisted)
       await chrome.storage.session.set({ [key]: { id, status: 'uncertain' } }).catch(() => {});
-    throw new Error(failure, { cause: parsed.success ? parsed.data : reason });
+    throw attachGeminiNativeReceiveDiagnostic(
+      new Error(failure, { cause: parsed.success ? parsed.data : reason }),
+      readGeminiNativeReceiveErrorDiagnostic(error),
+    );
   } finally {
     releaseListeners();
     running = false;

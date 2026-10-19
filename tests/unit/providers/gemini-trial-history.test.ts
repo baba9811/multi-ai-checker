@@ -24,6 +24,21 @@ async function rejected(promise: Promise<unknown>, reason: 'history' | 'interrup
 
 describe('Gemini owned unary trial history', () => {
   it.each([false, true])(
+    'reads the current unary owner with actual capability flag %j',
+    async (enabled) => {
+      const f = geminiTrialHistoryFixture();
+      f.api.AHc = enabled;
+      delete f.namespace.RGd;
+      delete f.namespace.Zy;
+      f.synchronous();
+      await expect(read(f)).resolves.toBe(GEMINI_FIXED_TEXT_TRIAL_ANSWER);
+      expect(Object.getPrototypeOf(f.wrapper().rpcId)).toBe(f.namespace.Yy.prototype);
+      expect(f.wrapper().rpcId[f.namespace.kl]).toBe(f.namespace.Ty.o_hNvQHb);
+      expect(f.calls.fetch).toBe(1);
+      expect(f.wrapper().requestMessage.fl[5]).toEqual(enabled ? [4, 12] : [4]);
+    },
+  );
+  it.each([false, true])(
     'reads one genuine saved turn for a marker with observed candidate %j',
     async (observed) => {
       const f = geminiTrialHistoryFixture();
@@ -198,15 +213,15 @@ describe('Gemini owned unary trial history', () => {
   it('mirrors the exact finite normal request and returns only the validated literal', async () => {
     const f = geminiTrialHistoryFixture();
     f.api.requestSource = 33;
-    f.api.yGc = true;
-    f.api.xd = true;
+    f.api.AHc = true;
+    f.api.yd = true;
     f.Gc.Ha = true;
     const pending = read(f);
     const wrapper = f.wrapper();
     expect(Object.getPrototypeOf(wrapper)).toBe(f.namespace.xxa.prototype);
-    expect(Object.getPrototypeOf(wrapper.rpcId)).toBe(f.namespace.Zy.prototype);
+    expect(Object.getPrototypeOf(wrapper.rpcId)).toBe(f.namespace.Yy.prototype);
     expect(wrapper.rpcId[f.namespace.Kwa]).toBe('unary');
-    expect(wrapper.rpcId[f.namespace.ll]).toBe(f.namespace.Uy.o_hNvQHb);
+    expect(wrapper.rpcId[f.namespace.kl]).toBe(f.namespace.Ty.o_hNvQHb);
     expect(wrapper.requestMessage.fl).toEqual([
       f.completed.conversationId,
       2,
@@ -255,17 +270,17 @@ describe('Gemini owned unary trial history', () => {
     (f: Fixture) => Object.setPrototypeOf(f.api, Object.prototype),
     (f: Fixture) => (f.api.oa = {} as any),
     (f: Fixture) => (f.api.Gc = {} as any),
-    (f: Fixture) => (f.api.yGc = 1 as any),
-    (f: Fixture) => (f.api.xd = 'true' as any),
+    (f: Fixture) => (f.api.AHc = 1 as any),
+    (f: Fixture) => (f.api.yd = 'true' as any),
     (f: Fixture) => (f.api.requestSource = NaN),
     (f: Fixture) => (f.Gc.Ha = 'private' as any),
-    (f: Fixture) => (f.namespace.RGd.Ob = 'synthetic-foreign'),
-    (f: Fixture) => (f.namespace.RGd.Rb = false),
-    (f: Fixture) => (f.namespace.Uy.o_hNvQHb.Ub = f.namespace.RI),
-    (f: Fixture) => f.namespace.Uy.o_hNvQHb.n_b.push({ key: {}, value: 'private' }),
-    (f: Fixture) => Object.assign(f.namespace.RGd, { privateExtra: undefined }),
+    (f: Fixture) => (f.namespace.gHd.Ob = 'synthetic-foreign'),
+    (f: Fixture) => (f.namespace.gHd.Qb = false),
+    (f: Fixture) => (f.namespace.Ty.o_hNvQHb.Ub = f.namespace.RI),
+    (f: Fixture) => f.namespace.Ty.o_hNvQHb.E_b.push({ key: {}, value: 'private' }),
+    (f: Fixture) => Object.assign(f.namespace.gHd, { privateExtra: undefined }),
     (f: Fixture) =>
-      (f.namespace.Pi = () => {
+      (f.namespace.Ni = () => {
         throw new Error('private');
       }),
     (f: Fixture) =>
@@ -398,10 +413,10 @@ describe('Gemini owned unary trial history', () => {
     for (const target of ['namespace', 'api', 'descriptor', 'receipt'] as const) {
       const f = geminiTrialHistoryFixture();
       const getter = vi.fn(() => 'private');
-      if (target === 'namespace') Object.defineProperty(f.namespace, 'Zy', { get: getter });
+      if (target === 'namespace') Object.defineProperty(f.namespace, 'Yy', { get: getter });
       else if (target === 'api') Object.defineProperty(f.api, 'oa', { get: getter });
       else if (target === 'descriptor')
-        Object.defineProperty(f.namespace.RGd, 'Pb', { get: getter });
+        Object.defineProperty(f.namespace.gHd, 'Pb', { get: getter });
       else Object.defineProperty(f.completed, 'conversationId', { get: getter });
       f.synchronous();
       await rejected(read(f), 'history');
@@ -518,7 +533,7 @@ describe('Gemini owned unary trial history', () => {
     const f = geminiTrialHistoryFixture();
     f.deferReady();
     const pending = read(f);
-    f.namespace.Uy.o_hNvQHb = { ...f.namespace.Uy.o_hNvQHb };
+    f.namespace.Ty.o_hNvQHb = { ...f.namespace.Ty.o_hNvQHb };
     f.flushReady();
     await rejected(pending, 'history');
     expect(f.calls.fetch).toBe(0);

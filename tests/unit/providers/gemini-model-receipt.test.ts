@@ -5,27 +5,27 @@ import type { GeminiOwnedClient } from '../../../src/infrastructure/providers/ge
 // Invented account catalog and signal values; never copied service/account state.
 function fixture() {
   class YK {}
-  class PF {}
+  class QF {}
   const catalog = [
     {
       id: 'synthetic-auto',
       modeCategory: 'MODE_CATEGORY_AUTO',
-      Ms: [{ thinkingLevel: 'THINKING_LEVEL_STANDARD' }],
+      Ns: [{ thinkingLevel: 'THINKING_LEVEL_STANDARD' }],
     },
     {
       id: 'synthetic-effective',
       modeCategory: 'MODE_CATEGORY_FAST',
-      Uo: 'synthetic-routing',
-      Ms: [{ thinkingLevel: 'THINKING_LEVEL_EXTENDED', Lj: 'synthetic-effort' }],
+      Wo: 'synthetic-routing',
+      Ns: [{ thinkingLevel: 'THINKING_LEVEL_EXTENDED', Nj: 'synthetic-effort' }],
     },
   ];
   let selected = catalog[0];
   let effective = catalog[1];
   let level: string | undefined = 'THINKING_LEVEL_EXTENDED';
   let effort: string | undefined = 'synthetic-effort';
-  const nb = new PF();
+  const nb = new QF();
   const Ca = { Ea: vi.fn(() => true) };
-  const service = Object.assign(new YK(), { nb, Ca });
+  const service = Object.assign(new YK(), { nb, Da: Ca });
   const listeners = new Set<{
     next(value: unknown): void;
     error(error: unknown): void;
@@ -51,49 +51,49 @@ function fixture() {
   }
   const state: Record<string, unknown> = {
     catalog,
-    iKb: undefined,
-    gKb: undefined,
-    hKb: undefined,
-    jhc: undefined,
+    zKb: undefined,
+    xKb: undefined,
+    yKb: undefined,
+    Ihc: undefined,
   };
   const stream = new st();
   const catalogMethod = Function(
     '_',
-    'return function(){return this.ha().pipe(_.v(a=>{var b,c,d=(this.Na&&_.evc(a)?(b=a.mVa)!=null?b:[]:(c=a.iR)!=null?c:[]).filter(e=>e.tEa||this.Ha.includes(e.id)||!this.Aa&&this.Wa.includes(e.id)?!1:!0);return this.Sa?d.reverse():d}),_.uw((a,b)=>JSON.stringify(a)===JSON.stringify(b)))}',
-  )({ v: (fn: Function) => fn, uw: (fn: Function) => fn });
+    'return function(){return this.ha().pipe(_.v(a=>{var b,c,d=(this.Na&&_.pwc(a)?(b=a.rVa)!=null?b:[]:(c=a.kR)!=null?c:[]).filter(e=>e.yEa||this.Ha.includes(e.id)||!this.Aa&&this.Wa.includes(e.id)?!1:!0);return this.Ua?d.reverse():d}),_.sw((a,b)=>JSON.stringify(a)===JSON.stringify(b)))}',
+  )({ v: (fn: Function) => fn, sw: (fn: Function) => fn });
   const catalogSource = vi.fn(function (this: unknown) {
     expect(this).toBe(nb);
     return { pipe: () => stream };
   });
   Object.assign(nb, { ha: catalogSource });
-  Object.defineProperty(PF.prototype, 'pG', {
+  Object.defineProperty(QF.prototype, 'sG', {
     value: catalogMethod,
     writable: true,
     configurable: true,
   });
-  Object.assign(service, { iKb: new st(), gKb: new st(), hKb: new st(), jhc: new st() });
+  Object.assign(service, { zKb: new st(), xKb: new st(), yKb: new st(), Ihc: new st() });
   const namespace = {
     YK,
-    PF,
+    QF,
     st,
-    IAb: {},
+    JAb: {},
     At: vi.fn(() => stream),
-    VUd: vi.fn(() => effective),
+    oVd: vi.fn(() => effective),
   };
   const controller = new AbortController();
   const consumer = {
     bardModeService: service,
     nb,
-    Ca,
-    Sa: true,
+    Da: Ca,
+    Ua: true,
     host: () => 1,
     Yb: () => selected,
-    r$f: () => selected!.id,
-    H8: () => effective!.id,
-    ZL: () => level,
-    vT: () => effort,
+    Qag: () => selected!.id,
+    N8: () => effective!.id,
+    dM: () => level,
+    xT: () => effort,
   };
-  const conversation = { bardModeService: service, nb, Ca };
+  const conversation = { bardModeService: service, nb, Da: Ca };
   return {
     client: {
       namespace,
@@ -159,25 +159,25 @@ describe('Gemini actual-account model receipt', () => {
     'refuses an initial catalog %s without invoking it',
     async (kind) => {
       const f = fixture();
-      const prototype = f.namespace.PF.prototype;
-      const descriptor = Object.getOwnPropertyDescriptor(prototype, 'pG')!;
+      const prototype = f.namespace.QF.prototype;
+      const descriptor = Object.getOwnPropertyDescriptor(prototype, 'sG')!;
       const getter = vi.fn(() => f.catalogMethod);
       try {
         if (kind === 'placeholder')
-          Object.defineProperty(prototype, 'pG', { value: vi.fn(() => f.stream) });
+          Object.defineProperty(prototype, 'sG', { value: vi.fn(() => f.stream) });
         if (kind === 'wrong-owner')
-          Object.defineProperty(prototype, 'pG', {
+          Object.defineProperty(prototype, 'sG', {
             value: Function('return function(){return this.Ga}')(),
           });
-        if (kind === 'prototype-accessor') Object.defineProperty(prototype, 'pG', { get: getter });
-        if (kind === 'own-data') Object.defineProperty(f.nb, 'pG', { value: f.catalogMethod });
-        if (kind === 'own-accessor') Object.defineProperty(f.nb, 'pG', { get: getter });
+        if (kind === 'prototype-accessor') Object.defineProperty(prototype, 'sG', { get: getter });
+        if (kind === 'own-data') Object.defineProperty(f.nb, 'sG', { value: f.catalogMethod });
+        if (kind === 'own-accessor') Object.defineProperty(f.nb, 'sG', { get: getter });
         await expect(capture(f)).rejects.toMatchObject({ cause: 'model-bindings' });
         expect(getter).not.toHaveBeenCalled();
         expect(f.catalogSource).not.toHaveBeenCalled();
         expect(f.listeners.size).toBe(0);
       } finally {
-        Object.defineProperty(prototype, 'pG', descriptor);
+        Object.defineProperty(prototype, 'sG', descriptor);
       }
     },
   );
@@ -191,9 +191,9 @@ describe('Gemini actual-account model receipt', () => {
     'own-accessor',
   ])('invalidates a late catalog %s before another catalog invocation', async (kind) => {
     const f = fixture();
-    const prototype = f.namespace.PF.prototype;
-    const descriptor = Object.getOwnPropertyDescriptor(prototype, 'pG')!;
-    const constructor = f.namespace.PF;
+    const prototype = f.namespace.QF.prototype;
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, 'sG')!;
+    const constructor = f.namespace.QF;
     const getter = vi.fn(() => f.catalogMethod);
     const receipt = await capture(f);
     try {
@@ -201,21 +201,21 @@ describe('Gemini actual-account model receipt', () => {
         const replacement = Function('_', 'return ' + f.catalogMethod.toString())({});
         expect(replacement).not.toBe(f.catalogMethod);
         expect(replacement.toString()).toBe(f.catalogMethod.toString());
-        Object.defineProperty(prototype, 'pG', { value: replacement });
+        Object.defineProperty(prototype, 'sG', { value: replacement });
       }
-      if (kind === 'accessor') Object.defineProperty(prototype, 'pG', { get: getter });
-      if (kind === 'descriptor') Object.defineProperty(prototype, 'pG', { enumerable: true });
-      if (kind === 'constructor') f.namespace.PF = class {};
+      if (kind === 'accessor') Object.defineProperty(prototype, 'sG', { get: getter });
+      if (kind === 'descriptor') Object.defineProperty(prototype, 'sG', { enumerable: true });
+      if (kind === 'constructor') f.namespace.QF = class {};
       if (kind === 'nb-prototype') Object.setPrototypeOf(f.nb, {});
-      if (kind === 'own-data') Object.defineProperty(f.nb, 'pG', { value: f.catalogMethod });
-      if (kind === 'own-accessor') Object.defineProperty(f.nb, 'pG', { get: getter });
+      if (kind === 'own-data') Object.defineProperty(f.nb, 'sG', { value: f.catalogMethod });
+      if (kind === 'own-accessor') Object.defineProperty(f.nb, 'sG', { get: getter });
       expect(receipt.current()).toBe(false);
       expect(getter).not.toHaveBeenCalled();
       expect(f.catalogSource).toHaveBeenCalledOnce();
     } finally {
-      f.namespace.PF = constructor;
+      f.namespace.QF = constructor;
       Object.setPrototypeOf(f.nb, prototype);
-      Object.defineProperty(prototype, 'pG', descriptor);
+      Object.defineProperty(prototype, 'sG', descriptor);
       receipt.close();
     }
     expect(f.teardown).toHaveBeenCalledOnce();
@@ -233,16 +233,16 @@ describe('Gemini actual-account model receipt', () => {
         Hj: 'synthetic-effort',
       },
     });
-    expect(f.namespace.VUd).toHaveBeenCalledWith('synthetic-auto', 1, f.catalog);
+    expect(f.namespace.oVd).toHaveBeenCalledWith('synthetic-auto', 1, f.catalog);
     expect(receipt.current()).toBe(true);
   });
   it('preserves actual preference without mapping when the provider scope disables it', async () => {
     const f = fixture();
-    f.consumer.Sa = false;
+    f.consumer.Ua = false;
     f.Ca.Ea.mockReturnValue(false);
     f.change.effective(f.catalog[0]);
     expect((await capture(f)).metadata.modeId).toBe('synthetic-auto');
-    expect(f.namespace.VUd).not.toHaveBeenCalled();
+    expect(f.namespace.oVd).not.toHaveBeenCalled();
   });
   it.each(['model', 'modeId'])(
     'refuses unsupported UI %s before invoking provider helpers',
@@ -250,10 +250,10 @@ describe('Gemini actual-account model receipt', () => {
       const f = fixture();
       Object.assign(f.ui, { [key]: '' });
       await expect(capture(f)).rejects.toThrow();
-      expect(f.namespace.VUd).not.toHaveBeenCalled();
+      expect(f.namespace.oVd).not.toHaveBeenCalled();
     },
   );
-  it.each(['host', 'Yb', 'r$f', 'H8', 'ZL', 'vT'])(
+  it.each(['host', 'Yb', 'Qag', 'N8', 'dM', 'xT'])(
     'refuses accessor signal %s without executing it',
     async (key) => {
       const f = fixture();
@@ -263,7 +263,7 @@ describe('Gemini actual-account model receipt', () => {
       expect(getter).not.toHaveBeenCalled();
     },
   );
-  it.each(['bardModeService', 'nb', 'Ca'])('refuses different conversation %s', async (key) => {
+  it.each(['bardModeService', 'nb', 'Da'])('refuses different conversation %s', async (key) => {
     const f = fixture();
     Object.assign(f.client.conversation, { [key]: {} });
     await expect(capture(f)).rejects.toThrow();
@@ -280,7 +280,7 @@ describe('Gemini actual-account model receipt', () => {
   });
   it('refuses an actual B8 mismatch', async () => {
     const f = fixture();
-    f.consumer.H8 = () => 'another-effective';
+    f.consumer.N8 = () => 'another-effective';
     await expect(capture(f)).rejects.toThrow();
   });
   it('refuses a menu preference mismatch', async () => {
@@ -340,19 +340,19 @@ describe('Gemini actual-account model receipt', () => {
         f.change.effort(undefined);
         break;
       case 'signal':
-        f.consumer.H8 = () => 'synthetic-effective';
+        f.consumer.N8 = () => 'synthetic-effective';
         break;
       case 'scope':
         f.Ca.Ea.mockReturnValue(false);
         break;
       case 'catalog':
-        f.catalog[1]!.Uo = 'changed';
+        f.catalog[1]!.Wo = 'changed';
         break;
       case 'service':
         f.consumer.bardModeService = {} as typeof f.service;
         break;
       case 'resolver':
-        f.namespace.VUd = vi.fn(() => f.catalog[1]);
+        f.namespace.oVd = vi.fn(() => f.catalog[1]);
         break;
     }
     expect(r.current()).toBe(false);
@@ -403,7 +403,7 @@ describe('Gemini actual-account model receipt', () => {
     expect(f.listeners.size).toBe(0);
     expect(f.teardown).toHaveBeenCalledTimes(1);
   });
-  it.each(['iKb', 'gKb', 'hKb', 'jhc'])(
+  it.each(['zKb', 'xKb', 'yKb', 'Ihc'])(
     'refuses selected alternative %s even with unchanged displayed mode',
     async (key) => {
       const f = fixture();
@@ -412,7 +412,7 @@ describe('Gemini actual-account model receipt', () => {
       expect(f.teardown).toHaveBeenCalledTimes(1);
     },
   );
-  it.each(['iKb', 'gKb', 'hKb', 'jhc'])(
+  it.each(['zKb', 'xKb', 'yKb', 'Ihc'])(
     'invalidates later alternative %s even with unchanged displayed mode',
     async (key) => {
       const f = fixture();
@@ -443,7 +443,7 @@ describe('Gemini actual-account model receipt', () => {
   });
   it('sanitizes a provider exception', async () => {
     const f = fixture();
-    f.consumer.H8 = () => {
+    f.consumer.N8 = () => {
       throw new Error('SYNTHETIC_PRIVATE_MARKER');
     };
     await expect(capture(f)).rejects.toThrowError(
@@ -473,7 +473,7 @@ describe('Gemini actual-account model receipt', () => {
     [
       'model-settings',
       (f: ReturnType<typeof fixture>) => {
-        f.state.iKb = 'synthetic-alternative';
+        f.state.zKb = 'synthetic-alternative';
       },
     ],
   ] as const)('reports only the fixed %s stage', async (cause, mutate) => {
@@ -511,7 +511,7 @@ describe('Gemini actual-account model receipt', () => {
       message: 'Gemini trial model failed.',
       cause,
     });
-    expect(f.namespace.VUd).not.toHaveBeenCalled();
+    expect(f.namespace.oVd).not.toHaveBeenCalled();
     expect(f.listeners.size).toBe(0);
   });
   it('accepts a source-normal selected clone from an independent catalog replay', async () => {
@@ -520,7 +520,7 @@ describe('Gemini actual-account model receipt', () => {
     f.change.selected(selected);
     const receipt = await capture(f);
     expect(receipt.metadata.modeId).toBe('synthetic-effective');
-    expect(f.namespace.VUd).toHaveBeenCalledWith('synthetic-auto', 1, f.catalog);
+    expect(f.namespace.oVd).toHaveBeenCalledWith('synthetic-auto', 1, f.catalog);
     expect(receipt.current()).toBe(true);
     receipt.close();
   });
@@ -530,39 +530,39 @@ describe('Gemini actual-account model receipt', () => {
     const selected = JSON.parse(JSON.stringify(f.catalog[0]));
     f.change.selected(selected);
     f.change.effective(selected);
-    f.consumer.Sa = false;
+    f.consumer.Ua = false;
     f.Ca.Ea.mockReturnValue(false);
     const receipt = await capture(f);
     expect(receipt.metadata.modeId).toBe('synthetic-auto');
     expect(receipt.current()).toBe(true);
-    expect(f.namespace.VUd).not.toHaveBeenCalled();
+    expect(f.namespace.oVd).not.toHaveBeenCalled();
     f.change.selected({ ...selected });
     expect(receipt.current()).toBe(false);
     receipt.close();
   });
-  it.each(['Uo', 'modeCategory', 'thinkingLevel', 'Lj', 'oN'] as const)(
+  it.each(['Wo', 'modeCategory', 'thinkingLevel', 'Nj', 'oN'] as const)(
     'rejects a same-ID selected clone with mismatched %s',
     async (key) => {
       const f = fixture();
       const selected = JSON.parse(JSON.stringify(f.catalog[0]));
-      if (key === 'thinkingLevel') selected.Ms[0].thinkingLevel = 'THINKING_LEVEL_DEEP_THINK';
-      else if (key === 'Lj') selected.Ms[0].Lj = 'synthetic-other';
+      if (key === 'thinkingLevel') selected.Ns[0].thinkingLevel = 'THINKING_LEVEL_DEEP_THINK';
+      else if (key === 'Nj') selected.Ns[0].Nj = 'synthetic-other';
       else
         selected[key] =
           key === 'oN' ? [2] : key === 'modeCategory' ? 'MODE_CATEGORY_FAST' : 'synthetic-other';
       f.change.selected(selected);
       await expect(capture(f)).rejects.toHaveProperty('cause', 'model-selection');
-      expect(f.namespace.VUd).not.toHaveBeenCalled();
+      expect(f.namespace.oVd).not.toHaveBeenCalled();
     },
   );
-  it.each(['Uo', 'modeCategory', 'thinkingLevel', 'Lj', 'oN'] as const)(
+  it.each(['Wo', 'modeCategory', 'thinkingLevel', 'Nj', 'oN'] as const)(
     'invalidates in-place request-relevant %s mutation even when selected and catalog still agree',
     async (key) => {
       const f = fixture();
       const receipt = await capture(f);
       const selected = f.catalog[0]!;
-      if (key === 'thinkingLevel') selected.Ms[0]!.thinkingLevel = 'THINKING_LEVEL_DEEP_THINK';
-      else if (key === 'Lj') Object.assign(selected.Ms[0]!, { Lj: 'synthetic-other' });
+      if (key === 'thinkingLevel') selected.Ns[0]!.thinkingLevel = 'THINKING_LEVEL_DEEP_THINK';
+      else if (key === 'Nj') Object.assign(selected.Ns[0]!, { Nj: 'synthetic-other' });
       else
         Object.assign(selected, {
           [key]:
@@ -576,7 +576,7 @@ describe('Gemini actual-account model receipt', () => {
     const f = fixture();
     const selected = JSON.parse(JSON.stringify(f.catalog[0]));
     const getter = vi.fn(() => 'synthetic-other');
-    Object.defineProperty(selected, 'Uo', { get: getter });
+    Object.defineProperty(selected, 'Wo', { get: getter });
     f.change.selected(selected);
     await expect(capture(f)).rejects.toThrow();
     expect(getter).not.toHaveBeenCalled();
@@ -586,21 +586,21 @@ describe('Gemini actual-account model receipt', () => {
     async (enabled) => {
       const f = fixture();
       f.catalog.push(
-        { id: '', modeCategory: 'MODE_CATEGORY_FAST', Ms: [] },
-        { id: '', modeCategory: 'MODE_CATEGORY_THINKING', Ms: [] },
+        { id: '', modeCategory: 'MODE_CATEGORY_FAST', Ns: [] },
+        { id: '', modeCategory: 'MODE_CATEGORY_THINKING', Ns: [] },
       );
       const selected = JSON.parse(JSON.stringify(f.catalog[0]));
       f.change.selected(selected);
       if (!enabled) {
-        f.consumer.Sa = false;
+        f.consumer.Ua = false;
         f.Ca.Ea.mockReturnValue(false);
         f.change.effective(selected);
       }
       const receipt = await capture(f);
       expect(receipt.current()).toBe(true);
       expect(receipt.metadata.modeId).toBe(enabled ? 'synthetic-effective' : 'synthetic-auto');
-      if (enabled) expect(f.namespace.VUd).toHaveBeenCalledWith('synthetic-auto', 1, f.catalog);
-      else expect(f.namespace.VUd).not.toHaveBeenCalled();
+      if (enabled) expect(f.namespace.oVd).toHaveBeenCalledWith('synthetic-auto', 1, f.catalog);
+      else expect(f.namespace.oVd).not.toHaveBeenCalled();
       receipt.close();
     },
   );
@@ -608,30 +608,30 @@ describe('Gemini actual-account model receipt', () => {
     'rejects an unsupported empty-ID row %s',
     async (key) => {
       const f = fixture();
-      const row = { id: '', modeCategory: 'MODE_CATEGORY_FAST', Ms: [] };
+      const row = { id: '', modeCategory: 'MODE_CATEGORY_FAST', Ns: [] };
       f.catalog.push(row);
       if (key === 'id') Reflect.deleteProperty(row, 'id');
       else if (key === 'category') Reflect.deleteProperty(row, 'modeCategory');
-      else if (key === 'routing') Object.assign(row, { Uo: 'synthetic-routing' });
-      else if (key === 'pair') Object.assign(row, { Ms: [{ Lj: 'synthetic-effort' }] });
-      else if (key === 'cycle') Object.assign(row, { Ms: [row] });
+      else if (key === 'routing') Object.assign(row, { Wo: 'synthetic-routing' });
+      else if (key === 'pair') Object.assign(row, { Ns: [{ Nj: 'synthetic-effort' }] });
+      else if (key === 'cycle') Object.assign(row, { Ns: [row] });
       else Object.assign(row, { oN: [NaN] });
       await expect(capture(f)).rejects.toHaveProperty('cause', 'model-selection-catalog');
-      expect(f.namespace.VUd).not.toHaveBeenCalled();
+      expect(f.namespace.oVd).not.toHaveBeenCalled();
     },
   );
   it('rejects an empty-ID row accessor without invoking it', async () => {
     const f = fixture();
-    const row = { id: '', modeCategory: 'MODE_CATEGORY_FAST', Ms: [] };
+    const row = { id: '', modeCategory: 'MODE_CATEGORY_FAST', Ns: [] };
     const getter = vi.fn(() => undefined);
-    Object.defineProperty(row, 'Uo', { get: getter });
+    Object.defineProperty(row, 'Wo', { get: getter });
     f.catalog.push(row);
     await expect(capture(f)).rejects.toHaveProperty('cause', 'model-selection-catalog');
     expect(getter).not.toHaveBeenCalled();
   });
   it('invalidates an unrelated empty-ID row metadata mutation', async () => {
     const f = fixture();
-    const row = { id: '', modeCategory: 'MODE_CATEGORY_FAST', Ms: [] };
+    const row = { id: '', modeCategory: 'MODE_CATEGORY_FAST', Ns: [] };
     f.catalog.push(row);
     const receipt = await capture(f);
     row.modeCategory = 'MODE_CATEGORY_THINKING';
@@ -640,13 +640,13 @@ describe('Gemini actual-account model receipt', () => {
   });
   it('still rejects duplicate nonempty effective IDs in a mixed catalog', async () => {
     const f = fixture();
-    f.catalog.push({ id: '', modeCategory: 'MODE_CATEGORY_FAST', Ms: [] }, { ...f.catalog[1]! });
+    f.catalog.push({ id: '', modeCategory: 'MODE_CATEGORY_FAST', Ns: [] }, { ...f.catalog[1]! });
     await expect(capture(f)).rejects.toHaveProperty('cause', 'model-selection-catalog');
-    expect(f.namespace.VUd).not.toHaveBeenCalled();
+    expect(f.namespace.oVd).not.toHaveBeenCalled();
   });
   it('never admits an empty-ID category as the actual effective model', async () => {
     const f = fixture();
-    const row = { id: '', modeCategory: 'MODE_CATEGORY_FAST', Ms: [] };
+    const row = { id: '', modeCategory: 'MODE_CATEGORY_FAST', Ns: [] };
     f.catalog.push(row);
     f.change.effective(row);
     await expect(capture(f)).rejects.toHaveProperty('cause', 'model-settings');

@@ -2,6 +2,8 @@ import {
   GEMINI_FIXED_TEXT_TRIAL_ANSWER,
   GEMINI_FIXED_TEXT_TRIAL_PROMPT,
   GeminiFixedTextTrialReason,
+  GEMINI_NATIVE_CONFIGURATION_DIAGNOSTICS,
+  type GeminiNativeReceiveDiagnostic,
   type GeminiNativeConfigurationDiagnostic,
 } from '../../../application/gemini-fixed-text-trial';
 
@@ -62,21 +64,33 @@ const thinking = [
   'THINKING_LEVEL_DEEP_THINK',
   'THINKING_LEVEL_MEDIUM',
 ] as const;
-const outboundFailures = new WeakMap<object, GeminiNativeConfigurationDiagnostic>();
-export function readGeminiNativeOutboundDiagnostic(error: unknown) {
+type ReceivePredicate = GeminiNativeReceiveDiagnostic['predicate'];
+const outboundFailures = new WeakMap<object, ReceivePredicate>();
+export function readGeminiNativeReceivePredicate(error: unknown) {
   return error !== null && (typeof error === 'object' || typeof error === 'function')
     ? outboundFailures.get(error)
     : undefined;
 }
-function transferOutboundFailure(error: unknown, failure: Error): never {
-  const diagnostic = readGeminiNativeOutboundDiagnostic(error);
+export function readGeminiNativeOutboundDiagnostic(
+  error: unknown,
+): GeminiNativeConfigurationDiagnostic | undefined {
+  const code = readGeminiNativeReceivePredicate(error);
+  return GEMINI_NATIVE_CONFIGURATION_DIAGNOSTICS.includes(
+    code as GeminiNativeConfigurationDiagnostic,
+  )
+    ? (code as GeminiNativeConfigurationDiagnostic)
+    : undefined;
+}
+function transferOutboundFailure(
+  error: unknown,
+  failure: Error,
+  fallback?: ReceivePredicate,
+): never {
+  const diagnostic = readGeminiNativeReceivePredicate(error) ?? fallback;
   if (diagnostic) outboundFailures.set(failure, diagnostic);
   throw failure;
 }
-function require(
-  condition: unknown,
-  diagnostic?: GeminiNativeConfigurationDiagnostic,
-): asserts condition {
+function require(condition: unknown, diagnostic?: ReceivePredicate): asserts condition {
   if (!condition) {
     const failure = new Error();
     if (diagnostic) outboundFailures.set(failure, diagnostic);
@@ -155,11 +169,23 @@ function approval(value: unknown) {
 
 const outboundOwn = own,
   outboundObject = object;
+const nativePlainNodeOneofFields = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+  29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,
+  53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76,
+  77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95,
+];
 const nativeMapPrototype = Map.prototype;
 const nativeMapSize = Object.getOwnPropertyDescriptor(nativeMapPrototype, 'size')!.get!;
 const nativeMapHas = Object.getOwnPropertyDescriptor(nativeMapPrototype, 'has')!.value;
 const nativeMapGet = Object.getOwnPropertyDescriptor(nativeMapPrototype, 'get')!.value;
-function wireReader(namespace: unknown, diagnostics = false, outbound = false, inbound = false) {
+function wireReader(
+  namespace: unknown,
+  diagnostics = false,
+  outbound = false,
+  inbound = false,
+  sourceClone = false,
+) {
   const own = (value: unknown, key: PropertyKey) => outboundOwn(value, key, diagnostics);
   const object = (value: unknown) => outboundObject(value, diagnostics);
   const candidateFlag = own(namespace, 'La');
@@ -169,60 +195,88 @@ function wireReader(namespace: unknown, diagnostics = false, outbound = false, i
     : undefined);
   const flag = candidateFlag;
   const cacheKey = outbound || inbound ? own(namespace, 'dga') : undefined;
-  if (outbound || inbound) require(typeof cacheKey === 'symbol' && cacheKey !== flag);
+  if (outbound || inbound)
+    require(typeof cacheKey === 'symbol' && cacheKey !== flag, diagnostics && inbound
+      ? 'cache-shape'
+      : undefined);
   const groups: Record<string, { key: string; fields: number[] }> = inbound
     ? {
-        xzd: { key: 'hM', fields: [1, 2, 3, 4, 5, 6] },
-        HJd: { key: 'gM', fields: [2, 3, 5, 6, 7, 8, 9] },
-        BJd: { key: 'CJd', fields: [1, 2] },
-        AJd: { key: 'fM', fields: [3, 4] },
+        Kzd: { key: '$L', fields: [1, 2, 3, 4, 5, 6] },
+        XJd: { key: 'ZL', fields: [2, 3, 5, 6, 7, 8, 9] },
+        RJd: { key: 'SJd', fields: [1, 2] },
+        QJd: { key: 'YL', fields: [3, 4] },
+        IF: { key: 'HF', fields: [11, 21, 23, 28, 37, 49, 51] },
+        oH: { key: 'pH', fields: nativePlainNodeOneofFields },
       }
     : {
-        tJd: { key: 'eM', fields: [1, 2, 3, 4] },
-        qJd: { key: 'rJd', fields: [6, 8] },
-        dM: { key: 'cM', fields: [3, 4, 6, 7, 8, 9] },
+        JJd: { key: 'XL', fields: [1, 2, 3, 4] },
+        GJd: { key: 'HJd', fields: [6, 8] },
+        WL: { key: 'VL', fields: [3, 4, 6, 7, 8, 9] },
       };
   function oneof(raw: unknown[], fields: Map<number, unknown>, owner?: string) {
     const cache = cacheKey === undefined ? undefined : own(raw, cacheKey as symbol);
     const group = owner && groups[owner];
-    require(group);
+    require(group, diagnostics && inbound ? 'cache-shape' : undefined);
     const expected = own(namespace, group.key);
-    require(Array.isArray(expected) && Object.getPrototypeOf(expected) === Array.prototype);
-    require(own(expected, 'length') === group.fields.length);
-    require(Reflect.ownKeys(expected).length === group.fields.length + 1);
-    group.fields.forEach((field, index) => require(own(expected, String(index)) === field));
+    require(Array.isArray(expected) &&
+      Object.getPrototypeOf(expected) === Array.prototype, diagnostics && inbound
+      ? 'cache-shape'
+      : undefined);
+    require(own(expected, 'length') === group.fields.length, diagnostics && inbound
+      ? 'cache-shape'
+      : undefined);
+    require(Reflect.ownKeys(expected).length === group.fields.length + 1, diagnostics && inbound
+      ? 'cache-shape'
+      : undefined);
+    group.fields.forEach((field, index) =>
+      require(own(expected, String(index)) === field, diagnostics && inbound
+        ? 'cache-shape'
+        : undefined),
+    );
     const populated = group.fields.filter((field) => fields.has(field));
-    require(populated.length <= 1);
+    require(populated.length <= 1, diagnostics && inbound ? 'cache-selection' : undefined);
     if (!Object.hasOwn(raw, cacheKey as symbol)) return;
-    require(
-      cache !== null &&
-        typeof cache === 'object' &&
-        Object.getPrototypeOf(cache) === nativeMapPrototype &&
-        Reflect.ownKeys(cache).length === 0,
-    );
-    require(
-      Map.prototype === nativeMapPrototype &&
-        Object.getOwnPropertyDescriptor(nativeMapPrototype, 'size')?.get === nativeMapSize &&
-        own(nativeMapPrototype, 'has') === nativeMapHas &&
-        own(nativeMapPrototype, 'get') === nativeMapGet,
-    );
+    require(cache !== null &&
+      typeof cache === 'object' &&
+      Object.getPrototypeOf(cache) === nativeMapPrototype &&
+      Reflect.ownKeys(cache).length === 0, diagnostics && inbound ? 'cache-shape' : undefined);
+    require(Map.prototype === nativeMapPrototype &&
+      Object.getOwnPropertyDescriptor(nativeMapPrototype, 'size')?.get === nativeMapSize &&
+      own(nativeMapPrototype, 'has') === nativeMapHas &&
+      own(nativeMapPrototype, 'get') === nativeMapGet, diagnostics && inbound
+      ? 'cache-shape'
+      : undefined);
     for (const [method, source] of [
       [nativeMapSize, 'get size'],
       [nativeMapHas, 'has'],
       [nativeMapGet, 'get'],
     ] as const)
-      require(
-        Reflect.apply(Function.prototype.toString, method, []) ===
-          `function ${source}() { [native code] }`,
-      );
+      require(Reflect.apply(Function.prototype.toString, method, []) ===
+        `function ${source}() { [native code] }`, diagnostics && inbound
+        ? 'cache-shape'
+        : undefined);
     // Only captured intrinsics inspect Map internal slots; no provider reader or iterator is called.
-    const size = Reflect.apply(nativeMapSize, cache, []);
-    require(size <= 1);
+    const intrinsic = <T>(call: () => T): T => {
+      try {
+        return call();
+      } catch (error) {
+        if (
+          diagnostics &&
+          inbound &&
+          error !== null &&
+          (typeof error === 'object' || typeof error === 'function') &&
+          !outboundFailures.has(error)
+        )
+          outboundFailures.set(error, 'cache-intrinsic');
+        throw error;
+      }
+    };
+    const size = intrinsic(() => Reflect.apply(nativeMapSize, cache, []));
+    require(size <= 1, diagnostics && inbound ? 'cache-selection' : undefined);
     if (size)
-      require(
-        Reflect.apply(nativeMapHas, cache, [expected]) &&
-          Reflect.apply(nativeMapGet, cache, [expected]) === (populated[0] ?? 0),
-      );
+      require(intrinsic(() => Reflect.apply(nativeMapHas, cache, [expected])) &&
+        intrinsic(() => Reflect.apply(nativeMapGet, cache, [expected])) ===
+          (populated[0] ?? 0), diagnostics && inbound ? 'cache-selection' : undefined);
   }
   let nodes = 0;
   const seen = new WeakSet<object>();
@@ -263,7 +317,7 @@ function wireReader(namespace: unknown, diagnostics = false, outbound = false, i
   }
   function prototype(name: string) {
     const constructor =
-      name === 'history' ? own(own(namespace, 'RGd'), 'Pb') : own(namespace, name);
+      name === 'history' ? own(own(namespace, 'gHd'), 'Pb') : own(namespace, name);
     require(typeof constructor === 'function', diagnostics
       ? 'dispatch-native-n15-wire-09'
       : undefined);
@@ -289,7 +343,7 @@ function wireReader(namespace: unknown, diagnostics = false, outbound = false, i
         ? 'dispatch-native-n15-wire-11'
         : undefined);
       for (const key of Reflect.ownKeys(value)) {
-        require(key === 'fl' || key === 'Fb' || key === 'Xbc', diagnostics
+        require(key === 'fl' || key === 'Fb' || key === 'tcc', diagnostics
           ? 'dispatch-native-n15-wire-12'
           : undefined);
         own(value, key);
@@ -328,15 +382,28 @@ function wireReader(namespace: unknown, diagnostics = false, outbound = false, i
     if ((outbound || inbound) && owner && Object.hasOwn(groups, owner)) oneof(data, result, owner);
     return result;
   }
-  function fields(value: Map<number, unknown>, allowed: number[]) {
-    require([...value.keys()].every((field) => allowed.includes(field)), diagnostics
-      ? 'dispatch-native-n15-wire-16'
-      : undefined);
+  function fields(
+    value: Map<number, unknown>,
+    allowed: number[],
+    predicate: ReceivePredicate = 'dispatch-native-n15-wire-16',
+    ignored?: { fields: readonly number[]; predicate: ReceivePredicate },
+  ) {
+    let failure = predicate;
+    require([...value.keys()].every((field) => {
+      if (allowed.includes(field)) return true;
+      if (ignored?.fields.includes(field)) failure = ignored.predicate;
+      return false;
+    }), diagnostics ? failure : undefined);
   }
-  function emptyMessage(value: unknown, name?: string, allowedRepeated: number[] = []) {
+  function emptyMessage(
+    value: unknown,
+    name?: string,
+    allowedRepeated: number[] = [],
+    predicate?: ReceivePredicate,
+  ) {
     if (value === null || value === undefined) return;
     const data = message(value, name);
-    fields(data, allowedRepeated);
+    fields(data, allowedRepeated, predicate);
     for (const entry of data.values()) require(array(entry, true).length === 0);
   }
   function emptyList(value: unknown) {
@@ -376,7 +443,7 @@ function wireReader(namespace: unknown, diagnostics = false, outbound = false, i
       ? 'dispatch-native-n15-wire-25'
       : undefined);
     for (const key of Reflect.ownKeys(value)) {
-      require(key === 'fl' || key === 'Fb' || key === 'Xbc', diagnostics
+      require(key === 'fl' || key === 'Fb' || key === 'tcc', diagnostics
         ? 'dispatch-native-n15-wire-26'
         : undefined);
       own(value, key);
@@ -389,6 +456,15 @@ function wireReader(namespace: unknown, diagnostics = false, outbound = false, i
   }
   const snapshotBackings: unknown[][] = [];
   type Snapshot = string | number | bigint | boolean | null | undefined | readonly Snapshot[];
+  const snapshotNodes: Array<{
+    value: unknown;
+    raw: unknown[];
+    name?: string;
+    repeated: boolean;
+    opaqueShape: boolean;
+    nativeHFPath?: readonly number[];
+    content?: Snapshot;
+  }> = [];
   function snapshot(
     value: unknown,
     name?: string,
@@ -397,7 +473,17 @@ function wireReader(namespace: unknown, diagnostics = false, outbound = false, i
     depth = 0,
     opaqueShape = false,
     nativePath?: readonly number[],
+    nativeHFPath?: readonly number[],
   ): Snapshot {
+    if (
+      inbound &&
+      nativePath?.length === 5 &&
+      nativePath.every((field, index) => field === [2, 7, 1, 4, 4][index])
+    ) {
+      name = 'IF';
+      nativeHFPath = [];
+    }
+    if (inbound && name === 'IF' && depth === 0) nativeHFPath = [];
     require(depth <= 64, diagnostics ? 'dispatch-native-n15-wire-28' : undefined);
     if (value === null || value === undefined || typeof value === 'boolean') return value;
     if (typeof value === 'string') {
@@ -419,8 +505,24 @@ function wireReader(namespace: unknown, diagnostics = false, outbound = false, i
     }
     const raw = backing(value);
     snapshotBackings.push(raw);
+    const node = {
+      value,
+      raw,
+      name,
+      repeated,
+      opaqueShape,
+      nativeHFPath,
+      content: undefined as Snapshot,
+    };
+    snapshotNodes.push(node);
     if (!Array.isArray(value) && name) {
-      if (name === 'private') nativePrivateBacking(namespace, value, 'QGd');
+      if (name === 'private' || name === 'native-status')
+        nativePrivateBacking(
+          namespace,
+          value,
+          name === 'native-status' ? 'm1c' : 'QGd',
+          diagnostics,
+        );
       else
         require(Object.getPrototypeOf(value) === prototype(name), diagnostics
           ? 'dispatch-native-n15-wire-32'
@@ -428,7 +530,7 @@ function wireReader(namespace: unknown, diagnostics = false, outbound = false, i
     }
     if (repeated) {
       const data = array(raw, true);
-      return Object.freeze(
+      return (node.content = Object.freeze(
         Array.from({ length: data.length }, (_, index) =>
           snapshot(
             own(data, String(index)),
@@ -438,77 +540,123 @@ function wireReader(namespace: unknown, diagnostics = false, outbound = false, i
             depth + 1,
             opaqueShape,
             nativePath ? [...nativePath, index] : undefined,
+            nativeHFPath ? [...nativeHFPath, index] : undefined,
           ),
         ),
-      );
+      ));
     }
     const owner =
-      outbound && nativePath
-        ? nativePath.length === 0
-          ? 'tJd'
-          : nativePath.length === 1 && nativePath[0] === 1
-            ? 'qJd'
-            : nativePath.length === 1 && nativePath[0] === 2
-              ? 'dM'
-              : undefined
-        : inbound && nativePath
-          ? nativePath.length === 0
-            ? 'xzd'
-            : nativePath.length === 1 && nativePath[0] === 2
-              ? 'HJd'
-              : nativePath.length === 2 && nativePath[0] === 2 && nativePath[1] === 7
-                ? 'BJd'
-                : nativePath.length === 3 &&
-                    nativePath[0] === 2 &&
-                    nativePath[1] === 7 &&
-                    nativePath[2] === 1
-                  ? 'AJd'
+      inbound && nativeHFPath?.length === 0
+        ? 'IF'
+        : inbound &&
+            name === 'oH' &&
+            nativeHFPath?.length === 4 &&
+            nativeHFPath.every((field, index) => field === [27, 0, 1, 0][index])
+          ? 'oH'
+          : outbound && nativePath
+            ? nativePath.length === 0
+              ? 'JJd'
+              : nativePath.length === 1 && nativePath[0] === 1
+                ? 'GJd'
+                : nativePath.length === 1 && nativePath[0] === 2
+                  ? 'WL'
                   : undefined
-          : undefined;
+            : inbound && nativePath
+              ? nativePath.length === 0
+                ? 'Kzd'
+                : nativePath.length === 1 && nativePath[0] === 2
+                  ? 'XJd'
+                  : nativePath.length === 2 && nativePath[0] === 2 && nativePath[1] === 7
+                    ? 'RJd'
+                    : nativePath.length === 3 &&
+                        nativePath[0] === 2 &&
+                        nativePath[1] === 7 &&
+                        nativePath[2] === 1
+                      ? 'QJd'
+                      : undefined
+              : undefined;
     if (owner && !Array.isArray(value)) require(Object.getPrototypeOf(value) === prototype(owner));
-    const data = message(raw, undefined, true, owner);
+    const data = message(raw, undefined, nativeHFPath ? !name : true, owner);
+    // IJd declares these unused ancillary slots outside the selected response oneofs.
+    const ancillary =
+      inbound && nativePath
+        ? owner === 'XJd'
+          ? [1, 4]
+          : owner === 'QJd'
+            ? [1, 2]
+            : nativePath.length === 4 &&
+                nativePath.every((field, index) => field === [2, 7, 1, 4][index])
+              ? [1, 2, 3]
+              : []
+        : [];
     const content = [...data]
-      .filter(([field]) => !omitIdentity || field !== 2)
+      .filter(
+        ([field, entry]) =>
+          (!omitIdentity || field !== 2) &&
+          !(inbound && name === 'IF' && field === 25) &&
+          !ancillary.includes(field) &&
+          !(
+            sourceClone &&
+            ((name === 'IF' && [5, 12, 13, 27, 56].includes(field)) ||
+              (name === 'qH' && field === 1)) &&
+            Array.isArray(entry) &&
+            entry.length === 0
+          ),
+      )
       .sort(([a], [b]) => a - b)
       .map(([field, entry]) =>
         Object.freeze([
           field,
           snapshot(
             entry,
-            name === 'HF'
+            name === 'IF'
               ? (
                   {
                     2: 'CI',
-                    5: 'zF',
-                    6: 'R4c',
-                    21: 'qAd',
-                    27: 'rH',
-                    46: 'yL',
+                    5: nativeHFPath ? 'FF' : 'AF',
+                    6: 'W4c',
+                    21: 'DAd',
+                    27: 'qH',
+                    46: 'vL',
                     52: 'private',
                     55: 'private',
                     65: 'private',
                   } as Record<number, string>
                 )[field]
-              : name === 'zF'
-                ? ({ 2: 'XZc', 9: 'private', 13: 'bw' } as Record<number, string>)[field]
-                : name === 'rH' && field === 1
-                  ? 'pH'
-                  : name === 'pH' && field === 2
-                    ? 'hH'
+              : name === 'AF' || name === 'FF'
+                ? (
+                    {
+                      2: '$Zc',
+                      9:
+                        nativeHFPath?.length === 2 && nativeHFPath[0] === 5 && nativeHFPath[1] === 0
+                          ? 'native-status'
+                          : 'private',
+                      13: '$v',
+                    } as Record<number, string>
+                  )[field]
+                : name === 'qH' && field === 1
+                  ? 'oH'
+                  : name === 'oH' && field === 2
+                    ? 'gH'
                     : undefined,
-            (name === 'HF' && [5, 12, 13, 27, 56].includes(field)) ||
-              (name === 'rH' && field === 1),
+            (name === 'IF' && [5, 12, 13, 27, 56].includes(field)) ||
+              (name === 'qH' && field === 1),
             false,
             depth + 1,
-            opaqueShape || (name === 'HF' && [46, 52].includes(field)),
+            opaqueShape || (name === 'IF' && [46, 52].includes(field)),
             nativePath ? [...nativePath, field] : undefined,
+            nativeHFPath ? [...nativeHFPath, field] : undefined,
           ),
         ]),
       );
     // Opaque arrays have no schema here; retain their cardinality instead of guessing a message/list.
-    return Object.freeze(opaqueShape ? ['opaque-wire', raw.length, ...content] : content);
+    return (node.content = Object.freeze(
+      opaqueShape ? ['opaque-wire', raw.length, ...content] : content,
+    ));
   }
   return {
+    privateBacking: (value: unknown, kind: 'QGd' | 'm1c') =>
+      nativePrivateBacking(namespace, value, kind, diagnostics),
     diagnostics,
     prototype,
     message,
@@ -521,6 +669,7 @@ function wireReader(namespace: unknown, diagnostics = false, outbound = false, i
     backing,
     snapshot,
     snapshotBackings,
+    snapshotNodes,
   };
 }
 
@@ -534,9 +683,9 @@ export function readGeminiTrialRawFrame(
     require(
       raw !== null &&
         typeof raw === 'object' &&
-        Object.getPrototypeOf(raw) === read.prototype('HF'),
+        Object.getPrototypeOf(raw) === read.prototype('IF'),
     );
-    frame = read.message(raw, 'HF');
+    frame = read.message(raw, 'IF');
   } catch {
     throw new Error('Gemini trial contract failed.', { cause: 'response-shape' });
   }
@@ -558,7 +707,7 @@ function readGeminiRawContent(
     ];
     require(
       [...frame.keys()].every((field) => {
-        if (allowed.includes(field)) return true;
+        if (allowed.includes(field) || (profile === 'native' && field === 25)) return true;
         // Classify only the first rejected key; other unsupported fields may remain.
         if ([1, 3, 4, 14, 17, 18, 19, 22, 29, 31, 38, 39, 42, 44, 45, 51, 54].includes(field))
           stage = `response-raw-field-${field}` as GeminiFixedTextTrialReason;
@@ -614,8 +763,8 @@ function readGeminiRawContent(
     require(isGeminiTrialLanguage(frame.get(20)) && isGeminiTrialAttribution(frame.get(43)));
     stage = 'response-raw-field-6';
     if (frame.has(6)) {
-      const location = read.message(frame.get(6));
-      read.fields(location, [1, 2, 3, 5]);
+      const location = read.message(frame.get(6), profile === 'native' ? 'W4c' : undefined);
+      read.fields(location, [1, 2, 3, 5], profile === 'native' ? 'fields-raw-location' : undefined);
       for (const field of [1, 2]) {
         const value = location.get(field);
         require(value === undefined || (typeof value === 'string' && value.length <= 1048576));
@@ -626,8 +775,8 @@ function readGeminiRawContent(
     let routing: GeminiTrialRawObservation['routing'];
     if (frame.has(21)) {
       stage = 'response-raw-routing';
-      const control = read.message(frame.get(21), 'qAd');
-      read.fields(control, [1]);
+      const control = read.message(frame.get(21), 'DAd');
+      read.fields(control, [1], profile === 'native' ? 'fields-raw-routing' : undefined);
       const epa = control.get(1);
       require(typeof epa === 'string' && !!epa && epa.length <= 1048576);
       require(wireFalse(frame.get(15)) && !frame.has(46) && !frame.has(52));
@@ -652,12 +801,18 @@ function readGeminiRawContent(
           [2, 3, 4].includes(frame.get(63) as number)),
     );
     stage = 'response-raw-continuation';
-    if (frame.has(46)) read.opaque(frame.get(46), 'yL');
+    if (frame.has(46)) read.opaque(frame.get(46), 'vL');
     stage = 'response-raw-disconnect';
-    if (frame.has(52)) read.opaque(frame.get(52));
+    if (frame.has(52))
+      read.opaque(profile === 'native' ? read.privateBacking(frame.get(52), 'QGd') : frame.get(52));
 
     stage = 'response-raw-client';
-    read.emptyMessage(frame.get(65), undefined, [1]);
+    read.emptyMessage(
+      frame.get(65),
+      undefined,
+      [1],
+      profile === 'native' ? 'fields-raw-client' : undefined,
+    );
 
     stage = 'response-metadata';
     const supplement = frame.get(18);
@@ -686,8 +841,12 @@ function readGeminiRawContent(
       }
     }
     // Uxd is private. Only an unopened, closed wire representation is supported.
-    const fallback = frame.has(55) ? read.message(frame.get(55)) : new Map<number, unknown>();
-    read.fields(fallback, [2, 6]);
+    const fallback = frame.has(55)
+      ? read.message(
+          profile === 'native' ? read.privateBacking(frame.get(55), 'QGd') : frame.get(55),
+        )
+      : new Map<number, unknown>();
+    read.fields(fallback, [2, 6], profile === 'native' ? 'fields-raw-fallback' : undefined);
     for (const [field, fallbackField, key, mapping] of [
       [59, 2, 'tZa', categories],
       [60, 6, 'thinkingLevel', thinking],
@@ -710,7 +869,7 @@ function readGeminiRawContent(
     const observed: GeminiTrialRawObservation = {};
     if (frame.has(2)) {
       const identity = read.message(frame.get(2), 'CI');
-      read.fields(identity, [1, 2]);
+      read.fields(identity, [1, 2], profile === 'native' ? 'fields-raw-identity' : undefined);
       for (const [field, key] of [
         [1, 'conversationId'],
         [2, 'turnId'],
@@ -728,17 +887,28 @@ function readGeminiRawContent(
       require(candidates.length <= 1);
       if (candidates.length) {
         stage = 'response-answer';
-        const candidate = read.message(own(candidates, '0'), 'zF');
-        read.fields(candidate, [1, 2, 9, 13]);
+        const candidate = read.message(own(candidates, '0'), profile === 'native' ? 'FF' : 'AF');
+        read.fields(
+          candidate,
+          [1, 2, 9, 13],
+          profile === 'native' ? 'fields-raw-candidate' : undefined,
+        );
         require(id(candidate.get(1)));
         observed.candidateId = candidate.get(1) as string;
         stage = 'response-candidate-extra';
-        read.emptyMessage(candidate.get(13), 'bw');
+        read.emptyMessage(
+          candidate.get(13),
+          '$v',
+          [],
+          profile === 'native' ? 'fields-raw-candidate-extra' : undefined,
+        );
         stage = 'response-final-metadata';
         if (candidate.has(9)) {
           // SZc is private; omission/default status is never a final witness.
-          const status = read.message(candidate.get(9));
-          read.fields(status, [1]);
+          const status = read.message(
+            profile === 'native' ? read.privateBacking(candidate.get(9), 'm1c') : candidate.get(9),
+          );
+          read.fields(status, [1], profile === 'native' ? 'fields-raw-status' : undefined);
           candidateStatus = status.get(1);
           require(
             candidateStatus === undefined ||
@@ -749,8 +919,8 @@ function readGeminiRawContent(
         }
         stage = 'response-content';
         if (candidate.has(2)) {
-          const content = read.message(candidate.get(2), 'XZc');
-          read.fields(content, [1]);
+          const content = read.message(candidate.get(2), '$Zc');
+          read.fields(content, [1], profile === 'native' ? 'fields-raw-text' : undefined);
           const value = content.get(1);
           require(
             value === undefined ||
@@ -768,14 +938,14 @@ function readGeminiRawContent(
       require(structured.length <= 1);
       if (structured.length) {
         require(observed.candidateId);
-        const content = read.message(own(structured, '0'), 'rH');
-        read.fields(content, [1]);
+        const content = read.message(own(structured, '0'), 'qH');
+        read.fields(content, [1], profile === 'native' ? 'fields-raw-structured' : undefined);
         if (!text) read.emptyList(content.get(1));
         else {
-          const node = read.message(read.one(content.get(1)), 'pH');
-          read.fields(node, [2]);
-          const plain = read.message(node.get(2), 'hH');
-          read.fields(plain, [2, 3]);
+          const node = read.message(read.one(content.get(1)), 'oH');
+          read.fields(node, [2], profile === 'native' ? 'fields-raw-node' : undefined);
+          const plain = read.message(node.get(2), 'gH');
+          read.fields(plain, [2, 3], profile === 'native' ? 'fields-raw-plain' : undefined);
           require(plain.get(2) === undefined || plain.get(2) === 0);
           require(plain.get(3) === text);
         }
@@ -804,8 +974,12 @@ function readGeminiRawContent(
         };
     }
     return observed;
-  } catch {
-    throw new Error('Gemini trial contract failed.', { cause: stage });
+  } catch (error) {
+    return transferOutboundFailure(
+      error,
+      new Error('Gemini trial contract failed.', { cause: stage }),
+      profile === 'native' ? (stage as ReceivePredicate) : undefined,
+    );
   }
 }
 
@@ -818,53 +992,53 @@ export function assertGeminiTrialPacket(
     const read = wireReader(namespace);
     const a = approval(approved);
     const p = object(packet);
-    keys(p, ['request', 'g8a', 'h8a']);
-    require(typeof p.g8a === 'string' && !!p.g8a && p.g8a.length <= 1048576);
-    require(typeof p.h8a === 'string' && /^[a-f0-9]{32}$/.test(p.h8a));
+    keys(p, ['request', 't8a', 'u8a']);
+    require(typeof p.t8a === 'string' && !!p.t8a && p.t8a.length <= 1048576);
+    require(typeof p.u8a === 'string' && /^[a-f0-9]{32}$/.test(p.u8a));
     const r = object(p.request);
     const requestPrototype = Object.getPrototypeOf(p.request);
-    require(!requestPrototype || !Object.getOwnPropertyDescriptor(requestPrototype, 'ZKa'));
+    require(!requestPrototype || !Object.getOwnPropertyDescriptor(requestPrototype, 'dLa'));
     keys(r, [
-      'ze',
+      'Ae',
       'clientTurnId',
-      'wi',
+      'ri',
       'textQuery',
       'conversationId',
-      'yj',
-      'hz',
-      'vS',
-      'xg',
-      'Po',
-      'hf',
-      'Rg',
-      'uh',
-      'kka',
-      'RFa',
-      'nxa',
+      'ej',
+      'oy',
+      'xS',
+      'yg',
+      'Fo',
+      'ff',
+      'Pg',
+      'oh',
+      'rka',
+      'WFa',
+      'wxa',
       'jt',
       'Cc',
       'isPersonalContextDisabled',
-      'V_b',
-      'WZ',
+      'm0b',
+      'b_',
       'Uo',
       'thinkingLevel',
       'Lj',
-      's4d',
+      'x5d',
     ]);
-    require(r.ze === a.storeId && r.clientTurnId === a.clientTurnId && r.wi === a.modeId);
+    require(r.Ae === a.storeId && r.clientTurnId === a.clientTurnId && r.ri === a.modeId);
     require(r.textQuery === GEMINI_FIXED_TEXT_TRIAL_PROMPT);
-    for (const key of ['conversationId', 'yj', 'hz', 'vS']) require(r[key] === '');
-    for (const key of ['xg', 'Po', 'hf']) require(r[key] === 0);
-    require(r.Rg === false && r.uh === false);
-    for (const key of ['kka', 'RFa', 'nxa', 'jt']) require(r[key] === undefined);
+    for (const key of ['conversationId', 'ej', 'oy', 'xS']) require(r[key] === '');
+    for (const key of ['yg', 'Fo', 'ff']) require(r[key] === 0);
+    require(r.Pg === false && r.oh === false);
+    for (const key of ['rka', 'WFa', 'wxa', 'jt']) require(r[key] === undefined);
     require(
-      r.WZ === a.modeCategory &&
+      r.b_ === a.modeCategory &&
         r.Uo === a.Cq &&
         r.thinkingLevel === a.thinkingLevel &&
         r.Lj === a.Hj,
     );
     require(r.isPersonalContextDisabled === a.isPersonalContextDisabled);
-    require(r.V_b === undefined || r.V_b === true);
+    require(r.m0b === undefined || r.m0b === true);
     const context = object(r.Cc);
     keys(context, ['isPersonalContextDisabled']);
     if (Object.hasOwn(context, 'isPersonalContextDisabled')) {
@@ -873,9 +1047,9 @@ export function assertGeminiTrialPacket(
           context.isPersonalContextDisabled === a.isPersonalContextDisabled,
       );
     }
-    if (r.s4d !== undefined) {
-      require(Object.getPrototypeOf(r.s4d) === read.prototype('wxd'));
-      const privacy = read.message(r.s4d, 'wxd');
+    if (r.x5d !== undefined) {
+      require(Object.getPrototypeOf(r.x5d) === read.prototype('Ixd'));
+      const privacy = read.message(r.x5d, 'Ixd');
       read.fields(privacy, [1]);
       require(privacy.get(1) === 1 || privacy.get(1) === 2);
     }
@@ -947,11 +1121,11 @@ export function assertGeminiTrialHistory(
       read.fields(status, [1]);
       require(status.get(1) === undefined || status.get(1) === 0);
     }
-    const turn = read.message(read.one(root.get(1)), 'I5c');
+    const turn = read.message(read.one(root.get(1)), 'N5c');
     read.fields(turn, [1, 2, 3, 4, 5, 6, 7, 13]);
     for (const field of [6, 7, 13]) require(wireFalse(turn.get(field)));
     if (turn.has(5)) {
-      const timestamp = read.message(turn.get(5), 'vl');
+      const timestamp = read.message(turn.get(5), 'ul');
       read.fields(timestamp, [1, 2]);
       const seconds = timestamp.get(1);
       require(
@@ -1041,25 +1215,25 @@ export function assertGeminiTrialHistory(
         if (!marker) require(mapping[entry] === c[key]);
       } else if (!marker) require(c[key] === undefined || c[key] === mapping[0]);
     }
-    const candidate = read.message(read.one(response.get(1)), 'zF');
+    const candidate = read.message(read.one(response.get(1)), 'AF');
     read.fields(candidate, [1, 2, 9, 13]);
     require(candidate.get(1) === selected);
-    read.emptyMessage(candidate.get(13), 'bw');
+    read.emptyMessage(candidate.get(13), '$v');
     const status = read.message(candidate.get(9));
     read.fields(status, [1]);
     require(status.get(1) === 2);
-    const text = read.message(candidate.get(2), 'XZc');
+    const text = read.message(candidate.get(2), '$Zc');
     read.fields(text, [1]);
     require(text.get(1) === GEMINI_FIXED_TEXT_TRIAL_ANSWER);
     const structuredContent = response.get(13);
     if (Array.isArray(structuredContent) && own(structuredContent, 'length') === 0) {
       read.emptyList(structuredContent);
     } else if (response.has(13)) {
-      const structured = read.message(read.one(structuredContent), 'rH');
+      const structured = read.message(read.one(structuredContent), 'qH');
       read.fields(structured, [1]);
-      const node = read.message(read.one(structured.get(1)), 'pH');
+      const node = read.message(read.one(structured.get(1)), 'oH');
       read.fields(node, [2]);
-      const plain = read.message(node.get(2), 'hH');
+      const plain = read.message(node.get(2), 'gH');
       read.fields(plain, [2, 3]);
       require(plain.get(2) === undefined || plain.get(2) === 0);
       require(plain.get(3) === GEMINI_FIXED_TEXT_TRIAL_ANSWER);
@@ -1088,7 +1262,8 @@ export type GeminiNativeEnvelope =
       cid: GeminiNativeIdField;
       rid: GeminiNativeIdField;
     }>
-  | Readonly<{ kind: 'close'; envelope: object; field: 4 | 5 }>;
+  | Readonly<{ kind: 'close'; envelope: object; field: 4 | 5 }>
+  | Readonly<{ kind: 'ignored'; envelope: object; verify: () => void }>;
 export type GeminiNativeFrameReceipt = Readonly<{
   original: object;
   normalized: object;
@@ -1120,14 +1295,14 @@ function nativeContract<T>(cause: GeminiFixedTextTrialReason, run: () => T): T {
 }
 export function assertGeminiNativeLifecycleProfile(namespace: unknown, value: unknown): void {
   nativeContract('response-raw-fields', () => {
-    const read = wireReader(namespace),
-      frame = read.message(value, 'HF');
-    require(!frame.has(65));
+    const read = wireReader(namespace, true, false, true),
+      frame = read.message(value, 'IF');
+    require(!frame.has(65), 'lifecycle-feature');
     if (frame.has(5)) {
       const candidates = read.array(frame.get(5), true);
-      require(candidates.length <= 1);
+      require(candidates.length <= 1, 'lifecycle-feature');
       if (candidates.length)
-        read.emptyMessage(read.message(own(candidates, '0'), 'zF').get(13), 'bw');
+        read.emptyMessage(read.message(own(candidates, '0'), 'FF').get(13), '$v');
     }
   });
 }
@@ -1141,7 +1316,7 @@ function sourceIs(value: unknown, expected: string, diagnostics = false) {
 function nativePrivateBacking(
   namespace: unknown,
   value: unknown,
-  kind: 'tHd' | 'QGd',
+  kind: 'tHd' | 'QGd' | 'm1c',
   diagnostics = false,
 ) {
   if (Array.isArray(value)) return value;
@@ -1150,28 +1325,49 @@ function nativePrivateBacking(
   sourceIs(
     constructor,
     kind === 'tHd'
-      ? 'class extends _.l{constructor(a){super(a)}getResponse(){return _.m(this,_.H5c,2)}}'
-      : 'class extends _.l{constructor(a){super(a)}}',
+      ? 'class extends _.l{constructor(a){super(a)}getResponse(){return _.m(this,_.M5c,2)}}'
+      : kind === 'm1c'
+        ? 'class extends _.l{constructor(a){super(a)}getState(){return _.ti(this,1)}setState(a){return _.Ni(this,1,a)}}'
+        : 'class extends _.l{constructor(a){super(a)}}',
     diagnostics,
   );
   require(own(constructor, 'prototype', diagnostics) === p &&
     Object.getPrototypeOf(constructor) === own(namespace, 'l', diagnostics), diagnostics
     ? 'dispatch-native-n15-private-01'
     : undefined);
-  require(Reflect.ownKeys(p).length === (kind === 'tHd' ? 2 : 1), diagnostics
+  require(Reflect.ownKeys(p).length === (kind === 'tHd' ? 2 : kind === 'm1c' ? 3 : 1), diagnostics
     ? 'dispatch-native-n15-private-02'
     : undefined);
+  if (kind === 'm1c') {
+    for (const key of ['constructor', 'getState', 'setState']) {
+      const descriptor = Object.getOwnPropertyDescriptor(p, key);
+      require(descriptor &&
+        'value' in descriptor &&
+        descriptor.writable &&
+        descriptor.configurable &&
+        !descriptor.enumerable, diagnostics ? 'dispatch-native-n15-private-02' : undefined);
+    }
+    for (const [key, text] of [
+      ['getState', 'getState(){return _.ti(this,1)}'],
+      ['setState', 'setState(a){return _.Ni(this,1,a)}'],
+    ] as const)
+      sourceIs(own(p, key, diagnostics), text, diagnostics);
+  }
   if (kind === 'tHd')
     sourceIs(
       own(p, 'getResponse', diagnostics),
-      'getResponse(){return _.m(this,_.H5c,2)}',
+      'getResponse(){return _.m(this,_.M5c,2)}',
       diagnostics,
     );
   return wireReader(namespace, diagnostics).backing(value);
 }
-function nativeIds(read: ReturnType<typeof wireReader>, frame: Map<number, unknown>) {
+function nativeIds(
+  read: ReturnType<typeof wireReader>,
+  frame: Map<number, unknown>,
+  predicate?: ReceivePredicate,
+) {
   const fields = frame.has(2) ? read.message(frame.get(2), 'CI') : new Map<number, unknown>();
-  read.fields(fields, [1, 2]);
+  read.fields(fields, [1, 2], predicate);
   const field = (key: number): GeminiNativeIdField => {
     if (!fields.has(key)) return Object.freeze({ presence: 'absent' });
     const value = fields.get(key);
@@ -1202,12 +1398,13 @@ function nativeWrapper(
   value: unknown,
   name: string | undefined,
   field: number,
+  predicate?: ReceivePredicate,
+  ignored?: { fields: readonly number[]; predicate: ReceivePredicate },
+  ancillary: readonly number[] = [],
 ) {
   const data = read.message(value, name);
-  read.fields(data, [field]);
-  require(data.size === 1 && data.has(field), read.diagnostics
-    ? 'dispatch-native-n15-wrapper-01'
-    : undefined);
+  read.fields(data, [field, ...ancillary], predicate, ignored);
+  require(data.has(field), read.diagnostics ? 'dispatch-native-n15-wrapper-01' : undefined);
   return data.get(field);
 }
 function nativeResponsePath(
@@ -1224,17 +1421,109 @@ function nativeResponsePath(
   let flags = Number(own(own(envelope, 'fl'), flag));
   let child = root.get(2);
   flags = effective(child, flags);
-  child = nativeWrapper(read, child, 'HJd', 7);
+  child = nativeWrapper(
+    read,
+    child,
+    'XJd',
+    7,
+    'fields-hjd-other',
+    {
+      fields: [2, 3, 5, 6, 8, 9],
+      predicate: 'fields-hjd-ignored-branch',
+    },
+    [1, 4],
+  );
   flags = effective(child, flags);
-  child = nativeWrapper(read, child, 'BJd', 1);
+  child = nativeWrapper(read, child, 'RJd', 1, 'fields-bjd-other', {
+    fields: [2],
+    predicate: 'fields-bjd-ignored-branch',
+  });
   flags = effective(child, flags);
-  child = nativeWrapper(read, child, 'AJd', 4);
+  child = nativeWrapper(
+    read,
+    child,
+    'QJd',
+    4,
+    'fields-ajd-other',
+    {
+      fields: [3],
+      predicate: 'fields-ajd-ignored-branch',
+    },
+    [1, 2],
+  );
   flags = effective(child, flags);
   const holder = child,
     holderFrozen =
       !!(flags & 2) && (Array.isArray(holder) || own(holder, 'Fb') !== own(namespace, 'Kaa'));
-  const raw = nativeWrapper(read, nativePrivateBacking(namespace, holder, 'tHd'), undefined, 4);
+  const raw = nativeWrapper(
+    read,
+    nativePrivateBacking(namespace, holder, 'tHd', read.diagnostics),
+    undefined,
+    4,
+    'fields-native-holder',
+    undefined,
+    [1, 2, 3],
+  );
   return { raw, holderFrozen, rawFlags: effective(raw, flags) };
+}
+function ignoredEnvelopeWitness(namespace: unknown, value: object): () => void {
+  const read = wireReader(namespace, true, false, true);
+  const backing = read.backing(value);
+  const cacheKey = own(namespace, 'dga') as symbol;
+  const prototype = Object.getPrototypeOf(value);
+  const last = backing.length ? own(backing, String(backing.length - 1)) : undefined;
+  // A packed tail owns selector slots; the selected payload itself stays opaque.
+  const tail =
+    last !== null && typeof last === 'object' && Object.getPrototypeOf(last) === Object.prototype
+      ? last
+      : undefined;
+  const owners = [value, backing, ...(tail ? [tail] : [])].map((owner) => ({
+    owner,
+    prototype: Object.getPrototypeOf(owner),
+    descriptors: Object.getOwnPropertyDescriptors(owner),
+  }));
+  let cache = Object.getOwnPropertyDescriptor(backing, cacheKey);
+  const sameDescriptor = (a: PropertyDescriptor, b: PropertyDescriptor | undefined) =>
+    b !== undefined &&
+    Object.is(a.value, b.value) &&
+    a.get === b.get &&
+    a.set === b.set &&
+    a.writable === b.writable &&
+    a.enumerable === b.enumerable &&
+    a.configurable === b.configurable;
+  return () => {
+    require(Object.getPrototypeOf(value) === prototype &&
+      wireReader(namespace, true).backing(value) === backing, 'receipt-backing');
+    for (const entry of owners) {
+      require(Object.getPrototypeOf(entry.owner) === entry.prototype, 'receipt-backing');
+      const current = Object.getOwnPropertyDescriptors(entry.owner);
+      const keys = Reflect.ownKeys(current).filter(
+        (key) => entry.owner !== backing || key !== cacheKey,
+      );
+      const previous = Reflect.ownKeys(entry.descriptors).filter(
+        (key) => entry.owner !== backing || key !== cacheKey,
+      );
+      require(keys.length === previous.length &&
+        previous.every((key) =>
+          sameDescriptor(
+            own(entry.descriptors, key) as PropertyDescriptor,
+            own(current, key) as PropertyDescriptor | undefined,
+          ),
+        ), 'receipt-content');
+    }
+    const currentCache = Object.getOwnPropertyDescriptor(backing, cacheKey);
+    if (!cache && currentCache) {
+      // Only original Noa's data-property addition is expected; message() validates its Map slots.
+      require('value' in currentCache &&
+        currentCache.writable &&
+        currentCache.enumerable &&
+        currentCache.configurable, 'receipt-content');
+      cache = currentCache;
+    }
+    require(cache === undefined
+      ? currentCache === undefined
+      : sameDescriptor(cache, currentCache), 'receipt-content');
+  };
 }
 export function readGeminiNativeEnvelope(namespace: unknown, value: unknown): GeminiNativeEnvelope {
   return nativeEnvelope(namespace, value, true);
@@ -1246,50 +1535,46 @@ function nativeEnvelope(
   captureRecoveryControl = false,
 ): GeminiNativeEnvelope {
   return nativeContract('response-shape', () => {
-    const read = wireReader(namespace, false, false, true);
+    const read = wireReader(namespace, true, false, true);
     for (const [key, fields] of [
-      ['hM', [1, 2, 3, 4, 5, 6]],
-      ['gM', [2, 3, 5, 6, 7, 8, 9]],
-      ['CJd', [1, 2]],
-      ['fM', [3, 4]],
+      ['$L', [1, 2, 3, 4, 5, 6]],
+      ['ZL', [2, 3, 5, 6, 7, 8, 9]],
+      ['SJd', [1, 2]],
+      ['YL', [3, 4]],
     ] as const)
       nativeOneof(namespace, read, key, [...fields]);
-    require(
-      value !== null &&
-        typeof value === 'object' &&
-        Object.getPrototypeOf(value) === read.prototype('xzd'),
-    );
-    const root = read.message(value, 'xzd');
-    read.fields(root, [2, 4, 5]);
-    require(root.size === 1);
+    require(value !== null &&
+      typeof value === 'object' &&
+      Object.getPrototypeOf(value) === read.prototype('Kzd'), 'envelope-shape');
+    const root = read.message(value, 'Kzd');
+    read.fields(root, [1, 2, 3, 4, 5, 6], 'fields-envelope-other');
+    require(root.size === 1, 'envelope-shape');
+    if ([1, 3, 6].some((field) => root.has(field)))
+      return Object.freeze({
+        kind: 'ignored',
+        envelope: value,
+        verify: ignoredEnvelopeWitness(namespace, value),
+      });
     for (const field of [4, 5] as const)
       if (root.has(field)) {
         const payload = read.message(root.get(field));
-        require(payload.size === 0 && read.array(root.get(field)).length === 0);
+        require(payload.size === 0 && read.array(root.get(field)).length === 0, 'envelope-shape');
         return Object.freeze({ kind: 'close', envelope: value, field });
       }
-    require(root.has(2));
+    require(root.has(2), 'envelope-shape');
     const { raw } = nativeResponsePath(namespace, read, root, value);
-    require(raw !== null && typeof raw === 'object');
-    const frame = read.message(raw, 'HF');
-    const ids = nativeIds(read, frame);
+    require(raw !== null && typeof raw === 'object', 'envelope-shape');
+    const frame = read.message(raw, 'IF');
+    const ids = nativeIds(read, frame, 'fields-raw-identity');
     // Parse content independently from provenance; native absence never weakens RPC.
     if (validateContent)
       readGeminiRawContent(
-        wireReader(namespace),
-        wireReader(namespace).message(raw, 'HF'),
+        wireReader(namespace, true, false, true),
+        wireReader(namespace, true, false, true).message(raw, 'IF'),
         'native',
         captureRecoveryControl,
       );
-    wireReader(namespace, false, false, true).snapshot(
-      value,
-      undefined,
-      false,
-      false,
-      0,
-      false,
-      [],
-    );
+    wireReader(namespace, true, false, true).snapshot(value, undefined, false, false, 0, false, []);
     return Object.freeze({ kind: 'response', envelope: value, raw, ...ids });
   });
 }
@@ -1308,12 +1593,12 @@ function sameSnapshot(
 export function captureGeminiNativeWireContent(
   namespace: unknown,
   value: unknown,
-  name: 'zL' | 'tJd' | 'CI',
+  name: 'wL' | 'JJd' | 'CI',
   diagnostics = false,
 ): (candidate: unknown) => void {
   const identities = nativeContract('packet', () =>
-    name === 'tJd'
-      ? ['La', 'dga', 'eM', 'rJd', 'cM'].map((key) => ({
+    name === 'JJd'
+      ? ['La', 'dga', 'XL', 'HJd', 'VL'].map((key) => ({
           key,
           descriptor: Object.getOwnPropertyDescriptor(namespace, key),
         }))
@@ -1322,20 +1607,18 @@ export function captureGeminiNativeWireContent(
   function snapshot(candidate: unknown) {
     for (const { key, descriptor } of identities) {
       const current = Object.getOwnPropertyDescriptor(namespace, key);
-      require(
-        descriptor &&
-          current &&
-          'value' in descriptor &&
-          'value' in current &&
-          descriptor.value === current.value &&
-          descriptor.writable === current.writable &&
-          descriptor.configurable === current.configurable &&
-          descriptor.enumerable === current.enumerable,
-      );
+      require(descriptor &&
+        current &&
+        'value' in descriptor &&
+        'value' in current &&
+        descriptor.value === current.value &&
+        descriptor.writable === current.writable &&
+        descriptor.configurable === current.configurable &&
+        descriptor.enumerable === current.enumerable, 'envelope-shape');
     }
     try {
-      const read = wireReader(namespace, diagnostics, name === 'tJd');
-      require(name === 'zL' || name === 'tJd' || name === 'CI', diagnostics
+      const read = wireReader(namespace, diagnostics, name === 'JJd');
+      require(name === 'wL' || name === 'JJd' || name === 'CI', diagnostics
         ? 'dispatch-native-n15-content-01'
         : undefined);
       require(candidate !== null &&
@@ -1345,14 +1628,14 @@ export function captureGeminiNativeWireContent(
         ? 'dispatch-native-n15-content-02'
         : undefined);
       read.message(candidate, name);
-      return wireReader(namespace, diagnostics, name === 'tJd').snapshot(
+      return wireReader(namespace, diagnostics, name === 'JJd').snapshot(
         candidate,
         name,
         false,
         false,
         0,
         true,
-        name === 'tJd' ? [] : undefined,
+        name === 'JJd' ? [] : undefined,
       );
     } catch (error) {
       return transferOutboundFailure(error, new Error());
@@ -1381,9 +1664,9 @@ function nativeIdentity(
 ): GeminiNativeIdentity {
   const c = cid.presence === 'value' ? cid.value : undefined;
   const r = rid.presence === 'value' ? rid.value : undefined;
-  if (c && prior.conversationId && c !== prior.conversationId) require(false);
-  if (r && prior.ridOrigin === 'server' && r !== prior.turnId) require(false);
-  if (r && terminal && r !== prior.turnId) require(false);
+  if (c && prior.conversationId && c !== prior.conversationId) require(false, 'envelope-shape');
+  if (r && prior.ridOrigin === 'server' && r !== prior.turnId) require(false, 'envelope-shape');
+  if (r && terminal && r !== prior.turnId) require(false, 'envelope-shape');
   return Object.freeze({
     conversationId: c ?? prior.conversationId,
     turnId: r ?? prior.turnId,
@@ -1392,13 +1675,51 @@ function nativeIdentity(
   });
 }
 const nativeNormalizationSources = {
-  m: 'function(a,b,c,d){var e=a.fl,f=e[_.La]|0;b=Qoa(e,f,b,c,d);if(b==null)return b;f=e[_.La]|0;if(!_.Ra(a,f)){let g=_.Mg(b);g!==b&&(_.ub(a)&&(e=a.fl,f=e[_.La]|0),b=g,f=_.yb(e,f,c,b,d),_.Ng(e,f))}return b}',
-  Qh: 'function(a,b,c,d){a=a.fl;return Qoa(a,a[_.La]|0,b,c,d)||b[_.Xd]||(b[_.Xd]=_.iba(b))}',
-  Mg: 'function(a){var b=a.fl,c=b[_.La]|0;return _.Ra(a,c)?_.Rba(a,b,c)?_.Qba(a,b,!0):new a.constructor(_.tb(b,c,!1)):a}',
-  Bf: 'function(a){var b=a.fl,c=b[_.La]|0;return _.Ra(a,c)?a:_.Rba(a,b,c)?_.Qba(a,b):new a.constructor(_.tb(b,c,!0))}',
-  Hh: 'function(a,b,c,d,e){d=Qpa(d);_.Wh(a,c,d,e);d&&!_.Ra(d)&&_.Ng(a.fl);return a}',
-  ub: 'function(a){if(a.Fb!==_.Kaa)return!1;var b=a.fl;b=_.tb(b,b[_.La]|0);_.Ma(b,2048);a.fl=b;_.Laa(a,!1);a.Xbc=void 0;return!0}',
+  m: 'function(a,b,c,d){var e=a.fl,f=e[_.La]|0;b=Qoa(e,f,b,c,d);if(b==null)return b;f=e[_.La]|0;if(!_.Ra(a,f)){let g=_.Lg(b);g!==b&&(_.ub(a)&&(e=a.fl,f=e[_.La]|0),b=g,f=_.xb(e,f,c,b,d),_.Mg(e,f))}return b}',
+  Ph: 'function(a,b,c,d){a=a.fl;return Qoa(a,a[_.La]|0,b,c,d)||b[_.Xd]||(b[_.Xd]=_.iba(b))}',
+  Lg: 'function(a){var b=a.fl,c=b[_.La]|0;return _.Ra(a,c)?_.Rba(a,b,c)?_.Qba(a,b,!0):new a.constructor(_.tb(b,c,!1)):a}',
+  Af: 'function(a){var b=a.fl,c=b[_.La]|0;return _.Ra(a,c)?a:_.Rba(a,b,c)?_.Qba(a,b):new a.constructor(_.tb(b,c,!0))}',
+  Gh: 'function(a,b,c,d,e){d=Qpa(d);_.Vh(a,c,d,e);d&&!_.Ra(d)&&_.Mg(a.fl);return a}',
+  ub: 'function(a){if(a.Fb!==_.Kaa)return!1;var b=a.fl;b=_.tb(b,b[_.La]|0);_.Ma(b,2048);a.fl=b;_.Laa(a,!1);a.tcc=void 0;return!0}',
   Ra: 'function(a,b){return b===void 0?a.Fb!==_.Kaa&&!!(2&(a.fl[_.La]|0)):!!(2&b)&&a.Fb!==_.Kaa}',
+} as const;
+const nativeMaterializationSources = {
+  Qh: 'function(a,b,c,d){var e=a.fl;return _.Roa(a,e,e[_.La]|0,b,c,1,d)}',
+  GF: 'function(a){return _.ci(a,_.FF,5)}',
+  xi: 'function(a,b,c,d){return _.m(a,b,_.Yh(a,d,c),void 0)}',
+  Xh: 'function(a,b,c){a=a.fl;return Ooa(Noa(a),a,void 0,b,c)}',
+  Yh: 'function(a,b,c,d){return _.Xh(a,b,d)===c?c:-1}',
+  nb: 'function(a){return a}',
+  tba: 'function(a){var b=_.nb(_.ob);return b?a[b]:void 0}',
+  Roa: 'function(a,b,c,d,e,f,g,k,r){f=f&&f!==4?f!==1&&_.Ra(a,c)?1:f:4;k=!!k||f===3;var u=!!r&&!_.Ra(a,c);(f===2||u)&&_.ub(a)&&(b=a.fl,c=b[_.La]|0);a=Loa(b,e,g);var w=a===_.Yd?7:a[_.La]|0,B=Moa(w,c);if(r=!(4&B)){var C=a,G=c;let N=!!(2&B);N&&(G|=2);let T=!N,aa=!0,da=0,ta=0;for(;da<C.length;da++){let ya=_.Hoa(C[da],d,!1,G);if(ya instanceof d){if(!N){let Ca=_.Ra(ya);T&&(T=!Ca);aa&&(aa=Ca)}C[ta++]=ya}}ta<da&&(C.length=ta);B|=4;B=aa?B&-4097:B|4096;B=T?B|8:B&-9}B!==w&&(a[_.La]=B,2&B&&Object.freeze(a));if(u&&\n!(8&B||!a.length&&(f===1||(f!==4?0:2&B||!(16&B)&&32&c)))){Joa(B)&&(a=[...a],B=Ng(B,c),c=_.xb(b,c,e,a,g));d=a;u=B;for(w=0;w<d.length;w++)C=d[w],B=_.Lg(C),C!==B&&(d[w]=B);u|=8;B=u=d.length?u|4096:u&-4097;a[_.La]=B}return a=Koa(a,B,b,c,e,g,f,r,k)}',
+  ci: 'function(a,b,c,d,e){var f=a.fl;return _.Roa(a,f,f[_.La]|0,b,c,d,e,!1,!0)}',
+  tb: 'function(a,b,c,d){d!=null||(d=!!(34&b));a=_.pb(a,b,_.Pba,d);d=32;c&&(d|=2);b=b&16769217|d;a[_.La]=b;return a}',
+  pb: 'function(a,b,c,d){var e=d!==void 0;d=!!d;var f=_.nb(_.ob),g;!e&&f&&(g=a[f])&&g.ayb(Aba);f=[];var k=a.length;g=4294967295;var r=!1,u=!!(b&64),w=u?b&128?0:-1:void 0;if(!(b&1)){var B=k&&a[k-1];B!=null&&typeof B==="object"&&B.constructor===Object?(k--,g=k):B=void 0;if(u&&!(b&128)&&!e){r=!0;var C;g=((C=_.Bba)!=null?C:_.Naa)(g-w,w,a,B,void 0)+w}}b=void 0;for(C=0;C<k;C++){let N=a[C];if(N!=null&&(N=c(N,d))!=null)if(u&&C>=g){let T=C-w;var G=void 0;((G=b)!=null?G:b={})[T]=N}else f[C]=N}if(B)for(let N in B){G=\nB[N];if(G==null||(G=c(G,d))==null)continue;k=+N;let T;if(u&&!Number.isNaN(k)&&(T=k+w)<g)f[T]=G;else{let aa;((aa=b)!=null?aa:b={})[N]=G}}b&&(r?f.push(b):f[g]=b);e&&_.nb(_.ob)&&(a=_.tba(a))&&"function"==typeof _.Cba&&a instanceof _.Cba&&(f[_.ob]=a.ha());return f}',
+  Pba: 'function(a,b){if(typeof a!=="object")return a;if(Array.isArray(a)){var c=a[_.La]|0;return a.length===0&&c&1?void 0:Nba(a,c,b)}if(_.Qa(a))return Oba(a);if("function"==typeof _.sb&&a instanceof _.sb){b=a.Ewa;if(b&2)return a;if(!a.size)return;c=_.Na(a.Cmc());if(a.CPa)for(a=0;a<c.length;a++){let d=c[a],e=d[1];e==null||typeof e!=="object"?e=void 0:_.Qa(e)?e=Oba(e):Array.isArray(e)?e=Nba(e,e[_.La]|0,!!(b&32)):e=void 0;d[1]=e}return c}if(a instanceof _.mb)return a}',
+  Rba: 'function(a,b,c){return c&2?!0:c&32&&!(c&4096)?(b[_.La]=c|2,_.Laa(a,!0),!0):!1}',
+  Qba: 'function(a,b,c){a=new a.constructor(b);c&&_.Laa(a,!0);a.tcc=_.Kaa;return a}',
+  Laa: 'function(a,b){a.Fb=b?_.Kaa:void 0}',
+  Ma: 'function(a,b){a[_.La]|=b}',
+  Qa: 'function(a){return a!=null&&a[_.Oa]===_.Pa}',
+  Hoa: 'function(a,b,c,d){if(_.Qa(a))return a;if(!Array.isArray(a))return c?d&2?b[_.Xd]||(b[_.Xd]=_.iba(b)):new b:void 0;c=a[_.La]|0;d=c|d&32|d&2;d!==c&&(a[_.La]=d);return new b(a)}',
+  xb: 'function(a,b,c,d,e){var f=c+(e?0:-1),g=a.length-1;if(g>=1+(e?0:-1)&&f>=g){let k=a[g];if(k!=null&&typeof k==="object"&&k.constructor===Object)return k[c]=d,b}if(f<=g)return a[f]=d,b;if(d!==void 0){let k;g=((k=b)!=null?k:b=a[_.La]|0)>>14&1023||536870912;c>=g?d!=null&&(a[g+(e?0:-1)]={[c]:d}):a[f]=d}return b}',
+  Mg: 'function(a,b){b===void 0&&(b=a[_.La]|0);b&32&&!(b&4096)&&(a[_.La]=b|4096)}',
+  de: 'function(a,b,c,d){if(b===-1)return null;var e=b+(c?0:-1),f=a.length-1;if(!(f<1+(c?0:-1))){if(e>=f){var g=a[f];if(g!=null&&typeof g==="object"&&g.constructor===Object){c=g[b];var k=!0}else if(e===f)c=g;else return}else c=a[e];if(d&&c!=null){d=d(c);if(d==null)return d;if(!Object.is(d,c))return k?g[b]=d:a[e]=d,d}return c}}',
+  l: 'class{constructor(a,b,c){this.fl=_.Lba(a,b,c,2048)}toJSON(){return _.Hba(this)}serialize(a){return JSON.stringify(_.Hba(this,a))}clone(){var a=this.fl,b=a[_.La]|0;return _.Rba(this,a,b)?_.Qba(this,a,!0):new this.constructor(_.tb(a,b,!1))}isImmutable(){return _.Ra(this)}}',
+  Lba: 'function(a,b,c,d=0){if(a==null){var e=32;c?(a=[c],e|=128):a=[];b&&(e=e&-16760833|(b&1023)<<14)}else{if(!Array.isArray(a))throw Error("F");e=a[_.La]|0;if(Jba&&1&e)throw Error("G");2048&e&&!(2&e)&&Kba();if(e&256)throw Error("H");if(e&64)return(e|d)!==e&&(a[_.La]=e|d),a;if(c&&(e|=128,c!==a[0]))throw Error("I");a:{c=a;e|=64;var f=c.length;if(f){var g=f-1;let r=c[g];if(r!=null&&typeof r==="object"&&r.constructor===Object){b=e&128?0:-1;g-=b;if(g>=1024)throw Error("K");for(var k in r)if(f=+k,f<g)c[f+\nb]=r[k],delete r[k];else break;e=e&-16760833|(g&1023)<<14;break a}}if(b){k=Math.max(b,f-(e&128?0:-1));if(k>1024)throw Error("L");e=e&-16760833|(k&1023)<<14}}}a[_.La]=e|64|d;return a}',
+} as const;
+const nativeMaterializationConstructors = {
+  IF: 'class extends _.l{constructor(a){super(a)}getHeartbeatResponse(){return _.xi(this,Xuc,37,_.HF)}ka(){return _.m(this,_.x_b,8)}}',
+  FF: 'class extends _.l{constructor(a){super(a)}}',
+  CI: 'class extends _.l{constructor(a){super(a)}ig(){return _.n(this,1)}}',
+  $Zc: 'class extends _.l{constructor(a){super(a)}getText(){return _.n(this,1)}setText(a){return _.Li(this,1,a)}Dg(){return _.Si(this,1)}}',
+  $v: 'class extends _.l{constructor(a){super(a)}getOptions(){return _.m(this,SLb,7)}setOptions(a){return _.Gh(this,SLb,7,a)}}',
+  W4c: 'class extends _.l{constructor(a){super(a)}}',
+  DAd: 'class extends _.l{constructor(a){super(a)}}',
+  qH: 'class extends _.l{constructor(a){super(a)}Yq(a){return _.Gk(this,1,_.oH,a)}getMetadata(){return _.m(this,N4c,2)}lq(){return _.ge(this,2)}}',
+  oH: 'class extends _.l{constructor(a){super(a)}getText(){return _.xi(this,_.gH,2,_.pH)}setText(a){return _.di(this,2,_.pH,a)}Dg(){return _.Zh(this,2,_.pH)}zo(){return _.Zh(this,3,_.pH)}clearVideo(){return _.Oh(this,71,_.pH)}Fg(){return _.xi(this,JGc,4,_.pH)}bF(){return _.Zh(this,4,_.pH)}EGa(){return _.Oh(this,73,_.pH)}D5b(){return _.Zh(this,73,_.pH)}}',
+  gH: 'class extends _.l{constructor(a){super(a)}getText(){return _.n(this,3)}setText(a){return _.Li(this,3,a)}Dg(){return _.Si(this,3)}}',
+  vL: 'class extends _.l{constructor(a){super(a)}ig(){return _.n(this,1)}}',
 } as const;
 export function createGeminiNativeReceipt(namespace: unknown, approved: ApprovedGeminiTrial) {
   const a = nativeContract('response-identity', () => approval(approved));
@@ -1410,7 +1731,7 @@ export function createGeminiNativeReceipt(namespace: unknown, approved: Approved
     }),
   );
   const namespaceEntries = nativeContract('response-shape', () =>
-    ['La', 'dga', 'hM', 'gM', 'CJd', 'fM'].map((key) => {
+    ['La', 'dga', '$L', 'ZL', 'SJd', 'YL', 'HF', 'pH', 'FF'].map((key) => {
       own(namespace, key);
       return { key, descriptor: Object.getOwnPropertyDescriptor(namespace, key)! };
     }),
@@ -1433,7 +1754,7 @@ export function createGeminiNativeReceipt(namespace: unknown, approved: Approved
   });
   function checked<T>(cause: GeminiFixedTextTrialReason, run: () => T): T {
     return nativeContract(cause, () => {
-      require(!invalidated);
+      require(!invalidated, 'receipt-state');
       try {
         return run();
       } catch (error) {
@@ -1448,6 +1769,9 @@ export function createGeminiNativeReceipt(namespace: unknown, approved: Approved
     content?: ReturnType<ReturnType<typeof wireReader>['snapshot']>;
     originalIdentity?: ReturnType<ReturnType<typeof wireReader>['snapshot']>;
     rawBacking?: unknown[];
+    surveySlot?: ReturnType<typeof surveySlot>;
+    initialContent?: ReturnType<ReturnType<typeof wireReader>['snapshot']>;
+    materializedContent?: ReturnType<ReturnType<typeof wireReader>['snapshot']>;
     originalFrozen?: boolean;
     cloned?: boolean;
     normalizedFrozen?: boolean;
@@ -1469,191 +1793,785 @@ export function createGeminiNativeReceipt(namespace: unknown, approved: Approved
     normalizedIdentity?: ReturnType<ReturnType<typeof wireReader>['snapshot']>;
     aa?: object;
     aaBacking?: unknown[];
+    retired?: Array<ReturnType<typeof retiredNode>>;
   };
   let captured: Captured | undefined;
   let terminalWitness: Captured | undefined;
   const snapshot = (value: unknown, omitIdentity = false) =>
-    wireReader(namespace).snapshot(value, 'HF', false, omitIdentity);
+    wireReader(namespace, true, false, true).snapshot(value, 'IF', false, omitIdentity);
+  // Pba may omit an empty array carrying its repeated-field bit. This projection is
+  // used only inside an authenticated source operation; ordinary snapshots stay exact.
+  const cloneSnapshot = (value: unknown) =>
+    wireReader(namespace, true, false, true, true).snapshot(value, 'IF');
   const backings = (value: unknown) => {
-    const read = wireReader(namespace);
-    read.snapshot(value, 'HF');
+    const read = wireReader(namespace, true, false, true);
+    read.snapshot(value, 'IF');
     return Object.freeze([...read.snapshotBackings]);
   };
   const sameBackings = (value: unknown, retained: readonly unknown[][] | undefined) => {
     const fresh = backings(value);
-    require(
-      retained &&
-        fresh.length === retained.length &&
-        fresh.every((raw, index) => raw === retained[index]),
-    );
+    require(retained &&
+      fresh.length === retained.length &&
+      fresh.every((raw, index) => raw === retained[index]), 'receipt-backing');
   };
   const identitySnapshot = (value: unknown) => {
-    const read = wireReader(namespace),
-      fields = read.message(value, 'HF');
+    const read = wireReader(namespace, true, false, true),
+      fields = read.message(value, 'IF');
     return read.snapshot(fields.get(2));
   };
+  type Materializer = 'm' | 'Roa' | 'ub';
+  const materializerKeys = ['m', 'Roa', 'ub'] as const;
+  let materializerSources:
+    Array<{ key: string; fn: unknown; text: string; descriptor: PropertyDescriptor }> | undefined;
+  let materializerHooks: Map<string, PropertyDescriptor> | undefined;
+  const materializerOwners = new WeakSet<object>();
+  const materializerBindings: Array<{
+    owner: object;
+    key: PropertyKey;
+    descriptor: PropertyDescriptor | undefined;
+  }> = [];
+  const materializerPrototypes: Array<{ value: object; parent: object | null }> = [];
+  let operation:
+    | {
+        target: object;
+        detached: boolean;
+        ub: boolean;
+        key: 'm' | 'Roa';
+        field: number;
+        C: any;
+        ownerName: string;
+        expectsUb: boolean;
+        evidence: ReturnType<typeof transitionEvidence>;
+        ubSelected?: any;
+      }
+    | undefined;
+  function graph(value: unknown) {
+    const read = wireReader(namespace, true, false, true);
+    read.snapshot(value, 'IF');
+    return read.snapshotNodes;
+  }
+  function nodeSnapshot(node: ReturnType<typeof graph>[number]) {
+    return wireReader(namespace, true, false, true).snapshot(
+      node.raw,
+      node.name,
+      node.repeated,
+      false,
+      0,
+      node.opaqueShape,
+      undefined,
+      node.nativeHFPath,
+    );
+  }
+  type Shape = {
+    value: object;
+    prototype: object | null;
+    descriptors: Array<{ key: PropertyKey; descriptor: PropertyDescriptor }>;
+  };
+  function retiredNode(node: ReturnType<typeof graph>[number], expected?: Map<object, Shape>) {
+    const read = wireReader(namespace, true, false, true);
+    const content = read.snapshot(
+      node.raw,
+      node.name,
+      node.repeated,
+      false,
+      0,
+      node.opaqueShape,
+      undefined,
+      node.nativeHFPath,
+    );
+    const values = new Set<object>();
+    if (node.value !== null && typeof node.value === 'object') values.add(node.value);
+    for (const item of read.snapshotNodes) {
+      values.add(item.raw);
+      if (item.value !== null && typeof item.value === 'object') values.add(item.value);
+      const tail = item.raw.at(-1);
+      if (tail && typeof tail === 'object' && Object.getPrototypeOf(tail) === Object.prototype)
+        values.add(tail);
+    }
+    return {
+      node: { ...node, content },
+      backings: [...read.snapshotBackings],
+      shape: [...values].map(
+        (value) =>
+          expected?.get(value) ?? {
+            value,
+            prototype: Object.getPrototypeOf(value),
+            descriptors: Reflect.ownKeys(value).map((key) => ({
+              key,
+              descriptor: Object.getOwnPropertyDescriptor(value, key)!,
+            })),
+          },
+      ),
+    };
+  }
+  function checkShape(
+    shape: ReturnType<typeof retiredNode>['shape'][number],
+    liveCacheOwners?: Set<object>,
+  ) {
+    const cache = own(namespace, 'dga') as symbol;
+    // Yh may populate the already-admitted cache on a pH/HF still shared with the live graph.
+    // Its exact role and Map selection have just been validated by the graph reader.
+    const addedCache =
+      liveCacheOwners?.has(shape.value) && !shape.descriptors.some((item) => item.key === cache);
+    const keys = Reflect.ownKeys(shape.value).filter((key) => !addedCache || key !== cache);
+    require(Object.getPrototypeOf(shape.value) === shape.prototype &&
+      keys.length === shape.descriptors.length &&
+      shape.descriptors.every(
+        ({ key, descriptor }, i) =>
+          keys[i] === key &&
+          sameDescriptor(descriptor, Object.getOwnPropertyDescriptor(shape.value, key)),
+      ), 'receipt-backing');
+  }
+  function checkRetired(record: ReturnType<typeof retiredNode>, liveCacheOwners: Set<object>) {
+    const fresh = retiredNode(record.node);
+    require(sameSnapshot(fresh.node.content, record.node.content), 'receipt-content');
+    require(fresh.backings.length === record.backings.length &&
+      fresh.backings.every((raw, i) => raw === record.backings[i]), 'receipt-backing');
+    for (const shape of record.shape) checkShape(shape, liveCacheOwners);
+  }
+  // Expected descriptors are advanced only by a proved source branch, never copied from post-state.
+  function transitionEvidence(records: Array<ReturnType<typeof retiredNode>>) {
+    const shapes = new Map<object, Shape>();
+    for (const record of records)
+      for (const shape of record.shape)
+        if (!shapes.has(shape.value))
+          shapes.set(shape.value, {
+            ...shape,
+            descriptors: shape.descriptors.map((item) => ({
+              ...item,
+              descriptor: { ...item.descriptor },
+            })),
+          });
+    const flag = own(namespace, 'La') as symbol;
+    const cache = own(namespace, 'dga') as symbol;
+    const groups = [own(namespace, 'HF'), own(namespace, 'pH')];
+    const caches = [...shapes.values()].flatMap((shape) => {
+      const value = shape.descriptors.find((item) => item.key === cache)?.descriptor.value;
+      return value
+        ? [
+            {
+              value,
+              size: Reflect.apply(nativeMapSize, value, []),
+              selections: groups.map((group) => [
+                Reflect.apply(nativeMapHas, value, [group]),
+                Reflect.apply(nativeMapGet, value, [group]),
+              ]),
+            },
+          ]
+        : [];
+    });
+    const get = (value: object, key: PropertyKey): any =>
+      shapes.get(value)?.descriptors.find((item) => item.key === key)?.descriptor.value;
+    const flags = (value: object) => Number(get(value, flag) ?? 0);
+    const put = (value: object, key: PropertyKey, next: unknown) => {
+      const shape = shapes.get(value)!;
+      require(shape, 'receipt-backing');
+      const item = shape.descriptors.find((item) => item.key === key);
+      if (item) item.descriptor = { ...item.descriptor, value: next };
+      else
+        shape.descriptors.push({
+          key,
+          descriptor: { value: next, writable: true, enumerable: true, configurable: true },
+        });
+    };
+    const fresh = (value: object, prototype: object, entries: Array<[PropertyKey, unknown]>) => {
+      require(value !== null &&
+        typeof value === 'object' &&
+        !shapes.has(value) &&
+        Object.getPrototypeOf(value) === prototype, 'receipt-backing');
+      shapes.set(value, {
+        value,
+        prototype,
+        descriptors: entries.map(([key, value]) => ({
+          key,
+          descriptor: {
+            value,
+            writable: true,
+            enumerable: key !== 'length',
+            configurable: key !== 'length',
+          },
+        })),
+      });
+    };
+    const freeze = (value: object) => {
+      for (const item of shapes.get(value)!.descriptors)
+        item.descriptor = { ...item.descriptor, writable: false, configurable: false };
+      require(Object.isFrozen(value), 'receipt-backing');
+    };
+    const check = () => {
+      for (const { value, size, selections } of caches)
+        require(Reflect.apply(nativeMapSize, value, []) === size &&
+          groups.every(
+            (group, i) =>
+              Reflect.apply(nativeMapHas, value, [group]) === selections[i]![0] &&
+              Reflect.apply(nativeMapGet, value, [group]) === selections[i]![1],
+          ), 'receipt-backing');
+      for (const shape of shapes.values()) {
+        // Array index order can change when Lba writes flags after numeric entries.
+        const keys = Reflect.ownKeys(shape.value);
+        require(Object.getPrototypeOf(shape.value) === shape.prototype &&
+          keys.length === shape.descriptors.length &&
+          shape.descriptors.every(({ key, descriptor }) =>
+            sameDescriptor(descriptor, Object.getOwnPropertyDescriptor(shape.value, key)),
+          ), 'receipt-backing');
+      }
+    };
+    const backing = (value: any): any[] => (Array.isArray(value) ? value : get(value, 'fl'));
+    const immutable = (value: any) =>
+      !!(flags(backing(value)) & 2) && get(value, 'Fb') !== mutableSentinel;
+    const field = (raw: any[], n: number): [object, string] => {
+      const last = get(raw, 'length') - 1,
+        tail = get(raw, String(last));
+      return last >= 0 && n - 1 >= last && tail && Object.getPrototypeOf(tail) === Object.prototype
+        ? [tail, String(n)]
+        : [raw, String(n - 1)];
+    };
+    const selected = (raw: any[], n: number) => (n === -1 ? null : get(...field(raw, n)));
+    const assign = (raw: any[], n: number, value: unknown) => put(...field(raw, n), value);
+    const ng = (raw: any[]) => {
+      const f = flags(raw);
+      if (f & 32 && !(f & 4096)) put(raw, flag, f | 4096);
+    };
+    function construct(raw: any[]) {
+      let f = flags(raw);
+      if (!(f & 64)) {
+        const last = get(raw, 'length') - 1,
+          tail = get(raw, String(last));
+        if (tail && Object.getPrototypeOf(tail) === Object.prototype)
+          f = (f & -16760833) | ((last + 1) << 14);
+      }
+      put(raw, flag, f | 64 | 2048);
+    }
+    function wrapper(value: any, raw: any[], C: any, mutable = false, shared = false) {
+      fresh(value, C.prototype, [
+        ['fl', raw],
+        ...(mutable ? [['Fb', mutableSentinel] as [string, unknown]] : []),
+        ...(shared ? [['tcc', mutableSentinel] as [string, unknown]] : []),
+      ]);
+      construct(raw);
+    }
+    function childInfo(value: any, parentFlags: number) {
+      const raw = backing(value),
+        typed = !Array.isArray(value);
+      const f = flags(raw) | (typed ? 0 : (parentFlags & 34) | 64 | 2048);
+      return {
+        raw,
+        typed,
+        immutable: !!(f & 2) && (!typed || get(value, 'Fb') !== mutableSentinel),
+      };
+    }
+    function child(value: any, next: any, C: any, parentFlags: number, mutable: boolean) {
+      const info = childInfo(value, parentFlags);
+      if (!info.typed) {
+        const f = flags(info.raw),
+          propagated = f | (parentFlags & 34);
+        if (propagated !== f) put(info.raw, flag, propagated);
+        wrapper(next, info.raw, C, mutable && info.immutable, mutable && info.immutable);
+      } else if (mutable && info.immutable) wrapper(next, info.raw, C, true, true);
+      else require(next === value, 'receipt-backing');
+      return info;
+    }
+    function cloneValue(value: any, next: any, deep: boolean) {
+      if (value === null || typeof value !== 'object') {
+        require(next === value, 'receipt-backing');
+        return;
+      }
+      if (Array.isArray(value)) {
+        const f = flags(value);
+        if (get(value, 'length') === 0 && f & 1) {
+          require(next === undefined, 'receipt-backing');
+          return;
+        }
+        if (f & 2) require(next === value, 'receipt-backing');
+        else if (!deep || f & (4096 | 16)) cloneArray(value, next, deep && !(f & 16));
+        else {
+          require(next === value, 'receipt-backing');
+          put(value, flag, f | 34);
+          if (f & 4) freeze(value);
+        }
+      } else {
+        const raw = backing(value),
+          f = flags(raw);
+        require(Array.isArray(raw), 'receipt-backing');
+        if (immutable(value)) require(next === value, 'receipt-backing');
+        else if (f & 2 || (f & 32 && !(f & 4096))) {
+          if (!(f & 2)) {
+            put(raw, flag, f | 2);
+            put(value, 'Fb', mutableSentinel);
+          }
+          wrapper(next, raw, (Object.getPrototypeOf(value) as any).constructor, false, true);
+        } else cloneArray(raw, next, !!(f & 34));
+      }
+    }
+    function cloneArray(raw: any[], next: any[], deep: boolean, root = false) {
+      require(Array.isArray(next) && next !== raw, 'receipt-backing');
+      const f = flags(raw),
+        length = get(raw, 'length'),
+        last = length - 1;
+      const tail = !(f & 1) && get(raw, String(last));
+      const packed = tail && Object.getPrototypeOf(tail) === Object.prototype ? tail : undefined;
+      const entries: Array<[PropertyKey, unknown]> = [],
+        tailEntries: Array<[PropertyKey, unknown]> = [];
+      const omitted = (v: any) =>
+        v == null || (Array.isArray(v) && get(v, 'length') === 0 && !!(flags(v) & 1));
+      for (let i = 0; i < length - (packed ? 1 : 0); i++) {
+        const old = get(raw, String(i));
+        if (omitted(old)) continue;
+        const value = own(next, String(i));
+        cloneValue(old, value, deep);
+        entries.push([String(i), value]);
+      }
+      if (packed) {
+        for (const { key, descriptor } of shapes.get(packed)!.descriptors) {
+          if (omitted(descriptor.value)) continue;
+          const nextTail = own(next, String(last));
+          require(nextTail && typeof nextTail === 'object', 'receipt-backing');
+          const value = own(nextTail, key);
+          cloneValue(descriptor.value, value, deep);
+          tailEntries.push([key, value]);
+        }
+        if (tailEntries.length) {
+          const nextTail = own(next, String(last)) as object;
+          fresh(nextTail, Object.prototype, tailEntries);
+          entries.push([String(last), nextTail]);
+        }
+      }
+      const nextLength = entries.length ? Math.max(...entries.map(([key]) => Number(key))) + 1 : 0;
+      fresh(next, Array.prototype, [
+        ...entries,
+        ['length', nextLength],
+        [flag, (f & 16769217) | 32 | (root ? 2048 : 0)],
+      ]);
+    }
+    function m(raw: any[], parent: any, C: any, n: number, result: any, onlyQoa = false) {
+      const value = selected(raw, n);
+      if (value == null) {
+        require(result === undefined, 'receipt-backing');
+        return false;
+      }
+      const f = flags(raw),
+        info = childInfo(value, f);
+      const mg = !onlyQoa && !immutable(parent) && info.immutable;
+      child(value, result, C, f, mg);
+      assign(raw, n, result);
+      if ((!info.typed && !info.immutable) || mg) ng(raw);
+      return mg;
+    }
+    function roa(
+      raw: any[],
+      parent: any,
+      C: any,
+      n: number,
+      mode: number | undefined,
+      mutableRead: boolean,
+      result: any[],
+    ) {
+      const f = flags(raw),
+        parentImmutable = immutable(parent);
+      const selectedList = selected(raw, n),
+        list = Array.isArray(selectedList) ? selectedList : (own(namespace, 'Yd') as any[]);
+      if (!shapes.has(list)) {
+        const shape = {
+          value: list,
+          prototype: Array.prototype,
+          descriptors: Reflect.ownKeys(list).map((key) => ({
+            key,
+            descriptor: Object.getOwnPropertyDescriptor(list, key)!,
+          })),
+        };
+        shapes.set(list, shape);
+      }
+      const length = get(list, 'length'),
+        initial = flags(list),
+        parse = !(initial & 4);
+      let b = initial | (f & 2) | 1;
+      const infos = Array.from({ length }, (_, i) => childInfo(get(list, String(i)), f | (b & 2)));
+      if (parse) {
+        const allFrozen = !!(b & 2) || infos.every((info) => info.immutable),
+          allMutable = !(b & 2) && infos.every((info) => !info.immutable);
+        b |= 4;
+        b = allFrozen ? b & -4097 : b | 4096;
+        b = allMutable ? b | 8 : b & -9;
+      }
+      const effectiveMode = mode || 4;
+      const mg =
+        mutableRead &&
+        !parentImmutable &&
+        !(
+          b & 8 ||
+          (!length &&
+            (effectiveMode === 1 || (effectiveMode === 4 && (b & 2 || (!(b & 16) && f & 32)))))
+        );
+      const copy = mg && (!!(b & 2 && b & 4) || !!(b & 256));
+      if (copy) require(result !== list, 'receipt-backing');
+      else require(result === list, 'receipt-backing');
+      for (let i = 0; i < length; i++) {
+        const value = get(list, String(i));
+        if (copy) {
+          const intermediate = own(list, String(i));
+          if (parse) child(value, intermediate, C, f | (b & 2), false);
+          else require(intermediate === value, 'receipt-backing');
+          put(list, String(i), intermediate);
+          child(intermediate, own(result, String(i)), C, f | (b & 2), true);
+        } else if (parse || mg) {
+          child(value, own(result, String(i)), C, f | (b & 2), mg);
+          put(list, String(i), own(result, String(i)));
+        }
+      }
+      if (b !== initial) {
+        put(list, flag, b);
+        if (b & 2) freeze(list);
+      }
+      if (copy) {
+        b = (f & 2 ? b | 2 : b & -3) & -273;
+        fresh(result, Array.prototype, [
+          ...Array.from(
+            { length },
+            (_, i) => [String(i), own(result, String(i))] as [string, unknown],
+          ),
+          ['length', length],
+          [flag, b],
+        ]);
+        assign(raw, n, result);
+      }
+      if (mg) {
+        b |= 8;
+        b = length ? b | 4096 : b & -4097;
+        put(result, flag, b);
+      }
+      const frozenList = !!(b & 2 && b & 4) || !!(b & 256);
+      if (effectiveMode === 1 || (effectiveMode === 4 && (b & 2 || (!(b & 16) && f & 32)))) {
+        if (!frozenList) {
+          b |= !length || (parse && !(b & 4096)) || (f & 32 && !(b & (4096 | 16))) ? 2 : 256;
+          put(result, flag, b);
+          freeze(result);
+        }
+      } else if (!frozenList) {
+        b |= 16;
+        put(result, flag, b);
+      }
+      if (!(b & 2) && b & (4096 | 16)) ng(raw);
+    }
+    return {
+      shapes,
+      get,
+      flags,
+      put,
+      check,
+      backing,
+      selected,
+      assign,
+      ng,
+      immutable,
+      cloneArray,
+      child,
+      m,
+      roa,
+    };
+  }
+  function retainOwners(entry: Captured) {
+    for (const value of [
+      entry.envelope.kind === 'response' ? entry.envelope.raw : undefined,
+      entry.normalization?.normalized,
+      entry.materializedView,
+    ]) {
+      if (value === undefined) continue;
+      for (const node of graph(value))
+        if (node.value !== null && typeof node.value === 'object')
+          materializerOwners.add(node.value);
+    }
+  }
+  function sameDescriptor(a: PropertyDescriptor, b: PropertyDescriptor | undefined) {
+    return (
+      b &&
+      'value' in b &&
+      a.value === b.value &&
+      a.writable === b.writable &&
+      a.enumerable === b.enumerable &&
+      a.configurable === b.configurable
+    );
+  }
+  // Survey is deliberately excluded from our answer copy. Retain only its source slot,
+  // never inspect the ancillary value or use it as materializer evidence.
+  function surveySlot(raw: unknown[]) {
+    const last = String(raw.length - 1),
+      tail = own(raw, last);
+    const sparse =
+      tail !== null &&
+      typeof tail === 'object' &&
+      Object.getPrototypeOf(tail) === Object.prototype &&
+      raw.length <= 25;
+    const owner = sparse ? tail : raw,
+      key = sparse ? '25' : '24';
+    return { owner, key, descriptor: Object.getOwnPropertyDescriptor(owner, key) };
+  }
+  function omitSurvey(value: object, raw: unknown[]): { message: object; backing: unknown[] } {
+    const slot = surveySlot(raw),
+      descriptors = Object.getOwnPropertyDescriptors(raw as object);
+    if (slot.owner === raw) delete descriptors['24'];
+    else {
+      const tailDescriptors = Object.getOwnPropertyDescriptors(slot.owner);
+      delete tailDescriptors['25'];
+      const tail = Object.create(Object.getPrototypeOf(slot.owner), tailDescriptors);
+      if (!Object.isExtensible(slot.owner)) Object.preventExtensions(tail);
+      descriptors[String(raw.length - 1)]!.value = tail;
+    }
+    const backing: unknown[] = Object.defineProperties([], descriptors);
+    if (!Object.isExtensible(raw)) Object.preventExtensions(backing);
+    const messageDescriptors = Object.getOwnPropertyDescriptors(value);
+    messageDescriptors.fl = { ...messageDescriptors.fl, value: backing };
+    const message = Object.create(Object.getPrototypeOf(value), messageDescriptors);
+    if (!Object.isExtensible(value)) Object.preventExtensions(message);
+    return { message, backing };
+  }
   function sources() {
+    nativeOneof(namespace, wireReader(namespace, true), 'HF', [11, 21, 23, 28, 37, 49, 51]);
+    nativeOneof(namespace, wireReader(namespace, true), 'pH', nativePlainNodeOneofFields);
+    require(Reflect.ownKeys(own(namespace, 'pH') as object).length ===
+      nativePlainNodeOneofFields.length + 1, 'cache-shape');
     for (const { key, descriptor } of namespaceEntries) {
       const current = Object.getOwnPropertyDescriptor(namespace, key);
-      require(
-        current &&
-          'value' in current &&
-          current.value === descriptor.value &&
-          current.writable === descriptor.writable &&
-          current.configurable === descriptor.configurable &&
-          current.enumerable === descriptor.enumerable,
-      );
+      require(current &&
+        'value' in current &&
+        current.value === descriptor.value &&
+        current.writable === descriptor.writable &&
+        current.configurable === descriptor.configurable &&
+        current.enumerable === descriptor.enumerable, 'receipt-source');
     }
-    require(own(namespace, 'Kaa') === mutableSentinel);
+    require(own(namespace, 'Kaa') === mutableSentinel, 'receipt-source');
     for (const [key, fn, text] of sourceEntries) {
-      require(own(namespace, key) === fn);
+      const hook = materializerHooks?.get(key);
+      require(hook
+        ? sameDescriptor(hook, Object.getOwnPropertyDescriptor(namespace, key))
+        : own(namespace, key) === fn, 'receipt-source');
       sourceIs(fn, text);
+    }
+  }
+  function materializationSources() {
+    for (const { owner, key, descriptor } of materializerBindings) {
+      const fresh = Object.getOwnPropertyDescriptor(owner, key);
+      require(descriptor ? sameDescriptor(descriptor, fresh) : !fresh, 'receipt-source');
+    }
+    for (const { value, parent } of materializerPrototypes)
+      require(Object.getPrototypeOf(value) === parent, 'receipt-source');
+    for (const entry of materializerSources ?? []) {
+      sourceIs(entry.fn, entry.text, true);
+      require(sameDescriptor(
+        materializerHooks?.get(entry.key) ?? entry.descriptor,
+        Object.getOwnPropertyDescriptor(namespace, entry.key),
+      ), 'receipt-source');
     }
   }
   function frozenIdentity(
     value: unknown,
     expected: GeminiNativeIdentity,
     retainedBacking?: unknown[],
+    predicate?: ReceivePredicate,
   ) {
-    const read = wireReader(namespace);
-    require(
-      value !== null &&
-        typeof value === 'object' &&
-        Object.getPrototypeOf(value) === read.prototype('CI'),
-    );
+    const read = wireReader(namespace, true, false, true);
+    require(value !== null &&
+      typeof value === 'object' &&
+      Object.getPrototypeOf(value) === read.prototype('CI'), 'receipt-frozen-identity');
     const backing = read.backing(value);
-    require(retainedBacking === undefined || backing === retainedBacking);
-    require(Number(own(backing, own(namespace, 'La') as PropertyKey)) & 2);
-    require(own(value, 'Fb') !== own(namespace, 'Kaa'));
+    require(retainedBacking === undefined ||
+      backing === retainedBacking, 'receipt-frozen-identity');
+    require(Number(own(backing, own(namespace, 'La') as PropertyKey)) &
+      2, 'receipt-frozen-identity');
+    require(own(value, 'Fb') !== own(namespace, 'Kaa'), 'receipt-frozen-identity');
     const fields = read.message(value, 'CI');
-    read.fields(fields, [1, 2]);
-    require(
-      fields.size === 2 &&
-        fields.get(1) === (expected.conversationId ?? '') &&
-        fields.get(2) === expected.turnId,
-    );
+    read.fields(fields, [1, 2], predicate);
+    require(fields.size === 2 &&
+      fields.get(1) === (expected.conversationId ?? '') &&
+      fields.get(2) === expected.turnId, 'receipt-frozen-identity');
     return backing;
   }
   function verify(entry: Captured) {
     sources();
+    materializationSources();
+    if (entry.retired?.length) {
+      const liveCacheOwners = new Set(
+        graph(entry.normalization!.normalized)
+          .filter((node) => node.name === 'IF' || node.name === 'oH')
+          .map((node) => node.raw),
+      );
+      for (const record of entry.retired) checkRetired(record, liveCacheOwners);
+    }
     const fresh = nativeEnvelope(namespace, entry.envelope.envelope, false);
-    require(fresh.kind === entry.envelope.kind);
-    if (entry.envelope.kind === 'close') {
-      require(fresh.kind === 'close' && fresh.field === entry.envelope.field);
+    require(fresh.kind === entry.envelope.kind, 'receipt-content');
+    if (entry.envelope.kind === 'ignored') {
+      entry.envelope.verify();
       return;
     }
-    require(fresh.kind === 'response');
-    const freshBacking = wireReader(namespace).backing(fresh.raw);
-    require(freshBacking === (entry.materializedBacking ?? entry.rawBacking));
-    if (entry.materializedView) require(fresh.raw === entry.materializedView);
-    if (entry.materializedBacking && entry.materializedBacking !== entry.rawBacking) {
-      require(sameSnapshot(snapshot(entry.rawBacking, true), entry.content));
-      require(sameSnapshot(identitySnapshot(entry.rawBacking), entry.initialIdentity));
+    if (entry.envelope.kind === 'close') {
+      require(fresh.kind === 'close' && fresh.field === entry.envelope.field, 'receipt-content');
+      return;
     }
-    require(sameSnapshot(snapshot(entry.envelope.raw, true), entry.content));
+    require(fresh.kind === 'response', 'receipt-content');
+    require(entry.rawBacking, 'receipt-backing');
+    const slot = surveySlot(entry.rawBacking);
+    require(entry.surveySlot &&
+      slot.owner === entry.surveySlot.owner &&
+      slot.key === entry.surveySlot.key &&
+      (entry.surveySlot.descriptor
+        ? sameDescriptor(entry.surveySlot.descriptor, slot.descriptor)
+        : !slot.descriptor), 'receipt-content');
+    const freshBacking = wireReader(namespace, true, false, true).backing(fresh.raw);
+    require(freshBacking === (entry.materializedBacking ?? entry.rawBacking), 'receipt-backing');
+    if (entry.materializedView) require(fresh.raw === entry.materializedView, 'receipt-backing');
+    if (entry.materializedBacking && entry.materializedBacking !== entry.rawBacking) {
+      require(sameSnapshot(
+        snapshot(entry.rawBacking, true),
+        entry.initialContent,
+      ), 'receipt-content');
+      require(sameSnapshot(
+        identitySnapshot(entry.rawBacking),
+        entry.initialIdentity,
+      ), 'receipt-content');
+    }
+    require(sameSnapshot(snapshot(entry.envelope.raw, true), entry.content), 'receipt-content');
     if (entry.normalization) {
       sameBackings(entry.envelope.raw, entry.originalBackings);
       sameBackings(entry.normalization.normalized, entry.normalizedBackings);
       sameBackings(fresh.raw, entry.materializedBackings);
-      require(sameSnapshot(snapshot(fresh.raw, true), entry.content));
-      require(sameSnapshot(identitySnapshot(fresh.raw), entry.materializedIdentity));
-      const read = wireReader(namespace),
+      require(sameSnapshot(
+        snapshot(fresh.raw, true),
+        entry.materializedContent ?? entry.content,
+      ), 'receipt-content');
+      require(sameSnapshot(
+        identitySnapshot(fresh.raw),
+        entry.materializedIdentity,
+      ), 'receipt-content');
+      const read = wireReader(namespace, true, false, true),
         normalized = entry.normalization.normalized;
       const raw = read.backing(normalized);
-      require(
-        !!(Number(own(raw, own(namespace, 'La') as PropertyKey)) & 2) === entry.normalizedFrozen,
-      );
-      require((own(normalized, 'Fb') === mutableSentinel) === entry.normalizedMutable);
-      if (entry.cloned) require(read.message(normalized, 'HF').get(2) === entry.aa);
-      require(
-        sameSnapshot(snapshot(entry.normalization.normalized, true), entry.normalizedContent),
-      );
-      require(
-        sameSnapshot(identitySnapshot(entry.normalization.normalized), entry.normalizedIdentity),
-      );
-      require(sameSnapshot(identitySnapshot(entry.envelope.raw), entry.originalIdentity));
+      if (!entry.recoveryControl)
+        require(!wireReader(namespace, true, false, true)
+          .message(normalized, 'IF')
+          .has(25), 'receipt-content');
+      require(!!(Number(own(raw, own(namespace, 'La') as PropertyKey)) & 2) ===
+        entry.normalizedFrozen, 'receipt-backing');
+      require((own(normalized, 'Fb') === mutableSentinel) ===
+        entry.normalizedMutable, 'receipt-backing');
+      if (entry.cloned)
+        require(read.message(normalized, 'IF').get(2) === entry.aa, 'receipt-backing');
+      require(sameSnapshot(
+        snapshot(entry.normalization.normalized, true),
+        entry.normalizedContent,
+      ), 'receipt-content');
+      require(sameSnapshot(
+        identitySnapshot(entry.normalization.normalized),
+        entry.normalizedIdentity,
+      ), 'receipt-content');
+      require(sameSnapshot(
+        identitySnapshot(entry.envelope.raw),
+        entry.originalIdentity,
+      ), 'receipt-content');
       frozenIdentity(entry.aa, entry.normalization.identity, entry.aaBacking);
     } else {
-      require(sameSnapshot(identitySnapshot(entry.envelope.raw), entry.originalIdentity));
+      require(sameSnapshot(
+        identitySnapshot(entry.envelope.raw),
+        entry.originalIdentity,
+      ), 'receipt-content');
     }
   }
   function normalizeFrame(value: unknown, actualAa: unknown, recoveryControl: boolean) {
     return checked('response-identity', () => {
       const entry = captured;
-      require(entry && entry.envelope.kind === 'response' && !entry.normalization);
-      require(!recoveryControl || entry.recoveryControl === true);
-      require(recoveryControl || !outputRefused);
+      require(entry && entry.envelope.kind === 'response' && !entry.normalization, 'receipt-state');
+      require(!recoveryControl || entry.recoveryControl === true, 'receipt-state');
+      require(recoveryControl || !outputRefused, 'receipt-state');
       sources();
       const envelope = entry.envelope;
       const next = nativeIdentity(entry.prior, envelope.cid, envelope.rid, terminal);
       const rawCid = envelope.cid.presence === 'value' ? envelope.cid.value : undefined;
       const rawRid = envelope.rid.presence === 'value' ? envelope.rid.value : undefined;
       const cloned = !rawRid || (!rawCid && !!entry.prior.conversationId);
-      const read = wireReader(namespace);
-      require(
-        value !== null &&
-          typeof value === 'object' &&
-          Object.getPrototypeOf(value) === read.prototype('HF'),
-      );
+      const read = wireReader(namespace, true, false, true);
+      require(value !== null &&
+        typeof value === 'object' &&
+        Object.getPrototypeOf(value) === read.prototype('IF'), 'normalization-view');
       if (previousAa) {
         frozenIdentity(previousAa, entry.prior, previousAaBacking);
-        require(actualAa !== previousAa);
+        require(actualAa !== previousAa, 'normalization-view');
       }
       const aaBacking = frozenIdentity(actualAa, next);
-      const actualBacking = read.backing(value);
+      let actualBacking = read.backing(value);
       const observed = nativeEnvelope(namespace, envelope.envelope, false);
-      require(observed.kind === 'response');
+      require(observed.kind === 'response', 'normalization-view');
       const view = observed.raw,
-        viewBacking = wireReader(namespace).backing(view);
-      require(!Array.isArray(view) && Object.getPrototypeOf(view) === read.prototype('HF'));
+        viewBacking = wireReader(namespace, true, false, true).backing(view);
+      require(!Array.isArray(view) &&
+        Object.getPrototypeOf(view) === read.prototype('IF'), 'normalization-view');
       if (!Array.isArray(envelope.raw))
-        require(entry.viewCreated ? view !== envelope.raw : view === envelope.raw);
+        require(entry.viewCreated
+          ? view !== envelope.raw
+          : view === envelope.raw, 'normalization-view');
       const detached = viewBacking !== entry.rawBacking;
-      require(!detached || (entry.mayDetach && (cloned || entry.identityWasFrozen)));
+      require(!detached ||
+        (entry.mayDetach && (cloned || entry.identityWasFrozen)), 'normalization-view');
       if (detached) {
-        require(sameSnapshot(snapshot(entry.rawBacking, true), entry.content));
-        require(sameSnapshot(identitySnapshot(entry.rawBacking), entry.initialIdentity));
+        require(sameSnapshot(
+          snapshot(entry.rawBacking, true),
+          entry.content,
+        ), 'normalization-view');
+        require(sameSnapshot(
+          identitySnapshot(entry.rawBacking),
+          entry.initialIdentity,
+        ), 'normalization-view');
       }
-      require(sameSnapshot(snapshot(view, true), entry.content));
-      if (!cloned) require(value === view);
+      require(sameSnapshot(snapshot(view, true), entry.content), 'normalization-view');
+      if (!cloned) require(value === view, 'normalization-clone');
       else {
-        require(value !== view);
-        require(Number(own(actualBacking, own(namespace, 'La') as PropertyKey)) & 2);
-        require(own(value, 'Fb') !== own(namespace, 'Kaa'));
-        require(read.message(value, 'HF').get(2) === actualAa);
-        const viewFields = wireReader(namespace).message(view, 'HF');
+        require(value !== view, 'normalization-clone');
+        require(Number(own(actualBacking, own(namespace, 'La') as PropertyKey)) &
+          2, 'normalization-clone');
+        require(own(value, 'Fb') !== own(namespace, 'Kaa'), 'normalization-clone');
+        require(read.message(value, 'IF').get(2) === actualAa, 'normalization-clone');
+        const viewFields = wireReader(namespace, true, false, true).message(view, 'IF');
         if (viewFields.get(2) === actualAa) {
           const shares =
             !!(Number(own(viewBacking, own(namespace, 'La') as PropertyKey)) & 2) &&
             own(view, 'Fb') === own(namespace, 'Kaa');
-          require(shares ? actualBacking === viewBacking : actualBacking !== viewBacking);
+          require(shares
+            ? actualBacking === viewBacking
+            : actualBacking !== viewBacking, 'normalization-clone');
         } else
-          require(
-            actualBacking !== viewBacking &&
-              sameSnapshot(identitySnapshot(view), entry.initialIdentity),
-          );
+          require(actualBacking !== viewBacking &&
+            sameSnapshot(identitySnapshot(view), entry.initialIdentity), 'normalization-clone');
       }
       entry.materializedView = view;
       entry.materializedBacking = viewBacking;
-      require(sameSnapshot(snapshot(value, true), entry.content));
-      require(sameSnapshot(snapshot(envelope.raw, true), entry.content));
-      const normalized = wireReader(namespace).message(value, 'HF');
-      const normalizedIds = nativeIds(wireReader(namespace), normalized);
+      require(sameSnapshot(snapshot(value, true), entry.content), 'normalization-view');
+      require(sameSnapshot(snapshot(envelope.raw, true), entry.content), 'normalization-view');
+      const normalized = wireReader(namespace, true, false, true).message(value, 'IF');
+      const normalizedIds = nativeIds(wireReader(namespace, true, false, true), normalized);
       const expectedCid = next.conversationId ?? '';
       const actualCid = normalizedIds.cid.presence === 'value' ? normalizedIds.cid.value : '';
       const actualRid = normalizedIds.rid.presence === 'value' ? normalizedIds.rid.value : '';
-      require(actualCid === expectedCid && actualRid === next.turnId);
+      require(actualCid === expectedCid && actualRid === next.turnId, 'normalization-identity');
       // Mutable Vg can preserve the original backing; only that source write to field2 is permitted.
       if (entry.originalFrozen || !cloned)
-        require(sameSnapshot(identitySnapshot(envelope.raw), entry.originalIdentity));
+        require(sameSnapshot(
+          identitySnapshot(envelope.raw),
+          entry.originalIdentity,
+        ), 'normalization-view');
       else
-        require(
-          sameSnapshot(identitySnapshot(envelope.raw), entry.originalIdentity) ||
-            sameSnapshot(identitySnapshot(envelope.raw), identitySnapshot(value)),
-        );
+        require(sameSnapshot(identitySnapshot(envelope.raw), entry.originalIdentity) ||
+          sameSnapshot(
+            identitySnapshot(envelope.raw),
+            identitySnapshot(value),
+          ), 'normalization-view');
+      if (normalized.has(25) && !recoveryControl) {
+        // Keep the provider frame untouched; only the isolated fixed-trial projection
+        // omits survey metadata, after all original normalization proofs have passed.
+        const isolated = omitSurvey(value, actualBacking);
+        value = isolated.message;
+        actualBacking = isolated.backing;
+        require(sameSnapshot(snapshot(value, true), entry.content), 'normalization-view');
+      }
       const observation = readGeminiRawContent(
-        wireReader(namespace),
-        wireReader(namespace).message(value, 'HF'),
+        wireReader(namespace, true, false, true),
+        wireReader(namespace, true, false, true).message(value, 'IF'),
         'native',
         recoveryControl,
       );
@@ -1664,7 +2582,7 @@ export function createGeminiNativeReceipt(namespace: unknown, approved: Approved
         ? undefined
         : Object.freeze({
             original: envelope.raw,
-            normalized: value,
+            normalized: value as object,
             cid: envelope.cid,
             rid: envelope.rid,
             identity: next,
@@ -1704,34 +2622,325 @@ export function createGeminiNativeReceipt(namespace: unknown, approved: Approved
         terminalWitness = entry;
       }
       verify(entry);
+      retainOwners(entry);
       if (recoveryControl) outputRefused = true;
       return receipt;
     });
   }
   return {
+    prepareMaterializers() {
+      return checked('response-shape', () => {
+        require(!materializerSources, 'receipt-state');
+        sources();
+        materializerSources = Object.entries({
+          ...nativeMaterializationSources,
+          ...nativeMaterializationConstructors,
+        }).map(([key, text]) => {
+          const fn = own(namespace, key);
+          sourceIs(fn, text, true);
+          return { key, fn, text, descriptor: Object.getOwnPropertyDescriptor(namespace, key)! };
+        });
+        const marker = own(namespace, 'Oa'),
+          token = own(namespace, 'Pa');
+        require((typeof marker === 'symbol' || typeof marker === 'string') &&
+          token !== null &&
+          typeof token === 'object' &&
+          marker !== own(namespace, 'La') &&
+          marker !== own(namespace, 'dga'), 'receipt-source');
+        const base = own(own(namespace, 'l'), 'prototype') as object;
+        require(own(base, marker as PropertyKey) === token, 'receipt-source');
+        for (const key of ['Oa', 'Pa', 'ob', 'Xd', 'Yd']) {
+          own(namespace, key);
+          materializerBindings.push({
+            owner: namespace as object,
+            key,
+            descriptor: Object.getOwnPropertyDescriptor(namespace, key),
+          });
+        }
+        materializerBindings.push({
+          owner: base,
+          key: marker as PropertyKey,
+          descriptor: Object.getOwnPropertyDescriptor(base, marker as PropertyKey),
+        });
+        for (const key of ['l', ...Object.keys(nativeMaterializationConstructors)]) {
+          const C = own(namespace, key) as object,
+            p = own(C, 'prototype') as object;
+          require(own(p, 'constructor') === C &&
+            (key === 'l' ||
+              (Object.getPrototypeOf(C) === own(namespace, 'l') &&
+                Object.getPrototypeOf(p) === base)), 'receipt-source');
+          for (const [owner, property] of [
+            [C, 'prototype'],
+            [p, 'constructor'],
+            [p, marker as PropertyKey],
+            [C, Symbol.hasInstance],
+          ] as const) {
+            const descriptor = Object.getOwnPropertyDescriptor(owner, property);
+            require(property !== Symbol.hasInstance || !descriptor, 'receipt-source');
+            materializerBindings.push({ owner, key: property, descriptor });
+          }
+          materializerPrototypes.push(
+            { value: C, parent: Object.getPrototypeOf(C) },
+            { value: p, parent: Object.getPrototypeOf(p) },
+          );
+        }
+        materializationSources();
+        return Object.fromEntries(
+          materializerKeys.map((key) => [key, own(namespace, key)]),
+        ) as Record<Materializer, (...args: any[]) => any>;
+      });
+    },
+    bindMaterializers() {
+      checked('response-shape', () => {
+        require(materializerSources && !materializerHooks, 'receipt-state');
+        materializerHooks = new Map(
+          materializerKeys.map((key) => {
+            const descriptor = Object.getOwnPropertyDescriptor(namespace, key);
+            require(descriptor &&
+              'value' in descriptor &&
+              typeof descriptor.value === 'function', 'receipt-source');
+            return [key, descriptor!];
+          }),
+        );
+        sources();
+        materializationSources();
+      });
+    },
+    restoreMaterializers() {
+      // Guard restoration has already compared each installed hook descriptor.
+      require(materializerHooks, 'receipt-source');
+      materializerHooks = undefined;
+      sources();
+      materializationSources();
+    },
+    ownsMaterialization(value: unknown) {
+      return value !== null && typeof value === 'object' && materializerOwners.has(value);
+    },
+    materialize(key: Materializer, receiver: unknown, args: any[]) {
+      return checked('response-shape', () => {
+        const entry = captured;
+        require(materializerHooks &&
+          entry?.normalization &&
+          entry.envelope.kind === 'response', 'receipt-state');
+        sources();
+        materializationSources();
+        const original =
+          key === 'Roa'
+            ? materializerSources!.find((item) => item.key === key)!.fn
+            : sourceEntries.find(([name]) => name === key)![1];
+        const target = args[0],
+          flag = own(namespace, 'La') as symbol;
+        const read = wireReader(namespace, true, false, true);
+        if (key === 'ub') {
+          require(operation &&
+            operation.target === target &&
+            !operation.ub &&
+            args.length === 1, 'receipt-state');
+          operation.ub = true;
+          const raw = read.backing(target),
+            flags = Number(own(raw, flag));
+          const mutable = own(target, 'Fb') === mutableSentinel;
+          const evidence = operation.evidence;
+          if (operation.key === 'm') {
+            const value = wireReader(namespace, true, false, true)
+              .message(
+                raw,
+                undefined,
+                false,
+                operation.ownerName === 'IF' || operation.ownerName === 'oH'
+                  ? operation.ownerName
+                  : undefined,
+              )
+              .get(operation.field);
+            evidence.m(raw, target, operation.C, operation.field, value, true);
+            require(!evidence.immutable(target) && evidence.immutable(value), 'receipt-backing');
+            operation.ubSelected = value;
+          } else require(operation.expectsUb, 'receipt-backing');
+          evidence.check();
+          const before = cloneSnapshot(entry.normalization.normalized);
+          const result = Reflect.apply(original as Function, receiver, args);
+          sources();
+          materializationSources();
+          require(result === mutable, 'receipt-backing');
+          require(sameSnapshot(
+            cloneSnapshot(entry.normalization.normalized),
+            before,
+          ), 'receipt-content');
+          if (mutable) {
+            evidence.cloneArray(raw, read.backing(target), !!(flags & 34), true);
+            evidence.put(target, 'fl', read.backing(target));
+            evidence.put(target, 'Fb', undefined);
+            evidence.put(target, 'tcc', undefined);
+            operation.detached = true;
+          }
+          evidence.check();
+          return result;
+        }
+        require(!operation, 'receipt-state');
+        verify(entry);
+        const before = graph(entry.normalization.normalized);
+        const allBefore = [
+          ...new Set([entry.envelope.raw, entry.normalization.normalized, entry.materializedView]),
+        ].flatMap(graph);
+        const owner = before.find((node) => node.value === target && !node.repeated);
+        require(owner &&
+          !Array.isArray(target) &&
+          owner.name &&
+          owner.name !== 'CI', 'receipt-backing');
+        const raw = read.backing(target),
+          flags = Number(own(raw, flag));
+        const field = key === 'm' ? args[2] : args[4];
+        require(Number.isInteger(field) &&
+          (field > 0 || (key === 'm' && field === -1)), 'receipt-state');
+        const selected = wireReader(namespace, true, false, true)
+          .message(
+            raw,
+            undefined,
+            false,
+            owner.name === 'IF' || owner.name === 'oH' ? owner.name : undefined,
+          )
+          .get(field);
+        const C = key === 'm' ? args[1] : args[3];
+        require(typeof C === 'function', 'receipt-source');
+        if (key === 'm')
+          require((args.length === 3 || args.length === 4) &&
+            args[3] === undefined, 'receipt-state');
+        else
+          require(args[1] === raw &&
+            args[2] === flags &&
+            ((args.length === 9 &&
+              args[5] === undefined &&
+              args[6] === undefined &&
+              args[7] === false &&
+              args[8] === true) ||
+              (args.length === 7 && args[5] === 1 && args[6] === undefined)), 'receipt-state');
+        if (
+          selected !== undefined &&
+          !(key === 'Roa' && Array.isArray(selected) && selected.length === 0)
+        ) {
+          const expected =
+            key === 'm'
+              ? (
+                  {
+                    IF: { 2: 'CI', 6: 'W4c', 21: 'DAd', 46: 'vL', 52: 'private', 55: 'private' },
+                    FF: { 2: '$Zc', 9: 'native-status', 13: '$v' },
+                    oH: { 2: 'gH' },
+                  } as Record<string, Record<number, string>>
+                )[owner.name!]?.[field]
+              : (
+                  { IF: { 5: 'FF', 27: 'qH' }, qH: { 1: 'oH' } } as Record<
+                    string,
+                    Record<number, string>
+                  >
+                )[owner.name!]?.[field];
+          require(expected, 'receipt-source');
+          if (expected === 'private' || expected === 'native-status') {
+            sourceIs(
+              C,
+              expected === 'private'
+                ? 'class extends _.l{constructor(a){super(a)}}'
+                : 'class extends _.l{constructor(a){super(a)}getState(){return _.ti(this,1)}setState(a){return _.Ni(this,1,a)}}',
+              true,
+            );
+            require(Object.getPrototypeOf(C) === own(namespace, 'l'), 'receipt-source');
+          } else require(C === own(namespace, expected!), 'receipt-source');
+        }
+        const priorGraph = [
+          ...allBefore.map((node) => retiredNode(node)),
+          ...(entry.retired ?? []),
+        ];
+        const evidence = transitionEvidence(priorGraph);
+        const contents = cloneSnapshot(entry.normalization.normalized);
+        const state = {
+          target,
+          detached: false,
+          ub: false,
+          key,
+          field,
+          C,
+          ownerName: owner.name!,
+          expectsUb: key === 'Roa' && args[8] === true && !evidence.immutable(target),
+          evidence,
+          ubSelected: undefined as any,
+        };
+        operation = state;
+        try {
+          const result = Reflect.apply(original as Function, receiver, args);
+          sources();
+          materializationSources();
+          require(sameSnapshot(
+            cloneSnapshot(entry.normalization.normalized),
+            contents,
+          ), 'receipt-content');
+          const currentRaw = read.backing(target);
+          if (key === 'm') {
+            if (state.ub) {
+              evidence.child(state.ubSelected, result, C, 0, true);
+              evidence.assign(currentRaw, field, result);
+              evidence.ng(currentRaw);
+            } else require(!evidence.m(raw, target, C, field, result), 'receipt-backing');
+          } else {
+            require(state.ub === state.expectsUb, 'receipt-backing');
+            evidence.roa(currentRaw, target, C, field, args[5], args[8] === true, result);
+          }
+          evidence.check();
+          for (const node of allBefore)
+            require(sameSnapshot(nodeSnapshot(node), node.content), 'receipt-content');
+          const after = graph(entry.normalization.normalized),
+            live = new Set(after.map((node) => node.raw));
+          // Every retained object was checked against immutable pre-state plus explicit source writes.
+          entry.retired = (entry.retired ?? []).map((record) =>
+            retiredNode(record.node, evidence.shapes),
+          );
+          for (const node of before)
+            if (!live.has(node.raw) && !entry.retired.some((old) => old.node.raw === node.raw))
+              entry.retired.push(retiredNode(node, evidence.shapes));
+          entry.content = snapshot(entry.envelope.raw, true);
+          entry.normalizedContent = snapshot(entry.normalization.normalized, true);
+          entry.materializedContent = snapshot(entry.materializedView, true);
+          entry.originalBackings = backings(entry.envelope.raw);
+          entry.normalizedBackings = backings(entry.normalization.normalized);
+          entry.materializedBackings = backings(entry.materializedView);
+          entry.materializedBacking = wireReader(namespace, true, false, true).backing(
+            entry.materializedView,
+          );
+          const normalizedRaw = read.backing(entry.normalization.normalized);
+          entry.normalizedFrozen = !!(Number(own(normalizedRaw, flag)) & 2);
+          entry.normalizedMutable = own(entry.normalization.normalized, 'Fb') === mutableSentinel;
+          verify(entry);
+          retainOwners(entry);
+          return result;
+        } finally {
+          operation = undefined;
+        }
+      });
+    },
     capture(value: unknown): GeminiNativeEnvelope {
       return checked('response-shape', () => {
-        require(!captured);
+        require(!captured, 'receipt-state');
         sources();
-        if (previousAa) frozenIdentity(previousAa, current, previousAaBacking);
+        if (previousAa)
+          frozenIdentity(previousAa, current, previousAaBacking, 'fields-prior-aa-identity');
         // Correlate exact source recovery controls so the original projection can unwind.
         // Output normalization stays strict; source-only forwarding returns no accepted frame.
         const envelope = nativeEnvelope(namespace, value, true, true);
         const entry: Captured = { envelope, prior: current };
         if (envelope.kind === 'response') {
           entry.recoveryControl = [2, 3, 4].includes(
-            wireReader(namespace).message(envelope.raw, 'HF').get(63) as number,
+            wireReader(namespace, true, false, true).message(envelope.raw, 'IF').get(63) as number,
           );
-          const rawBacking = wireReader(namespace).backing(envelope.raw);
+          const rawBacking = wireReader(namespace, true, false, true).backing(envelope.raw);
           entry.content = snapshot(envelope.raw, true);
+          entry.initialContent = entry.content;
           entry.originalIdentity = identitySnapshot(envelope.raw);
           entry.rawBacking = rawBacking;
+          entry.surveySlot = surveySlot(rawBacking);
           entry.initialIdentity = entry.originalIdentity;
-          const pathRead = wireReader(namespace, false, false, true);
+          const pathRead = wireReader(namespace, true, false, true);
           const path = nativeResponsePath(
             namespace,
             pathRead,
-            pathRead.message(envelope.envelope, 'xzd'),
+            pathRead.message(envelope.envelope, 'Kzd'),
             envelope.envelope,
           );
           const logicalFrozen =
@@ -1741,8 +2950,8 @@ export function createGeminiNativeReceipt(namespace: unknown, approved: Approved
           entry.mayDetach =
             entry.viewCreated ||
             (!Array.isArray(envelope.raw) && own(envelope.raw, 'Fb') === own(namespace, 'Kaa'));
-          const identityRead = wireReader(namespace),
-            identity = identityRead.message(envelope.raw, 'HF').get(2);
+          const identityRead = wireReader(namespace, true, false, true),
+            identity = identityRead.message(envelope.raw, 'IF').get(2);
           if (identity !== undefined)
             entry.identityWasFrozen = Array.isArray(identity)
               ? !!(
@@ -1769,13 +2978,16 @@ export function createGeminiNativeReceipt(namespace: unknown, approved: Approved
     },
     normalize(value: unknown, actualAa: unknown): GeminiNativeFrameReceipt {
       const receipt = normalizeFrame(value, actualAa, false);
-      require(receipt);
+      require(receipt, 'receipt-state');
       return receipt;
     },
     finishEnvelope(): void {
       checked('response-shape', () => {
         const entry = captured;
-        require(entry && (entry.envelope.kind === 'close' || entry.normalization));
+        require(entry &&
+          (entry.envelope.kind === 'close' ||
+            entry.envelope.kind === 'ignored' ||
+            entry.normalization), 'receipt-state');
         if (previousAa) frozenIdentity(previousAa, current, previousAaBacking);
         verify(entry);
         captured = undefined;
@@ -1851,16 +3063,16 @@ export function createGeminiNativeReceipt(namespace: unknown, approved: Approved
 }
 function nativeConfigurationParts(namespace: unknown, value: unknown, diagnostics = false) {
   const read = wireReader(namespace, diagnostics, true);
-  nativeOneof(namespace, read, 'eM', [1, 2, 3, 4]);
-  nativeOneof(namespace, read, 'rJd', [6, 8]);
-  const config = nativeWrapper(read, value, 'tJd', 1);
-  const fields = read.message(config, 'qJd');
+  nativeOneof(namespace, read, 'XL', [1, 2, 3, 4]);
+  nativeOneof(namespace, read, 'HJd', [6, 8]);
+  const config = nativeWrapper(read, value, 'JJd', 1);
+  const fields = read.message(config, 'GJd');
   read.fields(fields, [1, 2, 8]);
   const sequence = fields.get(2);
   require(fields.size === 3 && (sequence === 0 || sequence === 0n || sequence === '0'), diagnostics
     ? 'dispatch-native-n15-configuration-zero'
     : undefined);
-  const wrapper = nativeWrapper(read, fields.get(8), 'nJd', 5);
+  const wrapper = nativeWrapper(read, fields.get(8), 'DJd', 5);
   const payload = read.message(nativePrivateBacking(namespace, wrapper, 'QGd', diagnostics));
   read.fields(payload, [1, 4]);
   require(payload.size === 2 && payload.get(4) === 1, diagnostics
@@ -1870,8 +3082,8 @@ function nativeConfigurationParts(namespace: unknown, value: unknown, diagnostic
   require(ok !== null && typeof ok === 'object', diagnostics
     ? 'dispatch-native-n15-configuration-03'
     : undefined);
-  read.message(ok, 'zL');
-  const metadata = read.message(fields.get(1), 'LAd');
+  read.message(ok, 'wL');
+  const metadata = read.message(fields.get(1), '$Ad');
   read.fields(metadata, [1, 2, 3, 4]);
   require(metadata.size === 4, diagnostics ? 'dispatch-native-n15-configuration-04' : undefined);
   require(typeof metadata.get(1) === 'number' &&
@@ -1880,7 +3092,7 @@ function nativeConfigurationParts(namespace: unknown, value: unknown, diagnostic
     metadata.get(3) === 'ko' &&
     id(metadata.get(4)), diagnostics ? 'dispatch-native-n15-configuration-05' : undefined);
   // Outbound owner paths are explicit; inbound snapshots keep the default policy.
-  wireReader(namespace, diagnostics, true).snapshot(value, 'tJd', false, false, 0, false, []);
+  wireReader(namespace, diagnostics, true).snapshot(value, 'JJd', false, false, 0, false, []);
   return { ok, metadata };
 }
 export function assertGeminiNativeConfiguration(
@@ -1893,30 +3105,31 @@ export function assertGeminiNativeConfiguration(
 ): void {
   nativeContract('packet', () => {
     sourceIs(
-      own(namespace, '$Cb', diagnostics),
+      own(namespace, 'dDb', diagnostics),
       'function(a){return Object.assign({},{locale:"ko",requestSource:a.requestSource},a.modeId!==void 0?{modeId:a.modeId}:{},a.turnId!==void 0?{turnId:a.turnId}:{})}',
       diagnostics,
     );
     sourceIs(
-      own(namespace, 'oJd', diagnostics),
-      'function(a,b){return _.Hh(a,_.LAd,1,b)}',
+      own(namespace, 'EJd', diagnostics),
+      'function(a,b){return _.Gh(a,_.$Ad,1,b)}',
       diagnostics,
     );
-    sourceIs(own(namespace, 'pJd', diagnostics), 'function(a,b){return _.Ki(a,2,b)}', diagnostics);
+    sourceIs(own(namespace, 'FJd', diagnostics), 'function(a,b){return _.Ii(a,2,b)}', diagnostics);
     const a = approval(approved),
       { ok, metadata } = nativeConfigurationParts(namespace, value, diagnostics);
     const read = wireReader(namespace, diagnostics, true);
     require(value !== null &&
       typeof value === 'object' &&
-      Object.getPrototypeOf(value) === read.prototype('tJd'), diagnostics
+      Object.getPrototypeOf(value) === read.prototype('JJd'), diagnostics
       ? 'dispatch-native-n15-configuration-assert-01'
       : undefined);
     require(expectedOk !== null &&
       typeof expectedOk === 'object' &&
-      Object.getPrototypeOf(expectedOk) === read.prototype('zL'), diagnostics
+      Object.getPrototypeOf(expectedOk) === read.prototype('wL'), diagnostics
       ? 'dispatch-native-n15-configuration-assert-02'
       : undefined);
-    read.message(expectedOk, 'zL');
+    // A cold fixed-text request cannot inherit a continuation conversation.
+    read.emptyMessage(read.message(expectedOk, 'wL').get(72), 'vL');
     require(typeof requestSource === 'number' && Number.isInteger(requestSource), diagnostics
       ? 'dispatch-native-n15-configuration-assert-03'
       : undefined);
@@ -1927,8 +3140,8 @@ export function assertGeminiNativeConfiguration(
       ? 'dispatch-native-n15-configuration-assert-04'
       : undefined);
     require(sameSnapshot(
-      wireReader(namespace, diagnostics, true).snapshot(ok, 'zL'),
-      wireReader(namespace, diagnostics, true).snapshot(expectedOk, 'zL'),
+      wireReader(namespace, diagnostics, true).snapshot(ok, 'wL'),
+      wireReader(namespace, diagnostics, true).snapshot(expectedOk, 'wL'),
     ), diagnostics ? 'dispatch-native-n15-configuration-assert-05' : undefined);
   });
 }
@@ -1939,13 +3152,13 @@ export function readGeminiNativeSendKind(
 ): 'configuration' | 'query' | 'close' {
   return nativeContract('packet', () => {
     const read = wireReader(namespace, diagnostics, true);
-    nativeOneof(namespace, read, 'eM', [1, 2, 3, 4]);
+    nativeOneof(namespace, read, 'XL', [1, 2, 3, 4]);
     require(value !== null &&
       typeof value === 'object' &&
-      Object.getPrototypeOf(value) === read.prototype('tJd'), diagnostics
+      Object.getPrototypeOf(value) === read.prototype('JJd'), diagnostics
       ? 'dispatch-native-n15-kind-01'
       : undefined);
-    const root = read.message(value, 'tJd');
+    const root = read.message(value, 'JJd');
     read.fields(root, [1, 2, 4]);
     require(root.size === 1, diagnostics ? 'dispatch-native-n15-kind-02' : undefined);
     if (root.has(1)) {
@@ -1953,15 +3166,15 @@ export function readGeminiNativeSendKind(
       return 'configuration';
     }
     if (root.has(2)) {
-      nativeOneof(namespace, read, 'cM', [3, 4, 6, 7, 8, 9]);
-      const query = read.message(root.get(2), 'dM');
+      nativeOneof(namespace, read, 'VL', [3, 4, 6, 7, 8, 9]);
+      const query = read.message(root.get(2), 'WL');
       read.fields(query, [1, 9]);
       const sequence = query.get(1);
       require(query.size === 2 &&
         (sequence === 1 || sequence === 1n || sequence === '1'), diagnostics
         ? 'dispatch-native-n15-kind-03'
         : undefined);
-      const text = read.message(query.get(9), 'hJd');
+      const text = read.message(query.get(9), 'xJd');
       read.fields(text, [1]);
       require(text.size === 1 && text.get(1) === GEMINI_FIXED_TEXT_TRIAL_PROMPT, diagnostics
         ? 'dispatch-native-n15-kind-04'
@@ -1969,7 +3182,7 @@ export function readGeminiNativeSendKind(
       return 'query';
     }
     require(root.has(4), diagnostics ? 'dispatch-native-n15-kind-05' : undefined);
-    const close = read.message(root.get(4), 'UId');
+    const close = read.message(root.get(4), 'jJd');
     read.fields(close, [1]);
     require(close.size === 1 && close.get(1) === 1, diagnostics
       ? 'dispatch-native-n15-kind-06'

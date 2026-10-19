@@ -26,10 +26,10 @@ export function geminiSdkDispatchFixture() {
     }
   }
   namespace.l = Message;
-  namespace.zL = class extends Message {};
+  namespace.wL = class extends Message {};
   namespace.Fta = class extends Message {};
   namespace.Gta = class extends Message {};
-  namespace.HF = class extends Message {};
+  namespace.IF = class extends Message {};
   // Synthetic deferred lifecycle; production only captures the exported identity and method.
   namespace.bc = class {
     cancel() {
@@ -38,42 +38,64 @@ export function geminiSdkDispatchFixture() {
   };
   namespace.Ixa = Function(
     'Hxa',
-    'return class{constructor(){this.ka=[];this.wa=[];this.oa=[];this.ha=[];this.Aa=null;this.Da=!1}on(a,b){a=="data"?this.ka.push(b):a=="status"?this.wa.push(b):a=="end"?this.oa.push(b):a=="error"&&this.ha.push(b);return this}cancel(){if(!this.Da){if(!this.Aa)throw Error("Ac");this.Aa.cancel()}}removeListener(a,b){a=="data"?Hxa(this.ka,b):a=="status"?Hxa(this.wa,b):a=="end"?Hxa(this.oa,b):a=="error"&&Hxa(this.ha,b);return this}}',
+    'return class{constructor(){this.ka=[];this.wa=[];this.oa=[];this.ha=[];this.Aa=null;this.Ca=!1}on(a,b){a=="data"?this.ka.push(b):a=="status"?this.wa.push(b):a=="end"?this.oa.push(b):a=="error"&&this.ha.push(b);return this}cancel(){if(!this.Ca){if(!this.Aa)throw Error("Ac");this.Aa.cancel()}}removeListener(a,b){a=="data"?Hxa(this.ka,b):a=="status"?Hxa(this.wa,b):a=="end"?Hxa(this.oa,b):a=="error"&&Hxa(this.ha,b);return this}}',
   )((callbacks: unknown[], callback: unknown) => {
     const index = callbacks.indexOf(callback);
     if (index !== -1) callbacks.splice(index, 1);
   });
-  namespace.pM = class {};
-  namespace.bM = class {};
+  namespace.gM = class {};
+  namespace.UL = class {};
+  namespace.cM = Function('return class{constructor(){this.ha=0}reset(){this.ha=0}}')();
+  namespace.CKd = Function(
+    '_',
+    'uKd',
+    'return class{constructor(){this.Da=_.x(_.Nz);this.ka=_.x(_.cM);this.ha=this.Da.Ea(_.tKd);this.oa=this.Da.Ea(uKd)}}',
+  )(namespace, {});
+  namespace.zKd = Function(
+    '_',
+    'return class{constructor(){this.ha=_.x(_.bL);this.ka=_.x(_.dL);this.oa=_.x(_.bM);this.wa=_.x(_.cM)}}',
+  )(namespace);
+  namespace.BKd = Function(
+    'return function(a){if(!a.ha)return!1;if(a.oa)return!0;a=a.ka.ha;return a!==43&&a!==42}',
+  )();
+  const mode = new namespace.cM();
+  const eligibility = Object.assign(Object.create(namespace.CKd.prototype), {
+    Da: {},
+    ka: mode,
+    ha: false,
+    oa: false,
+  });
+  const header = Object.assign(Object.create(namespace.zKd.prototype), { wa: mode });
+  namespace.jl = Symbol();
   namespace.kl = Symbol();
-  namespace.ll = Symbol();
   namespace.Kwa = Symbol();
-  namespace.JYb = class {
-    IVa() {
-      return (this as any)[namespace.ll].Ob;
+  namespace.OYb = class {
+    NVa() {
+      return (this as any)[namespace.kl].Ob;
     }
-    Qyb() {
-      return (this as any)[namespace.ll].Pb;
+    kzb() {
+      return (this as any)[namespace.kl].Pb;
     }
   };
-  namespace.LE = class extends namespace.JYb {};
+  namespace.LE = Function('_', 'return function(a,b){return _.Ni(a,4,b)}')(namespace);
+  namespace.ME = class extends namespace.OYb {};
   namespace.xxa = class {
     constructor(
       public rpcId: any,
       public requestMessage: any,
     ) {}
-    yx() {
+    zx() {
       return this.rpcId;
     }
-    qea() {
+    vea() {
       return this.requestMessage;
     }
-    Tq() {
+    Uq() {
       return undefined;
     }
   };
-  namespace.Uy = {};
-  namespace.Cg = class {
+  namespace.Ty = {};
+  namespace.Bg = class {
     ha = new Map();
     ka = 0;
     oa = null;
@@ -84,7 +106,7 @@ export function geminiSdkDispatchFixture() {
     add(key: string, value: unknown) {
       this.ha.set(key, value);
     }
-    QE(key: string) {
+    XE(key: string) {
       return this.ha.get(key);
     }
     clone() {
@@ -94,8 +116,9 @@ export function geminiSdkDispatchFixture() {
       return 'synthetic-query';
     }
   };
-  namespace.xg = class {
-    ka = new namespace.Cg();
+  namespace.wg = class {
+    ka = '';
+    ha = new namespace.Bg();
     clone() {
       return this;
     }
@@ -103,11 +126,11 @@ export function geminiSdkDispatchFixture() {
       return 'synthetic-path';
     }
   };
-  namespace.soa = (uri: any, key: string, value: unknown) => uri.ka.ha.set(key, value);
+  namespace.roa = (uri: any, key: string, value: unknown) => uri.ha.ha.set(key, value);
   namespace.n = (message: any, field: number) =>
     field === 1 ? message.rpcMarker : field === 2 ? message.payload : '';
-  namespace.di = (message: any, _type: any, field: number) => (field === 1 ? message.items : []);
-  namespace.jf = (value: string) => value;
+  namespace.ci = (message: any, _type: any, field: number) => (field === 1 ? message.items : []);
+  namespace.hf = (value: string) => value;
   namespace.pd = () => {
     calls.config++;
     beforeConfig();
@@ -137,70 +160,70 @@ export function geminiSdkDispatchFixture() {
   namespace.xta = ['POST', 'PUT'];
   namespace.fa = {};
   namespace.xa = (values: unknown[], value: unknown) => values.includes(value);
-  namespace.cja = class {};
-  namespace.cja.prototype.Z8 = Function(
+  namespace.bja = class {};
+  namespace.bja.prototype.g9 = Function(
     'XMLHttpRequest',
     'return ' + 'function(){return new XMLHttpRequest}',
   )(SyntheticXHR);
-  namespace.bja = new namespace.cja();
+  namespace.aja = new namespace.bja();
   namespace.Mta = class {
     wa = null;
     ka = false;
     oa = false;
   };
-  namespace.Mta.prototype.Z8 = Function(
-    'Zj',
+  namespace.Mta.prototype.g9 = Function(
+    'Xj',
     'return ' +
-      'function(a){var b=new Zj(this.wa,this.ka,this.oa);this.ha&&(b.Aa=this.ha);a&&(b.oa=a);return b}',
+      'function(a){var b=new Xj(this.wa,this.ka,this.oa);this.ha&&(b.Aa=this.ha);a&&(b.oa=a);return b}',
   )(SyntheticXHR);
-  namespace.Xj = class {
-    lPb: unknown = null;
+  namespace.Vj = class {
+    BPb: unknown = null;
     vk: any = null;
     headers = new Map();
     isDisposed() {
       return false;
     }
     dispatchEvent() {}
-    Aq(_code: number, error: unknown) {
+    Cq(_code: number, error: unknown) {
       throw error;
     }
   };
-  namespace.Xj.prototype.send = Function(
+  namespace.Vj.prototype.send = Function(
     '_',
     'return ' +
-      'function(a,b,c,d){if(this.vk)throw Error("Xb`"+this.FAa+"`"+a);if(typeof b==="string")var e=b;else if(b){var f=b;e=f.method;c!=null||(c=f.body);d!=null||(d=f.headers)}e=e?e.toUpperCase():"GET";this.FAa=a;this.DG="";this.D6=0;this.nIc=!1;this.nE=!0;this.vk=this.Xtb(f);this.vk.onreadystatechange=(0,_.qe)((0,_.$b)(this.J7d,this));this.R3f&&"onprogress"in this.vk&&(this.vk.onprogress=(0,_.qe)((0,_.$b)(function(k){this.I7d(k,!0)},this)),this.vk.upload&&(this.vk.upload.onprogress=(0,_.qe)((0,_.$b)(this.I7d,\nthis))));try{this.TOc=!0,this.vk.open(e,String(a),!0),this.TOc=!1}catch(k){this.Aq(5,k);return}a=c||"";b=new Map(this.headers);if(d)if(Object.getPrototypeOf(d)===Object.prototype)for(var g in d)b.set(g,d[g]);else if(typeof d.keys==="function"&&typeof d.get==="function")for(let k of d.keys())b.set(k,d.get(k));else throw Error("Yb`"+String(d));d=Array.from(b.keys()).find(k=>"content-type"==k.toLowerCase());g=_.fa.FormData&&a instanceof _.fa.FormData;!_.xa(_.xta,e)||d||g||b.set("Content-Type","application/x-www-form-urlencoded;charset=utf-8");\nfor(let [k,r]of b)this.vk.setRequestHeader(k,r);this.uI&&(this.vk.responseType=this.uI);"withCredentials"in this.vk&&this.vk.withCredentials!==this.dD&&(this.vk.withCredentials=this.dD);if("setTrustToken"in this.vk&&this.Rbd)try{this.vk.setTrustToken(this.Rbd)}catch(k){}if("setAttributionReporting"in this.vk&&this.mzc)try{this.vk.setAttributionReporting(this.mzc)}catch(k){}try{this.Fua&&(clearTimeout(this.Fua),this.Fua=null),this.Vlb>0&&(this.Fua=setTimeout(this.lH.bind(this),this.Vlb)),this.t6b=\n!0,this.vk.send(a),this.t6b=!1}catch(k){this.Aq(5,k)}}',
+      'function(a,b,c,d){if(this.vk)throw Error("Xb`"+this.NAa+"`"+a);if(typeof b==="string")var e=b;else if(b){var f=b;e=f.method;c!=null||(c=f.body);d!=null||(d=f.headers)}e=e?e.toUpperCase():"GET";this.NAa=a;this.IG="";this.I6=0;this.WIc=!1;this.qE=!0;this.vk=this.rub(f);this.vk.onreadystatechange=(0,_.qe)((0,_.$b)(this.O8d,this));this.p5f&&"onprogress"in this.vk&&(this.vk.onprogress=(0,_.qe)((0,_.$b)(function(k){this.N8d(k,!0)},this)),this.vk.upload&&(this.vk.upload.onprogress=(0,_.qe)((0,_.$b)(this.N8d,\nthis))));try{this.EPc=!0,this.vk.open(e,String(a),!0),this.EPc=!1}catch(k){this.Cq(5,k);return}a=c||"";b=new Map(this.headers);if(d)if(Object.getPrototypeOf(d)===Object.prototype)for(var g in d)b.set(g,d[g]);else if(typeof d.keys==="function"&&typeof d.get==="function")for(let k of d.keys())b.set(k,d.get(k));else throw Error("Yb`"+String(d));d=Array.from(b.keys()).find(k=>"content-type"==k.toLowerCase());g=_.fa.FormData&&a instanceof _.fa.FormData;!_.xa(_.xta,e)||d||g||b.set("Content-Type","application/x-www-form-urlencoded;charset=utf-8");\nfor(let [k,r]of b)this.vk.setRequestHeader(k,r);this.tI&&(this.vk.responseType=this.tI);"withCredentials"in this.vk&&this.vk.withCredentials!==this.eD&&(this.vk.withCredentials=this.eD);if("setTrustToken"in this.vk&&this.Pcd)try{this.vk.setTrustToken(this.Pcd)}catch(k){}if("setAttributionReporting"in this.vk&&this.Tzc)try{this.vk.setAttributionReporting(this.Tzc)}catch(k){}try{this.Pua&&(clearTimeout(this.Pua),this.Pua=null),this.nmb>0&&(this.Pua=setTimeout(this.kH.bind(this),this.nmb)),this.K6b=\n!0,this.vk.send(a),this.K6b=!1}catch(k){this.Cq(5,k)}}',
   )(namespace);
-  namespace.Xj.prototype.Xtb = Function(
+  namespace.Vj.prototype.rub = Function(
     '_',
-    'return ' + 'function(a){return this.lPb?this.lPb.Z8(a):_.bja.Z8()}',
+    'return ' + 'function(a){return this.BPb?this.BPb.g9(a):_.aja.g9()}',
   )(namespace);
-  namespace.Xj.prototype.J7d = Function(
+  namespace.Vj.prototype.O8d = Function(
     '_',
     'Cta',
     'return ' +
-      'function(){this.isDisposed()||(this.TOc||this.t6b||this.MWa?Cta(this):this.l_c())}',
+      'function(){this.isDisposed()||(this.EPc||this.K6b||this.TWa?Cta(this):this.Y_c())}',
   )(namespace, () => {});
-  namespace.Xj.prototype.l_c = Function(
+  namespace.Vj.prototype.Y_c = Function(
     '_',
     'Cta',
     'return ' + 'function(){Cta(this)}',
   )(namespace, () => {
     notifications++;
   });
-  namespace.Eb = Function('return function(){this.n5=this.n5;this.b_a=this.b_a}')();
-  namespace.Eb.prototype.n5 = false;
-  namespace.Eb.prototype.isDisposed = Function('return function(){return this.n5}')();
+  namespace.Eb = Function('return function(){this.r5=this.r5;this.n_a=this.n_a}')();
+  namespace.Eb.prototype.r5 = false;
+  namespace.Eb.prototype.isDisposed = Function('return function(){return this.r5}')();
   const identity = Function(
     'var Tea="closure_uid_17",Uea=0;return {Qd:function(a){return Object.prototype.hasOwnProperty.call(a,Tea)&&a[Tea]||(a[Tea]=++Uea)},count:()=>Uea}',
   )();
   namespace.Fd = identity.Qd;
+  namespace.tga = [];
   namespace.uga = [];
-  namespace.vga = [];
-  namespace.wga = false;
+  namespace.vga = false;
   namespace.Cr = { ka: null };
-  namespace.xga = Function(
+  namespace.wga = Function(
     '_',
-    'return function(a){_.uga[_.uga.length]=a;if(_.wga)for(let b=0;b<_.vga.length;b++)a((0,_.$b)(_.vga[b].wrap,_.vga[b]))}',
+    'return function(a){_.tga[_.tga.length]=a;if(_.vga)for(let b=0;b<_.uga.length;b++)a((0,_.$b)(_.uga[b].wrap,_.uga[b]))}',
   )(namespace);
   const Monitor = Function(
     '_',
@@ -210,33 +233,33 @@ export function geminiSdkDispatchFixture() {
   Monitor.prototype.constructor = Monitor;
   const monitorFactory = Function(
     '_',
-    'S1o',
-    'var hGo=function(a,b){return(b?"__wrapper_":"__protected_")+_.Fd(a)+"__"},gGo=function(a,b){var c=hGo(a,!0);b[c]||((b[c]=iGo(a,b))[hGo(a,!1)]=b);return b[c]},iGo=function(a,b){var c=function(){if(a.isDisposed())return b.apply(this,arguments);try{return b.apply(this,arguments)}catch(d){S1o(a,d)}};c[hGo(a,!1)]=b;return c};return {gGo,hGo}',
+    'M5o',
+    'var hGo=function(a,b){return(b?"__wrapper_":"__protected_")+_.Fd(a)+"__"},gGo=function(a,b){var c=hGo(a,!0);b[c]||((b[c]=iGo(a,b))[hGo(a,!1)]=b);return b[c]},iGo=function(a,b){var c=function(){if(a.isDisposed())return b.apply(this,arguments);try{return b.apply(this,arguments)}catch(d){M5o(a,d)}};c[hGo(a,!1)]=b;return c};return {gGo,hGo}',
   )(namespace, (_monitor: unknown, error: unknown) => {
     throw error;
   });
   Monitor.prototype.wrap = Function(
-    'P1o',
-    'return function(a){return P1o(this,a)}',
+    'J5o',
+    'return function(a){return J5o(this,a)}',
   )(monitorFactory.gGo);
   Monitor.prototype.unwrap = Function(
-    'Q1o',
-    'return function(a){return a[Q1o(this,!1)]||a}',
+    'K5o',
+    'return function(a){return a[K5o(this,!1)]||a}',
   )(monitorFactory.hGo);
   const installMonitor = Function(
     '_',
-    'return function(a){_.wga=!0;var b=(0,_.$b)(a.wrap,a);for(let c=0;c<_.uga.length;c++)_.uga[c](b);_.vga.push(a)}',
+    'return function(a){_.vga=!0;var b=(0,_.$b)(a.wrap,a);for(let c=0;c<_.tga.length;c++)_.tga[c](b);_.uga.push(a)}',
   )(namespace);
-  namespace.xga(
-    Function('_', 'return function(a){_.Xj.prototype.l_c=a(_.Xj.prototype.l_c)}')(namespace),
+  namespace.wga(
+    Function('_', 'return function(a){_.Vj.prototype.Y_c=a(_.Vj.prototype.Y_c)}')(namespace),
   );
-  namespace.Xj.prototype.pea = Function(
+  namespace.Vj.prototype.uea = Function(
     'return ' + 'function(){return this.vk?this.vk.readyState:0}',
   )();
-  namespace.Xj.prototype.Ln = Function(
+  namespace.Vj.prototype.Ln = Function(
     'return ' + 'function(){try{return this.vk?this.vk.responseText:""}catch(a){return""}}',
   )();
-  namespace.Xj.prototype.Xu = Function('return ' + 'function(){return this.pea()==4}')();
+  namespace.Vj.prototype.Wu = Function('return ' + 'function(){return this.uea()==4}')();
   namespace.Yb = class {
     isDisposed() {
       return false;
@@ -257,10 +280,10 @@ export function geminiSdkDispatchFixture() {
     }
   };
   const Context = Function(
-    'return class {constructor(){this.wa=[];this.oa={};this.wbc=1000;}reset(){this.Aq=this.ka=null}}',
+    'return class {constructor(){this.wa=[];this.oa={};this.wbc=1000;}reset(){this.Cq=this.ka=null}}',
   )();
   let contextFactory = () => new Context();
-  Object.assign(Context.prototype, { i0c: 0, xFb: -1, wFb: 0, qta: 0, sKe: 0, wbc: 0 });
+  Object.assign(Context.prototype, { i0c: 0, xFb: -1, wFb: 0, zta: 0, sKe: 0, wbc: 0 });
   const Manager = class extends namespace.Yb {};
   const manager: any = Object.assign(new Manager(), {
     uxc(request: any) {
@@ -291,7 +314,7 @@ export function geminiSdkDispatchFixture() {
     transport.ha = request;
   };
   const transfer = `transfer(a){this.aborted=
-!1;uua(this,a);a.setParam("rt",this.uI);var b=a.Da,c=Object.assign({},a.z3c,{method:a.ka});if(zua(a)){vua(this,a);let d=Aua(a),e=a.OCc;d&&e?iua(d,e).then(f=>{this.isDisposed()||this.aborted||this.ha!==a||(b.set("Content-Encoding",e),this.xhr.send(a.getUrl(),c,f,b))}):this.xhr.send(a.getUrl(),c,d,b)}else this.xhr.send(a.getUrl(),c,null,b)}`;
+!1;uua(this,a);a.setParam("rt",this.tI);var b=a.Ca,c=Object.assign({},a.o4c,{method:a.ka});if(zua(a)){vua(this,a);let d=Aua(a),e=a.wDc;d&&e?iua(d,e).then(f=>{this.isDisposed()||this.aborted||this.ha!==a||(b.set("Content-Encoding",e),this.xhr.send(a.getUrl(),c,f,b))}):this.xhr.send(a.getUrl(),c,d,b)}else this.xhr.send(a.getUrl(),c,null,b)}`;
   namespace.Cua = Function(
     'uua',
     'zua',
@@ -318,20 +341,20 @@ export function geminiSdkDispatchFixture() {
   // Allocate the invented instance without invoking the Bua constructor.
   const Transport = Function(
     '_',
-    'KZb',
+    'PZb',
     `return class extends _.Cua {
     transfer(a){this.wa||
-_.Vj("transfer() called during response processing",Error());this.wa=!1;this.oa=0;this.Va=!1;super.transfer(a)}
-    kb(){this.xhr.pea()==3&&KZb(this,!1)}
-    ob(){KZb(this,!0)}
-    Aa(a){var b=this.Ja&&a.getStatus()>=500;KZb(this,!0,b);super.Aa(a)}
+_.Tj("transfer() called during response processing",Error());this.wa=!1;this.oa=0;this.Va=!1;super.transfer(a)}
+    kb(){this.xhr.uea()==3&&PZb(this,!1)}
+    ob(){PZb(this,!0)}
+    Aa(a){var b=this.Ja&&a.getStatus()>=500;PZb(this,!0,b);super.Aa(a)}
   }`,
   )(namespace, () => {});
-  namespace.Vj = () => {};
+  namespace.Tj = () => {};
   const transport: any = Object.assign(Object.create(Transport.prototype), {
-    xhr: new namespace.Xj(),
+    xhr: new namespace.Vj(),
     ha: null,
-    uI: 'c',
+    tI: 'c',
     wa: true,
     aborted: false,
     Wa: {
@@ -343,7 +366,7 @@ _.Vj("transfer() called during response processing",Error());this.wa=!1;this.oa=
   manager.oa = [transport];
   const proto = {
     constructor: function Request() {},
-    setParam: Function('_', 'return function(a,b){_.soa(this.oa,a,b)}')(namespace),
+    setParam: Function('_', 'return function(a,b){_.roa(this.oa,a,b)}')(namespace),
     getContext: Function('return function(){return this.Wa}')(),
     Ni: Function('return function(a){this.Wa=a}')(),
     getUrl: Function('return function(){return String(this.oa.clone())}')(),
@@ -354,11 +377,11 @@ _.Vj("transfer() called during response processing",Error());this.wa=!1;this.oa=
       Aa: manager,
       ub: body,
       Uwb: 'FAIL',
-      oa: new namespace.xg(),
-      Da: new Map(),
+      oa: new namespace.wg(),
+      Ca: new Map(),
       ka: 'POST',
-      z3c: undefined,
-      OCc: compression ? 'gzip' : undefined,
+      o4c: undefined,
+      wDc: compression ? 'gzip' : undefined,
     });
   }
   let current: any;
@@ -377,16 +400,16 @@ _.Vj("transfer() called during response processing",Error());this.wa=!1;this.oa=
   const jsa = '/assistant.lamda.BardFrontendService/StreamGenerate';
   const metadata = {
     Ob: 'RxAFq',
-    Sb: '/BardFrontendService.StreamGenerate',
-    Rb: false,
-    Pb: namespace.HF,
-    Ub: namespace.zL,
-    oqa: jsa,
-    qsa: jsa,
+    Rb: '/BardFrontendService.StreamGenerate',
+    Qb: false,
+    Pb: namespace.IF,
+    Ub: namespace.wL,
+    Fqa: jsa,
+    zsa: jsa,
   };
-  namespace.Uy.o_RxAFq = metadata;
-  const descriptor = Object.assign(new namespace.LE(), {
-    [namespace.ll]: metadata,
+  namespace.Ty.o_RxAFq = metadata;
+  const descriptor = Object.assign(new namespace.ME(), {
+    [namespace.kl]: metadata,
     [namespace.Kwa]: 'server_streaming',
   });
   const EYb = (receiver: any, message: any, _headers: any, _options: any, path: string) => {
@@ -411,65 +434,67 @@ _.Vj("transfer() called during response processing",Error());this.wa=!1;this.oa=
   };
   const Streaming = Function(
     '_',
-    'cZb',
-    'return class {stream(a){var b=a.yx(),c=_.yxa(a),d=a.Tq(_.Iwa);Object.assign(c,d);var e=a.Tq(_.Jwa)||new Map;d=this.ha;a=a.qea();e=Object.fromEntries(e);var f;var g=(f=_.Uy[`o_${b.IVa()}`])==null?void 0:f.qsa;b=_.Wpa(b.Qyb());return cZb(d,a,c,e,g,b)}}',
+    'hZb',
+    'return class {stream(a){var b=a.zx(),c=_.yxa(a),d=a.Uq(_.Iwa);Object.assign(c,d);var e=a.Uq(_.Jwa)||new Map;d=this.ha;a=a.vea();e=Object.fromEntries(e);var f;var g=(f=_.Ty[`o_${b.NVa()}`])==null?void 0:f.zsa;b=_.Wpa(b.kzb());return hZb(d,a,c,e,g,b)}}',
   )(namespace, EYb);
   const streaming = Object.assign(new Streaming(), { ha: service });
-  const api = Object.assign(new namespace.pM(), {
-    Aa: false,
+  const api = Object.assign(new namespace.gM(), {
+    Aa: eligibility,
+    Ua: mode,
+    Eb: header,
     Kd: false,
-    Ja: Object.assign(new namespace.bM(), { isEnabled: true }),
+    Ja: Object.assign(new namespace.UL(), { isEnabled: true }),
     Sd: streaming,
   });
-  const request = () => new namespace.xxa(descriptor, new namespace.zL());
+  const request = () => new namespace.xxa(descriptor, new namespace.wL());
   const OtherMessage = class extends Message {};
   const otherMetadata = {
     Ob: 'SynthRpc',
-    Sb: '/BardFrontendService.SyntheticList',
-    Rb: false,
+    Rb: '/BardFrontendService.SyntheticList',
+    Qb: false,
     Pb: OtherMessage,
     Ub: OtherMessage,
-    oqa: '/assistant.lamda.BardFrontendService/SyntheticList',
-    qsa: '/assistant.lamda.BardFrontendService/SyntheticList',
+    Fqa: '/assistant.lamda.BardFrontendService/SyntheticList',
+    zsa: '/assistant.lamda.BardFrontendService/SyntheticList',
   };
-  namespace.Uy.o_SynthRpc = otherMetadata;
-  namespace.PGd = class extends Message {};
-  namespace.RGd = {
+  namespace.Ty.o_SynthRpc = otherMetadata;
+  namespace.eHd = class extends Message {};
+  namespace.gHd = {
     Ob: 'hNvQHb',
-    Sb: '/BardFrontendService.ListConversationTurns',
-    Rb: true,
+    Rb: '/BardFrontendService.ListConversationTurns',
+    Qb: true,
     Pb: class extends Message {},
-    Ub: namespace.PGd,
+    Ub: namespace.eHd,
   };
-  namespace.Uy.o_hNvQHb = { ...namespace.RGd };
-  namespace.Nfc = class extends Message {};
-  namespace.Ofc = {
+  namespace.Ty.o_hNvQHb = { ...namespace.gHd };
+  namespace.Ygc = class extends Message {};
+  namespace.Zgc = {
     Ob: 'otAQ7b',
-    Sb: '/BardFrontendService.GetUserStatus',
-    Rb: true,
-    Ub: namespace.Nfc,
+    Rb: '/BardFrontendService.GetUserStatus',
+    Qb: true,
+    Ub: namespace.Ygc,
     Pb: class extends Message {},
-    [namespace.kl]: true,
+    [namespace.jl]: true,
   };
-  namespace.Uy.o_otAQ7b = { ...namespace.Ofc };
-  const otherDescriptor = Object.assign(new namespace.LE(), {
-    [namespace.ll]: otherMetadata,
+  namespace.Ty.o_otAQ7b = { ...namespace.Zgc };
+  const otherDescriptor = Object.assign(new namespace.ME(), {
+    [namespace.kl]: otherMetadata,
     [namespace.Kwa]: 'server_streaming',
   });
   const survey = [
     ['PCck7e', '/TaskService.GetCandidates', true],
     ['sofYMe', '/TaskService.GetTaskForRendering', true],
     ['Fws7If', '/ResponseService.Write', false],
-  ].map(([Ob, Sb, Rb]) => {
+  ].map(([Ob, Rb, Qb]) => {
     const metadata = {
       Ob,
-      Sb,
       Rb,
+      Qb,
       Ub: class extends Message {},
       Pb: class extends Message {},
-      [namespace.kl]: true,
+      [namespace.jl]: true,
     };
-    namespace.Uy['o_' + Ob] = metadata;
+    namespace.Ty['o_' + Ob] = metadata;
     return metadata;
   });
   return {
@@ -489,12 +514,12 @@ _.Vj("transfer() called during response processing",Error());this.wa=!1;this.oa=
     identityAssignments: identity.count,
     protectedNotify() {
       // Execute the public Gga/rCo/monitor path with invented owner/report/UID values.
-      const original = namespace.Xj.prototype.l_c;
+      const original = namespace.Vj.prototype.Y_c;
       const monitor = new Monitor(() => {});
       monitor.ka = monitor.ha = true;
       installMonitor(monitor);
       namespace.Cr.ka = monitor;
-      const wrapper = namespace.Xj.prototype.l_c;
+      const wrapper = namespace.Vj.prototype.Y_c;
       const uidKey = 'closure_uid_17';
       const uid = monitor[uidKey];
       return {

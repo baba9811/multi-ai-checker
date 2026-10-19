@@ -96,7 +96,7 @@ describe('Gemini MAIN lease and retirement separation', () => {
                 isFinal: false,
                 draft: {
                   ...f.final.response.draft,
-                  Z2: 'CROSSCHECK',
+                  j3: 'CROSSCHECK',
                   completeness: 'PARTIAL',
                   structuredContent: { children: [{ nodeType: 18, text: 'CROSSCHECK' }] },
                 },
@@ -122,7 +122,7 @@ describe('Gemini MAIN lease and retirement separation', () => {
   it('keeps reentrant setup polling pending before approval exists', async () => {
     const control = bootstrap();
     let progress: unknown;
-    f.namespace.GN.prototype.Vg = () => {
+    f.namespace.wN.prototype.Tg = () => {
       progress = control.lease(capability);
       return f.approved.clientTurnId;
     };
@@ -138,7 +138,7 @@ describe('Gemini MAIN lease and retirement separation', () => {
 
   it('preserves a terminal setup refusal when retirement cannot prove approval', async () => {
     const control = bootstrap();
-    f.namespace.jLd = undefined;
+    f.namespace.ELd = undefined;
     control.lease(capability);
     await ready();
     const failure = { status: 'error', reason: 'capture-actions' };
@@ -164,8 +164,8 @@ describe('Gemini MAIN lease and retirement separation', () => {
 
   it('never lets a wrong capability consume the first-lease home check or run a retirement check', async () => {
     const control = bootstrap();
-    const storeRead = vi.fn(f.namespace.AC);
-    f.namespace.AC = storeRead;
+    const storeRead = vi.fn(f.namespace.zC);
+    f.namespace.zC = storeRead;
     expect(control.lease('wrong')).toEqual({ status: 'error', reason: 'interrupted' });
     expect(storeRead).not.toHaveBeenCalled();
     f.location.href = 'https://gemini.google.com/app/99';
@@ -176,8 +176,8 @@ describe('Gemini MAIN lease and retirement separation', () => {
   });
 
   it('never runs a bound retirement callback for a wrong capability', async () => {
-    const storeRead = vi.fn(f.namespace.AC);
-    f.namespace.AC = storeRead;
+    const storeRead = vi.fn(f.namespace.zC);
+    f.namespace.zC = storeRead;
     const control = bootstrap();
     control.lease(capability);
     await ready();
@@ -376,7 +376,7 @@ it('keeps routing metadata private through the actual MAIN controls and original
   await ready();
   f.rawRouting.fl[17] = 'SYNTHETIC_SURVEY';
   f.rawEmit(f.rawRouting);
-  f.emit({ ...f.routing, bFd: 'SYNTHETIC_SURVEY' } as any);
+  f.emit({ ...f.routing, gGd: 'SYNTHETIC_SURVEY' } as any);
   expect(control.lease(capability)).toEqual({ status: 'pending' });
   f.rawEmit();
   f.emit();
@@ -421,21 +421,21 @@ it.each([[], [null], [[]], [{ 1: [] }]].map((metadata) => ({ metadata })))(
 it.each(
   [false, true].flatMap((sparse) =>
     [
-      { location: [], projected: { N1a: '', I4c: '', TOc: false, m$f: '' } },
+      { location: [], projected: { N1a: '', I4c: '', EPc: false, m$f: '' } },
       {
         location: ['SYNTHETIC_PRIVATE_LOCATION', 'unknown-description', 1, null, ''],
         projected: {
           N1a: 'SYNTHETIC_PRIVATE_LOCATION',
           I4c: 'unknown-description',
-          TOc: true,
+          EPc: true,
           m$f: '',
         },
       },
-      { location: [{ 3: true }], projected: { N1a: '', I4c: '', TOc: true, m$f: '' } },
+      { location: [{ 3: true }], projected: { N1a: '', I4c: '', EPc: true, m$f: '' } },
     ].map(({ location, projected }) => [sparse, location, projected] as const),
   ),
 )(
-  'preserves canonical location6 and live20/43 raw input and normal projection with %s sparse ingress',
+  'preserves canonical location6 and live20/43 projection with %s sparse ingress and safe retirement after completion',
   async (sparse, location, projected) => {
     const savedHistory = JSON.stringify(f.raw);
     const raw = (final: boolean) => {
@@ -459,7 +459,7 @@ it.each(
         20: 'ko',
         43: 'SYNTHETIC_PRIVATE_ATTRIBUTION',
       };
-      const value = Object.create(f.namespace.HF.prototype);
+      const value = Object.create(f.namespace.IF.prototype);
       value.fl = JSON.parse(JSON.stringify(sparse ? [fields] : f.wire(fields)));
       Object.defineProperty(value.fl, f.namespace.La, { value: 2146 | (sparse ? 1 << 14 : 0) });
       return value;
@@ -472,14 +472,14 @@ it.each(
     const first = f.sourceRawEmit(partial)!;
     expect(first).toBeDefined();
     expect(f.calls.history).toBe(0);
-    expect(first.response.lI).toEqual(projected);
-    expect(first.response.bV).toBe('ko');
-    expect(first.response.draft.Xc.bV).toBe('ko');
+    expect(first.response.kI).toEqual(projected);
+    expect(first.response.eV).toBe('ko');
+    expect(first.response.draft.Vc.eV).toBe('ko');
     expect(first.response.PN).toBe('SYNTHETIC_PRIVATE_ATTRIBUTION');
     expect((f.last.latest as any).response.PN).toBe(first.response.PN);
-    expect((f.last.latest as any).response.draft.Xc).toBe(first.response.draft.Xc);
+    expect((f.last.latest as any).response.draft.Vc).toBe(first.response.draft.Vc);
     expect(f.forwarded[0]).toBe(first);
-    expect((f.last.latest as any).response.lI).toBe(first.response.lI);
+    expect((f.last.latest as any).response.kI).toBe(first.response.kI);
     expect(JSON.stringify(partial)).toBe(partialBefore);
     const finalRaw = raw(true);
     const finalBefore = JSON.stringify(finalRaw);
@@ -489,10 +489,10 @@ it.each(
     expect(f.rawForwarded[0]).toBe(partial);
     expect(f.rawForwarded[1]).toBe(finalRaw);
     expect(f.forwarded[1]).toBe(final);
-    expect(final.response.bV).toBe('ko');
-    expect(final.response.draft.Xc.bV).toBe('ko');
+    expect(final.response.eV).toBe('ko');
+    expect(final.response.draft.Vc.eV).toBe('ko');
     expect(final.response.PN).toBe('SYNTHETIC_PRIVATE_ATTRIBUTION');
-    expect((f.last.latest as any).response.lI).toBe(final.response.lI);
+    expect((f.last.latest as any).response.kI).toBe(final.response.kI);
     expect(JSON.stringify(finalRaw)).toBe(finalBefore);
     expect(control.lease(capability)).toEqual({ status: 'pending' });
     f.emit(f.continuation);
@@ -504,7 +504,7 @@ it.each(
       status: 'done',
       result: { model: 'Synthetic Auto', answer: 'CROSSCHECK_GEMINI_OK' },
     });
-    expect(control.stop(capability)).toBe(false);
+    expect(control.stop(capability)).toBe(true);
     expect(JSON.stringify(result)).not.toContain('SYNTHETIC_PRIVATE');
     expect(JSON.stringify(f.raw)).toBe(savedHistory);
     expect(f.calls).toMatchObject({ send: 1, oub: 1, inner: 1, history: 1 });
@@ -561,18 +561,24 @@ it('reads only an existing terminal error after a restored draft makes retiremen
   const read = vi.spyOn(f, 'draft').mockImplementation(() => {
     throw new Error('Must not inspect page');
   });
-  const store = vi.spyOn(f.namespace, 'AC').mockImplementation(() => {
+  const store = vi.spyOn(f.namespace, 'zC').mockImplementation(() => {
     throw new Error('Must not inspect state');
   });
   expect(control.terminalError('wrong')).toBeNull();
-  expect(control.terminalError(capability)).toBe('response-disconnect-2');
+  expect(control.terminalError(capability)).toEqual({
+    status: 'error',
+    reason: 'response-disconnect-2',
+  });
   expect(read).not.toHaveBeenCalled();
   expect(store).not.toHaveBeenCalled();
   expect(f.calls).toEqual(calls);
   read.mockRestore();
   store.mockRestore();
   expect(control.stop(capability)).toBe(false);
-  expect(control.terminalError(capability)).toBe('response-disconnect-2');
+  expect(control.terminalError(capability)).toEqual({
+    status: 'error',
+    reason: 'response-disconnect-2',
+  });
   expect(f.calls).toMatchObject({ send: 1, inner: 1, history: 0 });
 });
 it('does not start or renew pending work through the entrypoint error query', async () => {
@@ -590,7 +596,7 @@ it('does not start or renew pending work through the entrypoint error query', as
   expect(control.terminalError(capability)).toBeNull();
   expect(f.calls).toEqual(calls);
   await vi.advanceTimersByTimeAsync(1000);
-  expect(control.terminalError(capability)).toBe('interrupted');
+  expect(control.terminalError(capability)).toEqual({ status: 'error', reason: 'interrupted' });
   expect(f.calls.send).toBe(1);
 });
 it('does not expose a completed result or repeat history through the entrypoint error query', async () => {
@@ -615,7 +621,7 @@ it.each(['dispatch-native-n03', 'dispatch-native-n10', 'dispatch-native-n18'])(
     await ready();
     f.error(new Error('SYNTHETIC_PRIVATE_MARKER', { cause }));
     await ready();
-    expect(control.terminalError(capability)).toBe(cause);
+    expect(control.terminalError(capability)).toEqual({ status: 'error', reason: cause });
     expect(control.lease(capability)).toEqual({ status: 'error', reason: cause });
     expect(f.calls).toMatchObject({ send: 1, inner: 1, history: 0 });
   },

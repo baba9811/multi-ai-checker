@@ -21,74 +21,83 @@ export function geminiTrialHistoryFixture() {
   let deferReady = false;
   let readyThenError = false;
   const queued: Array<() => void> = [];
-  _.kl = Symbol('synthetic-registered-descriptor');
-  _.ll = Symbol('synthetic-descriptor-data');
+  _.jl = Symbol('synthetic-registered-descriptor');
+  _.kl = Symbol('synthetic-descriptor-data');
   _.Kwa = Symbol('synthetic-kind');
-  _.qna = { id: 'unobfuscatedRpcId' };
-  _.jna = { id: 'frontendMethodType' };
-  _.Uy = {};
+  _.pna = { id: 'unobfuscatedRpcId' };
+  _.ina = { id: 'frontendMethodType' };
+  _.Ty = {};
   _.l = class {
     fl: unknown[] = [];
     constructor() {
       Object.defineProperty(this.fl, _.La, { value: 2144, writable: true });
     }
   };
-  _.Wh = (message: any, field: number, value: unknown) => {
+  _.Vh = (message: any, field: number, value: unknown) => {
     beforeSet();
     calls.setters.push([message, field, value]);
     message.fl[field - 1] = value;
     return message;
   };
-  _.Cpa = _.Wg = _.Yg = _.aba = (value: unknown) => value;
+  _.bba = Number.isFinite;
+  _.$aa = (value: unknown) => typeof value;
   _.ih = (message: any, field: number, _convert: unknown, value: unknown) => {
     beforeSet();
     calls.setters.push([message, field, value]);
     (message.fl[field - 1] ??= []).push(value);
     return message;
   };
-  _.Xg = (value: unknown) => value;
+  _.Wg = (value: unknown) => value;
   for (const [name, source] of Object.entries({
-    Ni: 'function(a,b,c,d){return _.Wh(a,b,_.Cpa(c),d)}',
-    Ii: 'function(a,b,c){return _.Wh(a,b,c==null?c:_.Yg(c))}',
-    Pi: 'function(a,b,c){return _.Wh(a,b,c==null?c:_.Wg(c))}',
-    Fi: 'function(a,b,c,d){return _.Wh(a,b,c==null?c:_.aba(c),d)}',
-    p5c: 'function(a,b){return _.Fi(a,1,b)}',
-    xm: 'function(a,b,c){return _.ih(a,b,_.Wg,c,void 0,_.Xg)}',
-    Hh: 'function(a,b,c,d,e){d=Qpa(d);_.Wh(a,c,d,e);d&&!_.Ra(d)&&_.Ng(a.fl);return a}',
+    Cpa: 'function(a){if(a!=null&&typeof a!=="string")throw Error();return a}',
+    Vg: 'function(a){if(!(0,_.bba)(a))throw ipa("enum");return a|0}',
+    Xg: 'function(a){if(typeof a!=="number")throw ipa("int32");if(!(0,_.bba)(a))throw ipa("int32");return a|0}',
+    aba: 'function(a){if(typeof a!=="boolean")throw Error("D`"+_.$aa(a)+"`"+a);return a}',
+    Li: 'function(a,b,c,d){return _.Vh(a,b,_.Cpa(c),d)}',
+    Gi: 'function(a,b,c){return _.Vh(a,b,c==null?c:_.Xg(c))}',
+    Ni: 'function(a,b,c){return _.Vh(a,b,c==null?c:_.Vg(c))}',
+    Ei: 'function(a,b,c,d){return _.Vh(a,b,c==null?c:_.aba(c),d)}',
+    u5c: 'function(a,b){return _.Ei(a,1,b)}',
+    xm: 'function(a,b,c){return _.ih(a,b,_.Vg,c,void 0,_.Wg)}',
+    Gh: 'function(a,b,c,d,e){d=Qpa(d);_.Vh(a,c,d,e);d&&!_.Ra(d)&&_.Mg(a.fl);return a}',
   }))
-    _[name] = new Function('_', 'Qpa', 'return ' + source)(_, (value: unknown) => value);
+    _[name] = new Function('_', 'Qpa', 'ipa', 'return ' + source)(
+      _,
+      (value: unknown) => value,
+      () => new Error('Synthetic primitive conversion failed.'),
+    );
   _.Ra = () => true;
-  _.Ng = () => {};
-  _.PGd = new Function(
+  _.Mg = () => {};
+  _.eHd = new Function(
     '_',
-    'return class extends _.l{constructor(a){super(a)}ig(){return _.n(this,1)}getRequestSource(){return _.ui(this,4)}getClientCapabilities(a){return _.Hk(this,6,a)}}',
+    'return class extends _.l{constructor(a){super(a)}ig(){return _.n(this,1)}getRequestSource(){return _.ti(this,4)}getClientCapabilities(a){return _.Fk(this,6,a)}}',
   )(_);
   _.RI = new Function('_', 'return class extends _.l{constructor(a){super(a)}}')(_);
-  _.pM = class {};
+  _.gM = class {};
   _.yK = class {};
-  _.yK.prototype.Qr = new Function(
-    'return class {Qr(){if(this.Ha===void 0)throw Error("fk");return this.Ha}}',
-  )().prototype.Qr;
-  _.JYb = class {
+  _.yK.prototype.Sr = new Function(
+    'return class {Sr(){if(this.Ha===void 0)throw Error("fk");return this.Ha}}',
+  )().prototype.Sr;
+  _.OYb = class {
     constructor(metadata: any) {
-      (this as any)[_.ll] = {
+      (this as any)[_.kl] = {
         ...metadata,
-        n_b: [
-          { key: _.qna, value: metadata.Sb },
-          { key: _.jna, value: metadata.Rb },
+        E_b: [
+          { key: _.pna, value: metadata.Rb },
+          { key: _.ina, value: metadata.Qb },
         ],
       };
       (this as any).ha = metadata.Ob;
-      _.Uy['o_' + metadata.Ob] = (this as any)[_.ll];
+      _.Ty['o_' + metadata.Ob] = (this as any)[_.kl];
     }
   };
-  _.JYb.prototype.getInstance = new Function(
+  _.OYb.prototype.getInstance = new Function(
     '_',
-    'return class {getInstance(a){return new _.xxa(this,a,void 0,this[_.ll].n_b)}}',
+    'return class {getInstance(a){return new _.xxa(this,a,void 0,this[_.kl].E_b)}}',
   )(_).prototype.getInstance;
-  _.Zy = new Function(
+  _.Yy = new Function(
     '_',
-    'return class extends _.JYb{constructor(a){super(a);this[_.Kwa]="unary"}}',
+    'return class extends _.OYb{constructor(a){super(a);this[_.Kwa]="unary"}}',
   )(_);
   _.xxa = class {
     constructor(
@@ -98,14 +107,14 @@ export function geminiTrialHistoryFixture() {
       public options: unknown[] = [],
     ) {}
   };
-  Object.assign(_.RGd, {
+  Object.assign((_.gHd = { Pb: Object.getPrototypeOf(f.raw).constructor }), {
     Ob: 'hNvQHb',
-    Sb: '/BardFrontendService.ListConversationTurns',
-    Rb: true,
-    Ub: _.PGd,
+    Rb: '/BardFrontendService.ListConversationTurns',
+    Qb: true,
+    Ub: _.eHd,
   });
-  _.RGd[_.kl] = true;
-  new _.Zy(_.RGd);
+  _.gHd[_.jl] = true;
+  new _.Yy(_.gHd);
   _.te = class {
     ha = 0;
   };
@@ -114,16 +123,16 @@ export function geminiTrialHistoryFixture() {
   _.re = (callback: () => void, receiver: unknown) => callback.call(receiver);
   _.te.prototype.cancel = new Function(
     '_',
-    'fha',
-    'return function(a){if(this.ha==0){let b=new _.xe(a);_.re(function(){fha(this,b)},this)}}',
+    'eha',
+    'return function(a){if(this.ha==0){let b=new _.xe(a);_.re(function(){eha(this,b)},this)}}',
   )(_, (promise: any) => {
     calls.cancel++;
     promise.ha = 3;
   });
   _.te.prototype.then = new Function(
     '_',
-    'cha',
-    'return function(a,b,c){return cha(this,(0,_.qe)(typeof a==="function"?a:null),(0,_.qe)(typeof b==="function"?b:null),c)}',
+    'bha',
+    'return function(a,b,c){return bha(this,(0,_.qe)(typeof a==="function"?a:null),(0,_.qe)(typeof b==="function"?b:null),c)}',
   )(_, (promise: any, next: any, error: any) => {
     if (promise === ready) {
       if (readyThenError) throw new Error('SYNTHETIC_PRIVATE_MARKER');
@@ -159,8 +168,8 @@ export function geminiTrialHistoryFixture() {
   });
   const Data = new Function(
     '_',
-    'GZb',
-    'return class {fetch(a,b=!0){return b?this.ka.then(()=>GZb(this.ha,a)):GZb(this.ha,a)}}',
+    'LZb',
+    'return class {fetch(a,b=!0){return b?this.ka.then(()=>LZb(this.ha,a)):LZb(this.ha,a)}}',
   )(_, (_service: unknown, request: unknown) => {
     calls.fetch++;
     wrapper = request;
@@ -175,7 +184,7 @@ export function geminiTrialHistoryFixture() {
   ready.ha = 2;
   oa.ka = ready;
   const Gc = Object.assign(new _.yK(), { Ha: false });
-  const api = Object.assign(new _.pM(), { oa, Gc, requestSource: 1, yGc: false, xd: false });
+  const api = Object.assign(new _.gM(), { oa, Gc, requestSource: 1, AHc: false, yd: false });
   const controller = new AbortController();
   return {
     ...f,

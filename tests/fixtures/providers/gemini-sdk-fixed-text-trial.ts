@@ -7,79 +7,79 @@ import {
   type GeminiTrialCompletion,
 } from '../../../src/infrastructure/providers/gemini/fixed-text-contract';
 
-// Current public LQaXg.js SHA-256 e87e13cc8f9dfc509df905b29b7f4d154b6119eb4e2dd5d8efe170129d94dff6.
+// Current public LQaXg.js SHA-256 c59573d81446d714f3eb8104f854d02f825f822ff279679734a99e0ff4988d2f.
 // Exact zero-based character spans; test-owned literals never load ignored source at runtime.
 const geminiInitialStatePins = [
   {
-    span: [692587, 692615],
-    source: '_.Qec={GWa:[],w4a:[],LRa:[]}',
+    span: [692890, 692918],
+    source: '_.agc={NWa:[],K4a:[],QRa:[]}',
   },
   {
-    span: [692638, 692808],
+    span: [692941, 693111],
     source:
-      '_.Sec={conversationId:"",Wb:{},Hj:[],Toa:_.Qec,wvb:{},QS:void 0,mG:void 0,bG:void 0,xu:void 0,gib:void 0,a5b:!1,isTemporaryChat:!1,jt:void 0,sua:void 0,Yce:void 0,x5b:!1}',
+      '_.cgc={conversationId:"",Wb:{},Kj:[],fpa:_.agc,Rvb:{},VS:void 0,pG:void 0,eG:void 0,xu:void 0,yib:void 0,r5b:!1,isTemporaryChat:!1,jt:void 0,Cua:void 0,dee:void 0,O5b:!1}',
   },
   {
-    span: [692809, 692961],
+    span: [693112, 693264],
     source:
-      '_.Tec={eY:Rec,Hq:{},Rk:{},bHa:"",Y8:{},Rm:{[Rec]:_.Sec},xWc:void 0,nsa:void 0,osa:void 0,ti:0,iYc:[Rec],sTa:{},mca:new Set,Dqb:{},XUa:void 0,Nfb:void 0}',
+      '_.dgc={iY:bgc,Jq:{},Rk:{},gHa:"",f9:{},Um:{[bgc]:_.cgc},iXc:void 0,wsa:void 0,xsa:void 0,wi:0,UYc:[bgc],xTa:{},oca:new Set,Xqb:{},cVa:void 0,dgb:void 0}',
   },
   {
-    span: [693005, 693350],
+    span: [693308, 693653],
     source:
-      '_.vC=_.pC("bard-conversations");_.wC=_.oC(_.vC,a=>{a=a.Rm[a.eY];return a!=null?a:_.Sec});_.zC=_.oC(_.wC,a=>a.conversationId);_.AC=_.oC(_.vC,a=>a.eY);_.Vec=_.oC(_.vC,a=>a!=null&&a.Rk?Object.values(a.Rk).filter(b=>!!b).filter(b=>!!b.conversationId).reduce((b,c)=>Object.assign({},b,{[c.conversationId]:c}),{}):{});_.BC=_.oC(_.zC,_.Vec,(a,b)=>b[a])',
+      '_.wC=_.qC("bard-conversations");_.xC=_.pC(_.wC,a=>{a=a.Um[a.iY];return a!=null?a:_.cgc});_.yC=_.pC(_.xC,a=>a.conversationId);_.zC=_.pC(_.wC,a=>a.iY);_.fgc=_.pC(_.wC,a=>a!=null&&a.Rk?Object.values(a.Rk).filter(b=>!!b).filter(b=>!!b.conversationId).reduce((b,c)=>Object.assign({},b,{[c.conversationId]:c}),{}):{});_.AC=_.pC(_.yC,_.fgc,(a,b)=>b[a])',
   },
   {
-    span: [693416, 693688],
+    span: [693719, 693991],
     source:
-      'Wec=_.oC(_.wC,a=>a.Hj);Xec=_.oC(_.wC,a=>a.Wb);Yec=[];\nZec=_.oC(_.wC,a=>{var b;return((b=a.YJ)==null?0:b.length)?a.YJ.map(c=>a.Wb[c]).filter(c=>!!c):Yec});_.$ec=_.oC(_.zC,Wec,Xec,Zec,(a,b,c,d)=>Object.assign({},{id:a},d.length?{jT:d}:{},{Wb:b.map(e=>c[e]).filter(e=>!!e)}))',
+      'ggc=_.pC(_.xC,a=>a.Kj);hgc=_.pC(_.xC,a=>a.Wb);igc=[];\njgc=_.pC(_.xC,a=>{var b;return((b=a.YJ)==null?0:b.length)?a.YJ.map(c=>a.Wb[c]).filter(c=>!!c):igc});_.kgc=_.pC(_.yC,ggc,hgc,jgc,(a,b,c,d)=>Object.assign({},{id:a},d.length?{lT:d}:{},{Wb:b.map(e=>c[e]).filter(e=>!!e)}))',
   },
   {
-    span: [693715, 693740],
-    source: '_.bfc=_.oC(_.vC,a=>a.bHa)',
+    span: [694018, 694043],
+    source: '_.mgc=_.pC(_.wC,a=>a.gHa)',
   },
   {
-    span: [694314, 694375],
-    source: '_.ifc=_.oC(_.$ec,a=>a.Wb.length>0?a.Wb[a.Wb.length-1]:void 0)',
+    span: [694617, 694678],
+    source: '_.tgc=_.pC(_.kgc,a=>a.Wb.length>0?a.Wb[a.Wb.length-1]:void 0)',
   },
   {
-    span: [694535, 694559],
-    source: '_.mfc=_.oC(_.vC,a=>a.ti)',
+    span: [694838, 694862],
+    source: '_.xgc=_.pC(_.wC,a=>a.wi)',
   },
   {
-    span: [2047210, 2047310],
+    span: [2048954, 2049054],
     source:
-      '_.CN={text:"",disabled:!1,isFullscreen:!1,isPersonalContextDisabled:void 0};_.kWd={__default__:_.CN}',
+      '_.sN={text:"",disabled:!1,isFullscreen:!1,isPersonalContextDisabled:void 0};_.DWd={__default__:_.sN}',
   },
   {
-    span: [2047323, 2047460],
+    span: [2049067, 2049204],
     source:
-      'lWd=_.pC("inputArea");_.mWd=_.oC(lWd,a=>a!=null?a:_.kWd);_.nWd=_.oC(_.mWd,a=>{var b;return(b=a==null?void 0:a.__default__)!=null?b:_.CN})',
+      'EWd=_.qC("inputArea");_.FWd=_.pC(EWd,a=>a!=null?a:_.DWd);_.GWd=_.pC(_.FWd,a=>{var b;return(b=a==null?void 0:a.__default__)!=null?b:_.sN})',
   },
   {
-    span: [2047719, 2047780],
-    source: 'qWd=_.oC(_.nWd,a=>a==null?void 0:a.isPersonalContextDisabled)',
+    span: [2049463, 2049524],
+    source: 'JWd=_.pC(_.GWd,a=>a==null?void 0:a.isPersonalContextDisabled)',
   },
   {
-    span: [2106265, 2106291],
-    source: 'tXd=_.oC(_.wC,a=>a.mG===2)',
+    span: [2107890, 2107916],
+    source: 'MXd=_.pC(_.xC,a=>a.pG===2)',
   },
 ];
 function currentInitialState(storeId: string) {
   // Only selector composition and the fresh synthetic ID are supplied by this fixture.
   const source: any = {
-    pC: (key: string) => (root: any) => root[key],
-    oC: (...parts: Function[]) => {
+    qC: (key: string) => (root: any) => root[key],
+    pC: (...parts: Function[]) => {
       const project = parts.pop()!;
       return (root: any) => project(...parts.map((select) => select(root)));
     },
   };
   const selected = Function(
     '_',
-    'Rec',
-    'var Wec,Xec,Yec,Zec,lWd,qWd,tXd;\n' +
+    'bgc',
+    'var ggc,hgc,igc,jgc,EWd,JWd,MXd;\n' +
       geminiInitialStatePins.map((pin) => pin.source).join(';\n') +
-      ';return {privacy:qWd,active:tXd};',
+      ';return {privacy:JWd,active:MXd};',
   )(source, storeId);
   return { source, ...selected };
 }
@@ -98,39 +98,39 @@ export function geminiSdkFixedTextTrialFixture(
     contract.sourceConstruction = native.sourceConstruction;
     const historyNamespace = savedHistory.namespace;
     historyNamespace.La = namespace.La;
-    for (const name of ['PGd', 'RI'])
+    for (const name of ['eHd', 'RI'])
       Object.setPrototypeOf(historyNamespace[name].prototype, namespace.l.prototype);
     for (const name of [
       'kl',
-      'll',
+      'jl',
       'Kwa',
-      'qna',
-      'jna',
-      'Uy',
-      'PGd',
+      'pna',
+      'ina',
+      'Ty',
+      'eHd',
       'RI',
       'yK',
-      'JYb',
-      'Zy',
+      'OYb',
+      'Yy',
       'xxa',
       'te',
       'xe',
-      'RGd',
+      'gHd',
+      'Li',
+      'Gi',
       'Ni',
-      'Ii',
-      'Pi',
-      'Fi',
-      'p5c',
+      'Ei',
+      'u5c',
       'xm',
       'Cpa',
-      'Wg',
+      'Vg',
       'aba',
-      'Yg',
-      'ih',
       'Xg',
+      'ih',
+      'Wg',
     ])
       namespace[name] = historyNamespace[name];
-    Object.assign(native.api, { oa: savedHistory.oa, Gc: savedHistory.Gc, yGc: false, xd: false });
+    Object.assign(native.api, { oa: savedHistory.oa, Gc: savedHistory.Gc, AHc: false, yd: false });
     savedHistory.synchronous();
     savedHistory.beforeFetch(() => {
       calls.history++;
@@ -202,7 +202,7 @@ export function geminiSdkFixedTextTrialFixture(
   }
   const Observable = native?.namespace.st ?? kt;
   const Teardown = native?.namespace.qt ?? Subscription;
-  class Subject extends (native?.namespace.gu ?? Observable) {
+  class Subject extends (native?.namespace.fu ?? Observable) {
     listeners = new Set<Observer>();
     constructor(
       public latest?: unknown,
@@ -233,94 +233,98 @@ export function geminiSdkFixedTextTrialFixture(
   // The inherited field is only a fixture implementation detail.
   namespace.st = Observable;
   namespace.qt = Teardown;
-  namespace.xF = Subject;
-  if (!native) namespace.gu = Subject;
-  namespace.tC = class {};
-  namespace.yL = class extends namespace.l {};
+  namespace.yF = Subject;
+  if (!native) namespace.fu = Subject;
+  namespace.uC = class {};
+  if (!native) namespace.vL = class extends namespace.l {};
   const initialState = currentInitialState(contract.approved.storeId);
-  namespace.AC = initialState.source.AC;
-  namespace.wC = initialState.source.wC;
+  namespace.zC = initialState.source.zC;
+  namespace.xC = initialState.source.xC;
   if (!native) {
-    namespace.GN = class {};
-    namespace.pM = class {};
-    namespace.bM = class {};
+    namespace.wN = class {};
+    namespace.gM = class {};
+    namespace.UL = class {};
   }
   for (const action of [
-    '$Kd',
-    'jLd',
-    'mM',
-    'XKd',
-    'nLd',
-    'oLd',
-    'NKd',
-    'YKd',
-    'aLd',
-    'wKd',
-    'xKd',
-    'yKd',
-    'zKd',
     'uLd',
-    'PKd',
-    'wLd',
-    'gLd',
-    'CKd',
-    'EKd',
-    'IJd',
-    'WKd',
-    'pLd',
-    'tLd',
+    'ELd',
+    'dM',
     'rLd',
+    'ILd',
+    'JLd',
+    'hLd',
+    'sLd',
+    'vLd',
+    'PLd',
+    'jLd',
+    'RLd',
+    'BLd',
     'qLd',
-    'kMd',
-    'fMd',
-    'dMd',
+    'KLd',
+    'OLd',
+    'MLd',
+    'LLd',
+    'FMd',
+    'AMd',
+    'yMd',
   ]) {
     namespace[action] = Object.assign(() => {}, { type: 'synthetic-' + action });
   }
-  const initialRoot = { 'bard-conversations': initialState.source.Tec };
-  const storeId = new Subject(namespace.AC(initialRoot));
-  const thread = new Subject(namespace.wC(initialRoot));
-  const turns = new Subject(initialState.source.$ec(initialRoot));
-  const last = new Subject(initialState.source.ifc(initialRoot));
+  const initialRoot = { 'bard-conversations': initialState.source.dgc };
+  const storeId = new Subject(namespace.zC(initialRoot));
+  const thread = new Subject(namespace.xC(initialRoot));
+  const turns = new Subject(initialState.source.kgc(initialRoot));
+  const last = new Subject(initialState.source.tgc(initialRoot));
   const actions = new Subject(undefined, false);
   const api: any =
     native?.api ??
-    Object.assign(new namespace.pM(), {
-      Ja: Object.assign(new namespace.bM(), { isEnabled: true }),
+    Object.assign(new namespace.gM(), {
+      Ja: Object.assign(new namespace.UL(), { isEnabled: true }),
       Aa: false,
       Kd: false,
     });
+  if (!native) {
+    namespace.CKd = class {};
+    namespace.cM = class {};
+    namespace.zKd = class {};
+    const mode = Object.assign(new namespace.cM(), { ha: 0 });
+    Object.assign(api, {
+      Aa: Object.assign(new namespace.CKd(), { ha: false, oa: false, ka: mode }),
+      Ua: mode,
+      Eb: Object.assign(new namespace.zKd(), { wa: mode }),
+    });
+  }
   let beforeStoreRead = () => {};
   const storeState = () => {
     beforeStoreRead();
     return {
       'bard-conversations': {
-        ...initialState.source.Tec,
-        eY: storeId.latest,
-        Rm: { [storeId.latest as string]: thread.latest },
+        ...initialState.source.dgc,
+        iY: storeId.latest,
+        Um: { [storeId.latest as string]: thread.latest },
       },
     };
   };
   const storeSource = Object.assign(new Subject(), {
     state: storeState,
     closed: false,
-    Ys: false,
+    Zs: false,
     hasError: false,
   });
-  const conversation: any = Object.assign(native?.consumer ?? new namespace.GN(), {
+  const conversation: any = Object.assign(native?.consumer ?? new namespace.wN(), {
     ha: api,
     oa: storeId,
     ka: thread,
-    Qe: turns,
-    Oe: last,
+    Te: turns,
+    Se: last,
     Jb: actions,
-    kKa: new Subject(initialState.privacy(initialRoot)),
-    ri: new Subject(initialState.source.BC(initialRoot)),
-    cHa: new Subject(initialState.source.bfc(initialRoot)),
+    pKa: new Subject(initialState.privacy(initialRoot)),
+    ui: new Subject(initialState.source.AC(initialRoot)),
+    hHa: new Subject(initialState.source.mgc(initialRoot)),
     Va: new Subject(undefined),
-    Ug: new Subject(initialState.source.mfc(initialRoot)),
-    Ti: new Subject(initialState.active(initialRoot)),
-    store: Object.assign(new namespace.tC(), {
+    Vg: new Subject(initialState.source.xgc(initialRoot)),
+    Si: new Subject(initialState.active(initialRoot)),
+    store: Object.assign(new namespace.uC(), {
       state: storeState,
       source: storeSource,
     }),
@@ -351,46 +355,46 @@ export function geminiSdkFixedTextTrialFixture(
   const window = page?.window ?? Object.assign(new EventTarget(), { top: undefined as unknown });
   if (!page) Object.assign(window, { top: window });
   const location = page?.location ?? { href: 'https://gemini.google.com/app' };
-  namespace.ZU = class {};
-  const consumer: any = Object.assign(new namespace.ZU(), { Oa: conversation, wc: { Sa: owner } });
+  namespace.SU = class {};
+  const consumer: any = Object.assign(new namespace.SU(), { Oa: conversation, wc: { Sa: owner } });
   if (native) {
     namespace.YK = class {};
-    namespace.PF = class {};
-    const nb = new namespace.PF();
+    namespace.QF = class {};
+    const nb = new namespace.QF();
     const Ca = { Ea: () => false };
-    const service = Object.assign(new namespace.YK(), { nb, Ca });
+    const service = Object.assign(new namespace.YK(), { nb, Da: Ca });
     const selected = { id: contract.approved.modeId, modeCategory: contract.approved.modeCategory };
     const catalog = new Observable((next: Observer) => {
       next.next?.({ catalog: [selected] });
     });
-    namespace.IAb = {};
+    namespace.JAb = {};
     Object.assign(nb, { ha: () => ({ pipe: () => catalog }) });
-    namespace.PF.prototype.pG = Function(
+    namespace.QF.prototype.sG = Function(
       '_',
-      'return function(){return this.ha().pipe(_.v(a=>{var b,c,d=(this.Na&&_.evc(a)?(b=a.mVa)!=null?b:[]:(c=a.iR)!=null?c:[]).filter(e=>e.tEa||this.Ha.includes(e.id)||!this.Aa&&this.Wa.includes(e.id)?!1:!0);return this.Sa?d.reverse():d}),_.uw((a,b)=>JSON.stringify(a)===JSON.stringify(b)))}',
-    )({ v: (fn: Function) => fn, uw: (fn: Function) => fn });
+      'return function(){return this.ha().pipe(_.v(a=>{var b,c,d=(this.Na&&_.pwc(a)?(b=a.rVa)!=null?b:[]:(c=a.kR)!=null?c:[]).filter(e=>e.yEa||this.Ha.includes(e.id)||!this.Aa&&this.Wa.includes(e.id)?!1:!0);return this.Ua?d.reverse():d}),_.sw((a,b)=>JSON.stringify(a)===JSON.stringify(b)))}',
+    )({ v: (fn: Function) => fn, sw: (fn: Function) => fn });
     namespace.At = () => catalog;
-    namespace.VUd = () => selected;
-    Object.assign(conversation, { nb, Ca, bardModeService: service });
+    namespace.oVd = () => selected;
+    Object.assign(conversation, { nb, Da: Ca, bardModeService: service });
     Object.assign(consumer, {
       nb,
-      Ca,
+      Da: Ca,
       bardModeService: service,
-      Sa: false,
+      Ua: false,
       host: () => 1,
       Yb: () => selected,
-      r$f: () => selected.id,
-      H8: () => selected.id,
-      ZL: () => contract.approved.thinkingLevel,
-      vT: () => undefined,
+      Qag: () => selected.id,
+      N8: () => selected.id,
+      dM: () => contract.approved.thinkingLevel,
+      xT: () => undefined,
     });
     Object.defineProperty(host, '__ngContext__', { value: 17, configurable: true });
-    namespace.ZU.Ra = { type: namespace.ZU, template() {} };
+    namespace.SU.Ra = { type: namespace.SU, template() {} };
     const view: any[] = Object.assign([], { 0: null, 1: { data: [] }, 2: 0, 19: 17, 28: host });
-    namespace.uPb = new Map([[17, view]]);
+    namespace.zPb = new Map([[17, view]]);
     let child = view;
     for (const [depth, index] of [30, 29, 83].entries()) {
-      const node = { index, zB: child[1] };
+      const node = { index, DB: child[1] };
       const parent: any[] = Object.assign([], { 0: null, 1: { data: [] }, 2: 0, 19: 18 + depth });
       parent[1].data[index] = node;
       child[14] = parent;
@@ -404,7 +408,7 @@ export function geminiSdkFixedTextTrialFixture(
     }
     child[0] = owner;
     child[8] = consumer;
-    Object.assign(child[1], { type: 1, template: namespace.ZU.Ra.template });
+    Object.assign(child[1], { type: 1, template: namespace.SU.Ra.template });
     Object.defineProperty(window, 'default_BardChatUi', { value: namespace, configurable: true });
   }
   const client = { namespace, consumer, conversation, api, host, owner };
@@ -419,6 +423,7 @@ export function geminiSdkFixedTextTrialFixture(
   let rawObserver: { next(value: unknown): void; error(): void } | undefined;
   let rawDetached = false;
   let afterFinal = () => {};
+  let afterMarker = () => {};
   let beforeSubscribe = () => {};
   let beforeSend = () => {};
   let historyDelay: (() => void) | undefined;
@@ -453,32 +458,32 @@ export function geminiSdkFixedTextTrialFixture(
     request: {
       ...contract.packet.request,
       conversationId: contract.completed.conversationId,
-      R2: '',
-      Ie: [],
-      rZb: [],
+      W2: '',
+      Ke: [],
+      IZb: [],
     },
     response: {
       turnId: contract.completed.turnId,
       draft: {
         id: contract.completed.candidateId,
-        Z2: contract.completed.answer,
+        j3: contract.completed.answer,
         completeness: 'COMPLETE',
         structuredContent: { children: [{ nodeType: 18, text: contract.completed.answer }] },
       },
       isFinal: true,
-      JL: false,
-      W7: false,
-      No: [],
-      K9: [],
-      taa: [],
-      a8a: namespace.Yd,
+      RL: false,
+      d8: false,
+      Oo: [],
+      O9: [],
+      xaa: [],
+      n8a: namespace.Yd,
     },
   };
   const routing = {
     responseType: 'ROUTING',
     conversationId: contract.completed.conversationId,
     turnId: contract.completed.turnId,
-    eqa: 'SYNTHETIC_ROUTING',
+    pqa: 'SYNTHETIC_ROUTING',
   };
   const marker = {
     responseType: 'TURN_COMPLETED',
@@ -489,22 +494,22 @@ export function geminiSdkFixedTextTrialFixture(
     responseType: 'CONTINUATION_UPDATE',
     conversationId: contract.completed.conversationId,
     turnId: contract.completed.turnId,
-    Soa: new namespace.yL([]),
+    epa: new namespace.vL([]),
   };
   const disconnect = {
     responseType: 'DISCONNECT',
     conversationId: contract.completed.conversationId,
     turnId: contract.completed.turnId,
-    BFc: {},
+    jGc: {},
   };
   const context = () => ({
-    ze: contract.approved.storeId,
+    Ae: contract.approved.storeId,
     request: actionRequest,
-    eOa: undefined,
-    w2a: undefined,
-    Azb: false,
-    bJa: false,
-    GRd: false,
+    hOa: undefined,
+    J2a: undefined,
+    Uzb: false,
+    fJa: false,
+    JSd: false,
   });
   function processed(value: any) {
     actionRequest = value.request;
@@ -514,48 +519,48 @@ export function geminiSdkFixedTextTrialFixture(
       : actionTurn;
     thread.emit({
       conversationId: storedTurn.request.conversationId,
-      Hj: [storedTurn.response.turnId],
+      Kj: [storedTurn.response.turnId],
       Wb: { [storedTurn.response.turnId]: storedTurn },
       xu: undefined,
-      saa: undefined,
-      mG: 2,
-      bG: 2,
+      waa: undefined,
+      pG: 2,
+      eG: 2,
     });
-    turns.emit(initialState.source.$ec(storeState()));
-    last.emit(initialState.source.ifc(storeState()));
+    turns.emit(initialState.source.kgc(storeState()));
+    last.emit(initialState.source.tgc(storeState()));
     if (!suppressTurnAction)
       actions.emit({
-        type: namespace.$Kd.type,
+        type: namespace.uLd.type,
         turn: actionTurn,
-        Wl: {
-          ze: contract.approved.storeId,
+        Yl: {
+          Ae: contract.approved.storeId,
           request: actionTurn.request,
-          eOa: undefined,
-          w2a: undefined,
-          Azb: false,
-          bJa: false,
-          GRd: false,
+          hOa: undefined,
+          J2a: undefined,
+          Uzb: false,
+          fJa: false,
+          JSd: false,
         },
       });
   }
   function success() {
     actions.emit({
-      type: namespace.jLd.type,
-      Wl: {
-        ze: contract.approved.storeId,
+      type: namespace.ELd.type,
+      Yl: {
+        Ae: contract.approved.storeId,
         request: actionRequest,
-        eOa: undefined,
-        w2a: undefined,
-        Azb: false,
-        bJa: false,
-        GRd: false,
+        hOa: undefined,
+        J2a: undefined,
+        Uzb: false,
+        fJa: false,
+        JSd: false,
       },
     });
     afterSuccess();
   }
   if (!native)
-    Object.assign(namespace.pM.prototype, {
-      Zxb() {
+    Object.assign(namespace.gM.prototype, {
+      ybb() {
         calls.oub++;
         return new kt((next) => {
           beforeSubscribe();
@@ -573,8 +578,8 @@ export function geminiSdkFixedTextTrialFixture(
         });
       },
     });
-  Object.assign(namespace.GN.prototype, {
-    Vg() {
+  Object.assign(namespace.wN.prototype, {
+    Tg() {
       calls.requestId++;
       return contract.approved.clientTurnId;
     },
@@ -584,12 +589,12 @@ export function geminiSdkFixedTextTrialFixture(
       Object.assign(contract.packet.request, {
         textQuery: options.textQuery,
         clientTurnId: options.clientTurnId,
-        Rg: options.Rg,
-        uh: options.uh,
+        Pg: options.Pg,
+        oh: options.oh,
       });
       beforeSend();
       const effect = () => {
-        const stream = api.Zxb(contract.packet);
+        const stream = api.ybb(contract.packet);
         wrapped = stream;
         wrappedSubscription = stream.subscribe({
           next(value: any) {
@@ -597,16 +602,16 @@ export function geminiSdkFixedTextTrialFixture(
             if (value.responseType === 'ROUTING') {
               beforeRouting(value);
               if (!suppressRouting)
-                actions.emit({ type: namespace.aLd.type, Xbd: value, Wl: context() });
+                actions.emit({ type: namespace.vLd.type, Wcd: value, Yl: context() });
               afterRouting(value);
             } else if (value.responseType === 'CONTINUATION_UPDATE') {
               if (!suppressContinuation)
                 actions.emit({
-                  type: namespace.uLd.type,
+                  type: namespace.PLd.type,
                   turnId: value.turnId,
                   conversationId: value.conversationId,
-                  Soa: value.Soa,
-                  Wl: context(),
+                  epa: value.epa,
+                  Yl: context(),
                 });
               afterContinuation();
             } else if (value.responseType === 'DISCONNECT') {
@@ -629,27 +634,28 @@ export function geminiSdkFixedTextTrialFixture(
                   thread.emit({
                     ...state,
                     xu: undefined,
-                    mG: 3,
-                    bG: 3,
+                    pG: 3,
+                    eG: 3,
                     ...(changed ? { Wb: { ...state.Wb, [value.turnId]: changed } } : {}),
                   });
                 }
                 actions.emit({
-                  type: namespace.wLd.type,
+                  type: namespace.RLd.type,
                   turnId: value.turnId,
                   conversationId: value.conversationId,
-                  BFc: value.BFc,
-                  Wl: context(),
+                  jGc: value.jGc,
+                  Yl: context(),
                 });
               }
               afterDisconnect();
             } else if (value.responseType === 'TURN_COMPLETED') {
               actions.emit({
-                type: namespace.PKd.type,
+                type: namespace.jLd.type,
                 turnId: value.turnId,
                 conversationId: value.conversationId,
-                Wl: context(),
+                Yl: context(),
               });
+              afterMarker();
             } else if (value.responseType === 'TURN') {
               if (deferProcessing) buffered = value;
               else processed(value);
@@ -658,8 +664,8 @@ export function geminiSdkFixedTextTrialFixture(
           },
           error() {
             actions.emit({
-              type: namespace.mM.type,
-              Wl: { ze: contract.approved.storeId, request: contract.packet.request },
+              type: namespace.dM.type,
+              Yl: { Ae: contract.approved.storeId, request: contract.packet.request },
             });
           },
           complete() {
@@ -701,61 +707,42 @@ export function geminiSdkFixedTextTrialFixture(
       request: {
         ...sourceRequest,
         conversationId: field(field(value, 2), 1),
-        R2: '',
-        Ie: [],
-        rZb: [],
+        W2: '',
+        Ke: [],
+        IZb: [],
       },
       response: {
         ...final.response,
         turnId: field(field(value, 2), 2),
         isFinal: !!field(value, 15),
-        bV: field(value, 20) ?? '',
+        eV: field(value, 20) ?? '',
         PN: field(value, 43) ?? '',
         draft: {
           ...final.response.draft,
           id: field(candidate, 1),
-          Xc: { bV: field(value, 20) ?? '' },
-          Z2: text,
+          Vc: { eV: field(value, 20) ?? '' },
+          j3: text,
           completeness: field(field(candidate, 9), 1) === 2 ? 'COMPLETE' : 'PARTIAL',
           structuredContent: { children: [{ nodeType: 18, text }] },
         },
         // Exact default Pqd shape, with numeric canonical Boolean projection.
-        lI:
+        kI:
           location == null
             ? undefined
             : {
                 N1a: field(location, 1) ?? '',
                 I4c: field(location, 2) ?? '',
-                TOc: !!field(location, 3),
+                EPc: !!field(location, 3),
                 m$f: field(location, 5) ?? '',
               },
       },
     };
     return event;
   }
-  if (native)
-    native.project((value, sourceRequest, destination) => {
-      const identity = field(value, 2);
-      const ids = { conversationId: field(identity, 1), turnId: field(identity, 2) };
-      const route = field(value, 21);
-      if (route !== undefined)
-        destination.next({
-          ...routing,
-          ...ids,
-          eqa: field(route, 1),
-          ...(field(value, 18) === undefined ? {} : { bFd: field(value, 18) }),
-        });
-      else if (field(value, 15)) destination.next({ ...marker, ...ids });
-      else if (field(value, 5)?.length) destination.next(projectRaw(value, sourceRequest));
-      const continuationValue = field(value, 46);
-      if (continuationValue !== undefined)
-        destination.next({ ...continuation, ...ids, Soa: continuationValue });
-      if (field(value, 52) !== undefined) destination.next({ ...disconnect, ...ids });
-    });
   if (native) {
     const backing = (value: any): any =>
       Array.isArray(value) ? value.map(backing) : value && value.fl ? backing(value.fl) : value;
-    contract.raw = new namespace.RGd.Pb(backing(contract.raw));
+    contract.raw = new namespace.gHd.Pb(backing(contract.raw));
     savedHistory!.result(contract.raw);
   }
   return {
@@ -882,6 +869,9 @@ export function geminiSdkFixedTextTrialFixture(
       },
       draft: (value: string) => {
         draft = value;
+      },
+      afterMarker: (value: () => void) => {
+        afterMarker = value;
       },
       afterFinal: (value: () => void) => {
         afterFinal = value;

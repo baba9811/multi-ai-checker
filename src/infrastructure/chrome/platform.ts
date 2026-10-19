@@ -12,6 +12,7 @@ import {
   refreshConnection,
   currentConversation,
   preparePeer,
+  prepareAutomaticTarget,
   models,
   inspect,
   sendAndCollect,
@@ -21,6 +22,7 @@ const storageKey = 'crosscheck.workspace.v1';
 const Stored = z.object({
   run: z.unknown().optional(),
   bindings: z.record(z.string(), z.unknown()).optional(),
+  promptOptions: z.unknown().optional(),
 });
 export const chromePlatform: Platform = {
   observeGeminiHeaderReadiness,
@@ -43,6 +45,7 @@ export const chromePlatform: Platform = {
   refreshConnection,
   currentConversation,
   preparePeer,
+  prepareAutomaticTarget,
   models,
   watchActiveTab(changed) {
     const updated = (_id: number, info: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab) => {

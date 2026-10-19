@@ -3,7 +3,7 @@ import { providers, type ProviderId } from '../../domains/providers/model';
 import { CapturedConversation, type Snapshot } from '../../application/provider-protocol';
 import type { AttachmentPayload } from '../../domains/attachments/model';
 import { hasAttachments, uploadAttachments, watchAttachmentEdits } from './attachments';
-import { visible, textOf, outermost, messageOrder } from './dom-utils';
+import { visible, textOf, textOfClone, outermost, messageOrder } from './dom-utils';
 import {
   chatgptComposer,
   chatgptComposerCandidates,
@@ -105,6 +105,46 @@ export function questions(provider: ProviderId) {
   return provider === 'chatgpt'
     ? chatgptMessages('user')
     : [...document.querySelectorAll(selectors[provider].user)].filter(visible).sort(messageOrder);
+}
+/** Match the owned echo without treating rendered list markers as missing prompt text. */
+export function matchesQuestion(
+  provider: ProviderId,
+  element: HTMLElement | undefined,
+  prompt: string,
+): boolean {
+  if (!element) return false;
+  const normalize = (value: string) => value.trim().replace(/\s+/g, ' ');
+  const expected = normalize(prompt);
+  const lists = provider === 'claude' ? [...element.querySelectorAll('ol')] : [];
+  if (!lists.length) return normalize(textOf(element)) === expected;
+  if (!element.matches(selectors.claude.user)) return false;
+  // Proved Claude echo: separate, single-item decimal OLs retain their original start numbers.
+  // Literal text equality cannot bypass different visible list markers.
+  if (element.querySelector('ul, ol ol')) return false;
+  const clone = element.cloneNode(true) as HTMLElement;
+  const copies = [...clone.querySelectorAll('ol')];
+  for (const [index, list] of lists.entries()) {
+    const start = list.getAttribute('start') ?? '1';
+    const item = list.firstElementChild;
+    if (
+      list.hasAttribute('reversed') ||
+      (list.hasAttribute('type') && list.type !== '1') ||
+      !/^[1-9]\d*$/.test(start) ||
+      !Number.isSafeInteger(Number(start)) ||
+      list.start !== Number(start) ||
+      list.children.length !== 1 ||
+      !(item instanceof HTMLLIElement) ||
+      item.hasAttribute('value') ||
+      !visible(list) ||
+      !visible(item) ||
+      getComputedStyle(item).display !== 'list-item' ||
+      getComputedStyle(item).listStyleType !== 'decimal' ||
+      getComputedStyle(item, '::marker').content !== 'normal'
+    )
+      return false;
+    copies[index]!.firstElementChild!.prepend(`${Number(start)}. `);
+  }
+  return normalize(textOfClone(clone)) === expected;
 }
 export function draftText(element?: HTMLElement) {
   // These editors store inserted lines as paragraphs; innerText adds display-only blank lines.

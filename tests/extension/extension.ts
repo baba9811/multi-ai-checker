@@ -8,12 +8,19 @@ export const test = base.extend<{
   syntheticClaudePermission: boolean;
   syntheticGeminiPermission: boolean;
   syntheticPeerPermissions: boolean;
+  syntheticWorkflowPermissions: boolean;
 }>({
   syntheticClaudePermission: [false, { option: true }],
   syntheticGeminiPermission: [false, { option: true }],
   syntheticPeerPermissions: [false, { option: true }],
+  syntheticWorkflowPermissions: [false, { option: true }],
   extension: async (
-    { syntheticClaudePermission, syntheticPeerPermissions, syntheticGeminiPermission },
+    {
+      syntheticClaudePermission,
+      syntheticPeerPermissions,
+      syntheticGeminiPermission,
+      syntheticWorkflowPermissions,
+    },
     use,
   ) => {
     // Respect managed browser policy. Do not disable it or quietly skip this suite.
@@ -30,7 +37,12 @@ export const test = base.extend<{
     let context: BrowserContext | undefined;
     try {
       let extensionPath = path.resolve('.output/chrome-mv3');
-      if (syntheticClaudePermission || syntheticPeerPermissions || syntheticGeminiPermission) {
+      if (
+        syntheticClaudePermission ||
+        syntheticPeerPermissions ||
+        syntheticGeminiPermission ||
+        syntheticWorkflowPermissions
+      ) {
         // Tests activation after a grant, not the browser's interactive permission prompt.
         // Only this disposable copy changes; production artifacts and policy stay untouched.
         const copy = path.join(temporaryRoot, 'extension');
@@ -38,11 +50,13 @@ export const test = base.extend<{
         extensionPath = copy;
         const manifestPath = path.join(copy, 'manifest.json');
         const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
-        manifest.host_permissions = syntheticPeerPermissions
-          ? ['https://claude.ai/*', 'https://chatgpt.com/*']
-          : syntheticGeminiPermission
-            ? ['https://gemini.google.com/*']
-            : ['https://claude.ai/*'];
+        manifest.host_permissions = syntheticWorkflowPermissions
+          ? ['https://chatgpt.com/*', 'https://claude.ai/*', 'https://gemini.google.com/*']
+          : syntheticPeerPermissions
+            ? ['https://claude.ai/*', 'https://chatgpt.com/*']
+            : syntheticGeminiPermission
+              ? ['https://gemini.google.com/*']
+              : ['https://claude.ai/*'];
         manifest.optional_host_permissions = manifest.optional_host_permissions.filter(
           (origin: string) => !manifest.host_permissions.includes(origin),
         );

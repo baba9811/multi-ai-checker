@@ -1,3 +1,4 @@
+import { installCollectorFixture } from '../fixtures/chrome/collector';
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
@@ -16,6 +17,8 @@ async function command(
   return page.evaluate(
     ({ message, sender }) =>
       new Promise<{ ok: boolean; data?: any; error?: string }>((resolve) => {
+        if ((message as any).type === 'send')
+          (window as any).__fixtureConnectCollector((message as any).id);
         (window as any).__bridgeHandler(message, { id: 'fixture', url: sender }, resolve);
         if (sender !== 'chrome-extension://fixture/sidepanel.html')
           setTimeout(() => resolve({ ok: false }), 50);
@@ -41,6 +44,7 @@ async function setup(page: Page, protection: boolean | undefined) {
       },
     };
   });
+  await page.evaluate(installCollectorFixture);
   const bridge = await page.addScriptTag({ path: path.resolve('.output/chrome-mv3/bridge.js') });
   // Production ISOLATED injection leaves no provider DOM script node.
   await bridge.evaluate((element) => element.parentNode?.removeChild(element));
@@ -896,7 +900,7 @@ test('canonical cold metadata stays unsupported while the compiled trial refuses
   await page.route('https://gemini.google.com/**', (route) =>
     route.fulfill({
       contentType: 'text/html',
-      body: withSdkHeaderProjection(geminiClientReadinessPage().replace('{oa:true}', '{oa:false}')),
+      body: withSdkHeaderProjection(geminiClientReadinessPage().replace('{wa:true}', '{wa:false}')),
     }),
   );
   await page.goto('https://gemini.google.com/app');
@@ -1003,6 +1007,7 @@ async function headerSetup(page: Page, delay = 0) {
       },
     };
   });
+  await page.evaluate(installCollectorFixture);
   const bridge = await page.addScriptTag({ path: path.resolve('.output/chrome-mv3/bridge.js') });
   await bridge.evaluate((element) => element.parentNode?.removeChild(element));
 }

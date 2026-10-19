@@ -90,8 +90,8 @@ test.describe('installed native receive graph with synthetic permission/allocati
     idle?: boolean,
     polyfills = false,
     coldHeader = false,
-    initialStateChange?: 'saa' | 'vNc',
-    packetChange?: 'privacy' | 'legacy' | 'mixed' | 'g8a' | 'h8a',
+    initialStateChange?: 'waa' | 'gOc',
+    packetChange?: 'privacy' | 'legacy' | 'mixed' | 't8a' | 'u8a',
   ) {
     const gemini = await context.newPage();
     const html = await geminiNativeTrialPage(
@@ -108,11 +108,11 @@ test.describe('installed native receive graph with synthetic permission/allocati
         if (kind === 'privacy')
           Object.assign(f.packet.request, f.sourceConstruction.privacy(f.packet.request, true));
         else if (kind === 'legacy' || kind === 'mixed') {
-          f.packet.R7a = f.packet.g8a;
-          f.packet.S7a = f.packet.h8a;
+          f.packet.R7a = f.packet.t8a;
+          f.packet.S7a = f.packet.u8a;
           if (kind === 'legacy') {
-            delete f.packet.g8a;
-            delete f.packet.h8a;
+            delete f.packet.t8a;
+            delete f.packet.u8a;
           }
           f.change.beforeSend(() =>
             queueMicrotask(() => {
@@ -128,17 +128,17 @@ test.describe('installed native receive graph with synthetic permission/allocati
     if (initialStateChange)
       await gemini.evaluate((field) => {
         const f = (window as any).fixtureNative;
-        f.thread.emit({ ...f.thread.latest, [field]: field === 'saa' ? {} : true });
+        f.thread.emit({ ...f.thread.latest, [field]: field === 'waa' ? {} : true });
       }, initialStateChange);
     expect(
       await gemini.evaluate(() => {
         const f = (window as any).fixtureNative,
           ns = f.native.namespace;
         return {
-          registry: ns.uPb instanceof Map,
+          registry: ns.zPb instanceof Map,
           oldRegistry: Object.hasOwn(ns, 'fPb'),
-          catalogReceiver: Object.getPrototypeOf(f.consumer.nb) === ns.PF.prototype,
-          catalogOwnData: 'value' in Object.getOwnPropertyDescriptor(ns.PF.prototype, 'pG')!,
+          catalogReceiver: Object.getPrototypeOf(f.consumer.nb) === ns.QF.prototype,
+          catalogOwnData: 'value' in Object.getOwnPropertyDescriptor(ns.QF.prototype, 'sG')!,
           oldCatalog: Object.hasOwn(ns, 'OK'),
         };
       }),
@@ -198,7 +198,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
     return GeminiFixedTextTrialRecord.parse(value);
   }
   // Permission/allocation and provider graph are synthetic; production panel, injection and retirement run normally.
-  for (const state of ['empty', 'saa', 'vNc', 'packet'] as const) {
+  for (const state of ['empty', 'waa', 'gOc', 'packet', 'survey'] as const) {
     test(`Native63 installed source construction and initial state ${state} preserves admission and original completion/history`, async ({
       extension,
     }) => {
@@ -208,7 +208,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
         undefined,
         false,
         false,
-        state === 'empty' || state === 'packet' ? undefined : state,
+        state === 'waa' || state === 'gOc' ? state : undefined,
         state === 'packet' ? 'privacy' : undefined,
       );
       expect(
@@ -216,14 +216,14 @@ test.describe('installed native receive graph with synthetic permission/allocati
           const f = (window as any).fixtureNative;
           const root = f.conversation.store.state();
           return {
-            id: f.namespace.AC(root) === f.approved.storeId,
-            thread: f.namespace.wC(root) === f.thread.latest,
+            id: f.namespace.zC(root) === f.approved.storeId,
+            thread: f.namespace.xC(root) === f.thread.latest,
             fallback:
-              f.namespace.wC({
-                'bard-conversations': { ...root['bard-conversations'], Rm: {} },
-              }) === f.initialState.source.Sec,
-            turns: f.initialState.source.$ec(root),
-            legacy: Object.hasOwn(f.thread.latest, 'Gj'),
+              f.namespace.xC({
+                'bard-conversations': { ...root['bard-conversations'], Um: {} },
+              }) === f.initialState.source.cgc,
+            turns: f.initialState.source.kgc(root),
+            legacy: Object.hasOwn(f.thread.latest, 'Ij'),
           };
         }),
       ).toEqual({
@@ -233,7 +233,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
         turns: { id: '', Wb: [] },
         legacy: false,
       });
-      if (state !== 'empty' && state !== 'packet') {
+      if (state === 'waa' || state === 'gOc') {
         await expect(panel.getByRole('status')).toContainText('대화 상태를 확인하지 못했습니다.');
         expect(
           await gemini.evaluate(() => {
@@ -255,7 +255,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
       await gemini.exposeFunction('fixtureInitialHistory', (value: unknown) =>
         evidence.push(value),
       );
-      await gemini.evaluate(() => {
+      await gemini.evaluate((state) => {
         const f = (window as any).fixtureNative,
           n = f.native;
         f.savedHistory.beforeFetch(() => {
@@ -269,9 +269,11 @@ test.describe('installed native receive graph with synthetic permission/allocati
         });
         f.change.deferSuccess();
         n.flushOpen();
-        n.receive(n.nativeEnvelope(n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true })));
+        const raw = n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true });
+        if (state === 'survey') raw.fl[24] = [['SYNTHETIC_PRIVATE_SURVEY']];
+        n.receive(n.nativeEnvelope(raw));
         n.receive(n.nativeClose(5));
-      });
+      }, state);
       expect((await stored(panel)).status).toBe('pending');
       expect(await gemini.evaluate(() => (window as any).fixtureNative.calls.history)).toBe(0);
       await gemini.evaluate(() => (window as any).fixtureNative.success());
@@ -285,7 +287,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
       expect(await panel.evaluate(() => (window as any).fixtureAllocations)).toBe(1);
     });
   }
-  for (const kind of ['legacy', 'mixed', 'privacy', 'g8a', 'h8a'] as const)
+  for (const kind of ['legacy', 'mixed', 'privacy', 't8a', 'u8a'] as const)
     test(`Native63 installed refuses ${kind} with zero physical sends/history`, async ({
       extension,
     }) => {
@@ -298,8 +300,8 @@ test.describe('installed native receive graph with synthetic permission/allocati
       if (kind !== 'legacy' && kind !== 'mixed')
         await gemini.evaluate((kind) => {
           const f = (window as any).fixtureNative;
-          if (kind === 'privacy') f.packet.request.s4d.fl[0] = 2;
-          else f.packet[kind] = kind === 'g8a' ? 'changed-valid-protection' : '1'.repeat(32);
+          if (kind === 'privacy') f.packet.request.x5d.fl[0] = 2;
+          else f.packet[kind] = kind === 't8a' ? 'changed-valid-protection' : '1'.repeat(32);
           try {
             f.native.flushOpen();
           } catch {}
@@ -325,7 +327,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
           await gemini.evaluate((kind) => {
             const f = (window as any).fixtureNative;
             return {
-              mutation: kind === 'privacy' ? f.packet.request.s4d.fl[0] : f.packet[kind],
+              mutation: kind === 'privacy' ? f.packet.request.x5d.fl[0] : f.packet[kind],
               query: f.native.calls.query,
               nativeSends: f.native.calls.nativeSends,
               history: f.calls.history,
@@ -333,7 +335,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
           }, kind),
         ).toEqual({
           mutation:
-            kind === 'privacy' ? 2 : kind === 'g8a' ? 'changed-valid-protection' : '1'.repeat(32),
+            kind === 'privacy' ? 2 : kind === 't8a' ? 'changed-valid-protection' : '1'.repeat(32),
           query: 1,
           nativeSends: 0,
           history: 0,
@@ -429,7 +431,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
       );
       expect(await panel.evaluate(() => (window as any).fixtureTriggerObservation)).toEqual({
         reason: `model-trigger-${suffix}`,
-        terminal: `model-trigger-${suffix}`,
+        terminal: { status: 'error', reason: `model-trigger-${suffix}` },
         counters: { menuClicks: 0, send: 0, query: 0, history: 0 },
       });
       await expect(panel.locator('.gemini-trial-result')).toHaveCount(0);
@@ -527,7 +529,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
       });
       // The real guard rejects this entry before an original builder/send can run.
       try {
-        n.namespace.LJd(
+        n.namespace.aKd(
           n.graph(),
           n.ok,
           n.api.requestSource,
@@ -594,6 +596,522 @@ test.describe('installed native receive graph with synthetic permission/allocati
     expect(await panel.evaluate(() => (window as any).fixtureAllocations)).toBe(1);
   });
 
+  for (const origin of ['capture', 'original-callback'] as const) {
+    test(`Native66 installed ${origin} diagnostic uses actual ${origin === 'capture' ? 'ordinary lease' : 'terminal fallback'} transport`, async ({
+      extension,
+    }) => {
+      const expected = {
+        status: 'error',
+        reason: 'dispatch-observation',
+        diagnostic: {
+          origin,
+          predicate: origin === 'capture' ? 'dispatch-native-n15-wire-06' : 'unknown',
+        },
+      } as const;
+      const { panel } = extension;
+      await panel.evaluate((origin) => {
+        (window as any).fixtureNative66Channels = [];
+        const execute = chrome.scripting.executeScript;
+        let release!: () => void;
+        const firstLease = new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        (window as any).fixtureNative66ReleaseLease = release;
+        let held = false;
+        chrome.scripting.executeScript = (async (injection: any) => {
+          const entries = await execute(injection);
+          if (
+            injection.args?.[2] === 'terminal-error' ||
+            entries.some((entry: any) => entry.result?.reason === 'dispatch-observation')
+          ) {
+            (window as any).fixtureNative66ReadTerminal = () =>
+              execute({ ...injection, args: [...injection.args.slice(0, 2), 'terminal-error'] });
+            (window as any).fixtureNative66Channels.push({
+              terminal: injection.args?.[2] === 'terminal-error',
+              results: entries.map((entry: any) => entry.result),
+            });
+          }
+          if (
+            origin === 'original-callback' &&
+            injection.world === 'MAIN' &&
+            injection.args?.length === 2 &&
+            !held
+          ) {
+            held = true;
+            // Preserve the actual first result until the settled refusal and occupied DOM are ready.
+            await firstLease;
+          }
+          return entries;
+        }) as typeof chrome.scripting.executeScript;
+      }, origin);
+      try {
+        const gemini = await begin(extension, undefined, true);
+        await gemini.evaluate(async (origin) => {
+          const f = (window as any).fixtureNative,
+            n = f.native;
+          n.flushOpen();
+          const raw = n.nativeKf({ cid: 'c_47', rid: 'r_48' });
+          (window as any).fixtureNative66Raw = raw;
+          if (origin === 'capture') raw.fl.extra = 'SYNTHETIC_PRIVATE';
+          else
+            n.project(() => {
+              raw.fl[14] = true;
+              throw Error('SYNTHETIC_A');
+            });
+          try {
+            n.receive(n.nativeEnvelope(raw));
+          } catch {}
+          if (origin === 'original-callback') {
+            for (let settled = 0; settled < 20; settled++) await Promise.resolve();
+            f.change.draft('SYNTHETIC_RESTORED_DRAFT');
+            f.editor.textContent = 'SYNTHETIC_RESTORED_DRAFT';
+          }
+        }, origin);
+        await panel.evaluate(() => (window as any).fixtureNative66ReleaseLease());
+        const code = origin === 'capture' ? 'P18-R3-P38' : 'P18-R9-P1';
+        await expect(panel.getByRole('status')).toContainText(code + '.');
+        await expect(panel.getByRole('status')).toContainText(
+          '요청의 완료 여부는 확인하지 못했으며 자동으로 다시 보내지 않습니다.',
+        );
+        expect((await stored(panel)).status).toBe('uncertain');
+        await expect(panel.locator('.gemini-trial-result')).toHaveCount(0);
+        expect(gemini.isClosed()).toBe(false);
+        expect(
+          await gemini.evaluate(() => {
+            const f = (window as any).fixtureNative,
+              n = f.native;
+            return {
+              send: f.calls.send,
+              query: n.calls.query,
+              history: f.calls.history,
+              complete: f.complete,
+              physicalState: n.graph().connection.wq.ha.hU,
+            };
+          }),
+        ).toEqual({ send: 1, query: 1, history: 0, complete: false, physicalState: 3 });
+        const channels = await panel.evaluate(() => (window as any).fixtureNative66Channels);
+        expect(channels).toEqual([
+          {
+            terminal: origin === 'original-callback',
+            results: [
+              {
+                status: 'error',
+                reason: 'dispatch-observation',
+                diagnostic: {
+                  origin,
+                  predicate: origin === 'capture' ? 'dispatch-native-n15-wire-06' : 'unknown',
+                },
+              },
+            ],
+          },
+        ]);
+        const counters = () =>
+          gemini.evaluate(() => {
+            const f = (window as any).fixtureNative,
+              n = f.native;
+            return {
+              query: n.calls.query,
+              nativeSends: n.calls.nativeSends,
+              history: f.calls.history,
+            };
+          });
+        const beforeQueries = await counters();
+        for (let query = 0; query < 3; query++) {
+          const terminal = await panel.evaluate(
+            async () => (await (window as any).fixtureNative66ReadTerminal())[0].result,
+          );
+          expect(terminal).toEqual(expected);
+        }
+        expect(await counters()).toEqual(beforeQueries);
+        expect(
+          await gemini.evaluate((origin) => {
+            const f = (window as any).fixtureNative,
+              raw = (window as any).fixtureNative66Raw;
+            return {
+              physicalState: f.native.graph().connection.wq.ha.hU,
+              evidenceRetained:
+                origin === 'capture' ? raw.fl.extra === 'SYNTHETIC_PRIVATE' : raw.fl[14] === true,
+              draftRetained:
+                origin !== 'original-callback' ||
+                (f.draft() === 'SYNTHETIC_RESTORED_DRAFT' &&
+                  f.editor.textContent === 'SYNTHETIC_RESTORED_DRAFT'),
+            };
+          }, origin),
+        ).toEqual({ physicalState: 3, evidenceRetained: true, draftRetained: true });
+        expect((await stored(panel)).status).toBe('uncertain');
+        expect(gemini.isClosed()).toBe(false);
+        await expect(panel.locator('.gemini-trial-result')).toHaveCount(0);
+        expect(await panel.evaluate(() => (window as any).fixtureAllocations)).toBe(1);
+        // Existing permission grant/allocation, service and polyfill substitutions remain synthetic;
+        // this panel fixture uses production extension transport but does not prove a genuine native panel.
+      } finally {
+        await panel.evaluate(() => (window as any).fixtureNative66ReleaseLease?.()).catch(() => {});
+      }
+    });
+  }
+  test('Native68 installed known ignored plus unknown envelope fields diagnostic P18-R3-P213 uses actual ordinary lease transport', async ({
+    extension,
+  }) => {
+    const { panel } = extension;
+    const expected = {
+      status: 'error',
+      reason: 'dispatch-observation',
+      diagnostic: { origin: 'capture', predicate: 'fields-envelope-other' },
+    } as const;
+    await panel.evaluate(() => {
+      (window as any).fixtureNative67Channels = [];
+      const execute = chrome.scripting.executeScript;
+      chrome.scripting.executeScript = (async (injection: any) => {
+        const entries = await execute(injection);
+        if (entries.some((entry: any) => entry.result?.reason === 'dispatch-observation')) {
+          (window as any).fixtureNative67ReadTerminal = () =>
+            execute({ ...injection, args: [...injection.args.slice(0, 2), 'terminal-error'] });
+          (window as any).fixtureNative67Channels.push({
+            terminal: injection.args?.[2] === 'terminal-error',
+            results: entries.map((entry: any) => entry.result),
+          });
+        }
+        return entries;
+      }) as typeof chrome.scripting.executeScript;
+    });
+    const gemini = await begin(extension, undefined, true);
+    await gemini.evaluate(() => {
+      const f = (window as any).fixtureNative,
+        n = f.native;
+      n.flushOpen();
+      const envelope = n.nativeIgnored('root', 1);
+      envelope.fl[6] = [];
+      (window as any).fixtureNative67Envelope = envelope;
+      try {
+        n.receive(envelope);
+      } catch {}
+    });
+    await expect(panel.getByRole('status')).toContainText('P18-R3-P213.');
+    await expect(panel.getByRole('status')).toContainText(
+      '요청의 완료 여부는 확인하지 못했으며 자동으로 다시 보내지 않습니다.',
+    );
+    expect(await panel.evaluate(() => (window as any).fixtureNative67Channels)).toEqual([
+      { terminal: false, results: [expected] },
+    ]);
+    const counters = () =>
+      gemini.evaluate(() => {
+        const f = (window as any).fixtureNative,
+          n = f.native;
+        return { query: n.calls.query, nativeSends: n.calls.nativeSends, history: f.calls.history };
+      });
+    const before = await counters();
+    for (let query = 0; query < 3; query++)
+      expect(
+        await panel.evaluate(
+          async () => (await (window as any).fixtureNative67ReadTerminal())[0].result,
+        ),
+      ).toEqual(expected);
+    expect(await counters()).toEqual(before);
+    expect(
+      await gemini.evaluate(() => {
+        const f = (window as any).fixtureNative,
+          n = f.native,
+          envelope = (window as any).fixtureNative67Envelope;
+        return {
+          send: f.calls.send,
+          query: n.calls.query,
+          history: f.calls.history,
+          complete: f.complete,
+          physicalState: n.graph().connection.wq.ha.hU,
+          retained:
+            Array.isArray(envelope.fl[0]) &&
+            Array.isArray(envelope.fl[6]) &&
+            envelope.fl[6].length === 0,
+        };
+      }),
+    ).toEqual({ send: 1, query: 1, history: 0, complete: false, physicalState: 3, retained: true });
+    expect((await stored(panel)).status).toBe('uncertain');
+    await expect(panel.locator('.gemini-trial-result')).toHaveCount(0);
+    expect(gemini.isClosed()).toBe(false);
+    expect(await panel.evaluate(() => (window as any).fixtureAllocations)).toBe(1);
+    // Production transport; provider/permissions/allocation remain synthetic, not genuine native-panel acceptance.
+  });
+  test('Native69 installed ancillary family plus unknown HJd10 diagnostic P18-R3-P215 uses actual ordinary lease transport', async ({
+    extension,
+  }) => {
+    const { panel } = extension;
+    const expected = {
+      status: 'error',
+      reason: 'dispatch-observation',
+      diagnostic: { origin: 'capture', predicate: 'fields-hjd-other' },
+    } as const;
+    await panel.evaluate(() => {
+      (window as any).fixtureNative69Channels = [];
+      const execute = chrome.scripting.executeScript;
+      chrome.scripting.executeScript = (async (injection: any) => {
+        const entries = await execute(injection);
+        if (entries.some((entry: any) => entry.result?.reason === 'dispatch-observation')) {
+          (window as any).fixtureNative69ReadTerminal = () =>
+            execute({ ...injection, args: [...injection.args.slice(0, 2), 'terminal-error'] });
+          (window as any).fixtureNative69Channels.push({
+            terminal: injection.args?.[2] === 'terminal-error',
+            results: entries.map((entry: any) => entry.result),
+          });
+        }
+        return entries;
+      }) as typeof chrome.scripting.executeScript;
+    });
+    const gemini = await begin(extension, undefined, true);
+    await gemini.evaluate(() => {
+      const f = (window as any).fixtureNative,
+        n = f.native;
+      n.flushOpen();
+      const envelope = n.nativeEnvelope(n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true }), {
+        hjd: { 1: 7n, 4: [] },
+        ajd: { 1: true, 2: ['c_dead'] },
+        holder: { 1: [], 2: [], 3: [] },
+      });
+      envelope.fl[1][9] = [];
+      (window as any).fixtureNative69Envelope = envelope;
+      try {
+        n.receive(envelope);
+      } catch {}
+    });
+    await expect(panel.getByRole('status')).toContainText('P18-R3-P215.');
+    await expect(panel.getByRole('status')).toContainText(
+      '요청의 완료 여부는 확인하지 못했으며 자동으로 다시 보내지 않습니다.',
+    );
+    expect(await panel.evaluate(() => (window as any).fixtureNative69Channels)).toEqual([
+      { terminal: false, results: [expected] },
+    ]);
+    const counters = () =>
+      gemini.evaluate(() => {
+        const f = (window as any).fixtureNative,
+          n = f.native;
+        return { query: n.calls.query, nativeSends: n.calls.nativeSends, history: f.calls.history };
+      });
+    const before = await counters();
+    for (let query = 0; query < 3; query++)
+      expect(
+        await panel.evaluate(
+          async () => (await (window as any).fixtureNative69ReadTerminal())[0].result,
+        ),
+      ).toEqual(expected);
+    expect(await counters()).toEqual(before);
+    expect(
+      await gemini.evaluate(() => {
+        const f = (window as any).fixtureNative,
+          n = f.native,
+          envelope = (window as any).fixtureNative69Envelope;
+        return {
+          send: f.calls.send,
+          query: n.calls.query,
+          history: f.calls.history,
+          complete: f.complete,
+          physicalState: n.graph().connection.wq.ha.hU,
+          retained:
+            envelope.fl[1][0] === 7n &&
+            Array.isArray(envelope.fl[1][9]) &&
+            envelope.fl[1][9].length === 0,
+        };
+      }),
+    ).toEqual({ send: 1, query: 1, history: 0, complete: false, physicalState: 3, retained: true });
+    expect((await stored(panel)).status).toBe('uncertain');
+    await expect(panel.locator('.gemini-trial-result')).toHaveCount(0);
+    expect(gemini.isClosed()).toBe(false);
+    expect(await panel.evaluate(() => (window as any).fixtureAllocations)).toBe(1);
+    // Production transport; provider/permissions/allocation remain synthetic, not genuine native-panel acceptance.
+  });
+  for (const detachment of [false, true])
+    test(`Native70 installed source HF cache corruption uses actual ordinary lease and inert terminal transport with detach=${detachment}`, async ({
+      extension,
+    }) => {
+      const { panel } = extension;
+      const expected = {
+        status: 'error',
+        reason: 'dispatch-observation',
+        diagnostic: { origin: 'receipt-currentness', predicate: 'cache-selection' },
+      } as const;
+      await panel.evaluate(() => {
+        (window as any).fixtureNative70Channels = [];
+        const execute = chrome.scripting.executeScript;
+        chrome.scripting.executeScript = (async (injection: any) => {
+          const entries = await execute(injection);
+          if (entries.some((entry: any) => entry.result?.reason === 'dispatch-observation')) {
+            (window as any).fixtureNative70ReadTerminal = () =>
+              execute({ ...injection, args: [...injection.args.slice(0, 2), 'terminal-error'] });
+            (window as any).fixtureNative70Channels.push({
+              terminal: injection.args?.[2] === 'terminal-error',
+              results: entries.map((entry: any) => entry.result),
+            });
+          }
+          return entries;
+        }) as typeof chrome.scripting.executeScript;
+      });
+      const gemini = await begin(extension, undefined, true);
+      await gemini.evaluate((detachment) => {
+        const f = (window as any).fixtureNative,
+          n = f.native;
+        n.flushOpen();
+        const ns = n.namespace,
+          raw = n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true }),
+          envelope = n.nativeEnvelope(raw);
+        if (detachment) {
+          raw.Fb = ns.Kaa;
+          raw.tcc = ns.Kaa;
+          raw.fl[1].Fb = ns.Kaa;
+          raw.fl[1].tcc = ns.Kaa;
+        }
+        (window as any).fixtureNative70Raw = raw;
+        n.onReceive((stage: string) => {
+          if (stage === 'RJd:after') {
+            Object.freeze(raw.fl[ns.dga]);
+            raw.fl[ns.dga].set(ns.HF, 21);
+          }
+        });
+        try {
+          n.receive(envelope);
+        } catch {}
+      }, detachment);
+      await expect(panel.getByRole('status')).toContainText('P18-R7-P197.');
+      await expect(panel.getByRole('status')).toContainText(
+        '요청의 완료 여부는 확인하지 못했으며 자동으로 다시 보내지 않습니다.',
+      );
+      expect(await panel.evaluate(() => (window as any).fixtureNative70Channels)).toEqual([
+        { terminal: false, results: [expected] },
+      ]);
+      const counters = () =>
+        gemini.evaluate(() => {
+          const f = (window as any).fixtureNative,
+            n = f.native;
+          return {
+            query: n.calls.query,
+            nativeSends: n.calls.nativeSends,
+            history: f.calls.history,
+          };
+        });
+      const before = await counters();
+      for (let query = 0; query < 3; query++)
+        expect(
+          await panel.evaluate(
+            async () => (await (window as any).fixtureNative70ReadTerminal())[0].result,
+          ),
+        ).toEqual(expected);
+      expect(await counters()).toEqual(before);
+      expect(
+        await gemini.evaluate(() => {
+          const f = (window as any).fixtureNative,
+            n = f.native,
+            raw = (window as any).fixtureNative70Raw;
+          return {
+            send: f.calls.send,
+            query: n.calls.query,
+            history: f.calls.history,
+            complete: f.complete,
+            physicalState: n.graph().connection.wq.ha.hU,
+            retained: raw.fl[n.namespace.dga].get(n.namespace.HF) === 21,
+            deferred: n.deferredErrors.length,
+          };
+        }),
+      ).toEqual({
+        send: 1,
+        query: 1,
+        history: 0,
+        complete: false,
+        physicalState: 3,
+        retained: true,
+        deferred: 0,
+      });
+      expect((await stored(panel)).status).toBe('uncertain');
+      await expect(panel.locator('.gemini-trial-result')).toHaveCount(0);
+      expect(gemini.isClosed()).toBe(false);
+      expect(await panel.evaluate(() => (window as any).fixtureAllocations)).toBe(1);
+      // Production transport; provider/permissions/allocation remain synthetic, not genuine native-panel acceptance.
+    });
+  test('Native70 installed full original structured projection with root preludes waits for completion and same-CID history', async ({
+    extension,
+  }) => {
+    const { panel } = extension,
+      gemini = await begin(extension, undefined, true);
+    const history: unknown[] = [];
+    await gemini.exposeFunction('fixtureAncillaryHistory', (value: unknown) => history.push(value));
+    const preludes = await gemini.evaluate(() => {
+      const f = (window as any).fixtureNative,
+        n = f.native;
+      f.savedHistory.beforeFetch(() => {
+        f.calls.history++;
+        void (window as any).fixtureAncillaryHistory({
+          send: f.calls.send,
+          query: n.calls.query,
+          history: f.calls.history,
+          cid: f.savedHistory.wrapper().requestMessage.fl[0],
+        });
+      });
+      f.change.deferSuccess();
+      n.flushOpen();
+      return [1, 3, 6].map((field) => {
+        n.receive(n.nativeIgnored('root', field));
+        return {
+          query: n.calls.query,
+          history: f.calls.history,
+          complete: f.complete,
+          deferredErrors: n.deferredErrors.length,
+        };
+      });
+    });
+    expect(preludes).toEqual(
+      Array(3).fill({ query: 1, history: 0, complete: false, deferredErrors: 0 }),
+    );
+    expect((await stored(panel)).status).toBe('pending');
+    await expect(panel.locator('.gemini-trial-result')).toHaveCount(0);
+    expect(
+      await gemini.evaluate(() => {
+        const f = (window as any).fixtureNative,
+          n = f.native;
+        const ns = n.namespace,
+          raw = n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true });
+        const node = new ns.oH([undefined, new ns.gH([undefined, 0, 'CROSSCHECK_GEMINI_OK'])]);
+        raw.fl[26] = [new ns.qH([[node]])];
+        raw.Fb = ns.Kaa;
+        raw.tcc = ns.Kaa;
+        raw.fl[1].Fb = ns.Kaa;
+        raw.fl[1].tcc = ns.Kaa;
+        let before: any;
+        n.onReceive((stage: string, value: any) => {
+          if (stage === 'RJd:before') before = value.fl;
+        });
+        n.receive(
+          n.nativeEnvelope(raw, {
+            hjd: { 1: 7n, 4: [] },
+            ajd: { 1: true, 2: ['c_dead'] },
+            holder: { 1: [], 2: [], 3: [] },
+          }),
+        );
+        n.receive(n.nativeClose(5));
+        return {
+          deferredErrors: n.deferredErrors.length,
+          query: n.calls.query,
+          history: f.calls.history,
+          events: f.forwarded.map((event: any) => event.responseType),
+          ff: raw.fl[ns.dga].get(ns.HF),
+          node: raw.fl[26][0].fl[0][0].fl[ns.dga].get(ns.pH),
+          detached: raw.fl !== before,
+        };
+      }),
+    ).toEqual({
+      deferredErrors: 0,
+      query: 1,
+      history: 0,
+      events: ['TURN_COMPLETED', 'TURN'],
+      ff: 0,
+      node: 2,
+      detached: true,
+    });
+    expect((await stored(panel)).status).toBe('pending');
+    expect(await gemini.evaluate(() => (window as any).fixtureNative.calls.history)).toBe(0);
+    await gemini.evaluate(() => (window as any).fixtureNative.success());
+    await expect(panel.locator('.gemini-trial-result code')).toHaveText('CROSSCHECK_GEMINI_OK');
+    await expect(panel.locator('.gemini-trial-result')).toContainText('Automatic fixture');
+    expect(history).toEqual([{ send: 1, query: 1, history: 1, cid: 'c_47' }]);
+    expect((await stored(panel)).status).toBe('done');
+    await expect.poll(() => gemini.isClosed()).toBe(true);
+    expect(await panel.evaluate(() => (window as any).fixtureAllocations)).toBe(1);
+  });
   test('Native65 installed frozen inbound cache mutation preserves uncertainty and quarantine after restoration', async ({
     extension,
   }) => {
@@ -608,9 +1126,9 @@ test.describe('installed native receive graph with synthetic permission/allocati
       n.onReceive((stage: string) => {
         if (stage === 'RJd:before') {
           Object.freeze(envelope.fl[ns.dga]);
-          envelope.fl[ns.dga].set(ns.hM, 4);
+          envelope.fl[ns.dga].set(ns.$L, 4);
         }
-        if (stage === 'RJd:after') envelope.fl[ns.dga].set(ns.hM, 2);
+        if (stage === 'RJd:after') envelope.fl[ns.dga].set(ns.$L, 2);
       });
       try {
         n.receive(envelope);
@@ -640,15 +1158,15 @@ test.describe('installed native receive graph with synthetic permission/allocati
             ns = n.namespace,
             config = n.queued()[0];
           const prior = {
-            config: config.fl[ns.dga].get(ns.eM),
-            query: n.queued()[1].fl[1].fl[ns.dga].get(ns.cM),
+            config: config.fl[ns.dga].get(ns.XL),
+            query: n.queued()[1].fl[1].fl[ns.dga].get(ns.VL),
           };
-          (window as any).fixtureNative64 = { config, child: config.fl[0], originalGroup: ns.eM };
+          (window as any).fixtureNative64 = { config, child: config.fl[0], originalGroup: ns.XL };
           if (kind === 'cache') {
             Object.freeze(config.fl);
             Object.freeze(config.fl[ns.dga]);
-            config.fl[ns.dga].set(ns.eM, 2);
-          } else ns.eM = [...ns.eM];
+            config.fl[ns.dga].set(ns.XL, 2);
+          } else ns.XL = [...ns.XL];
           try {
             n.flushOpen();
           } catch {}
@@ -656,7 +1174,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
         }, kind),
       ).toEqual({ config: 1, query: 9 });
       await expect(panel.getByRole('status')).toContainText(
-        kind === 'cache' ? '확인 코드 N20.' : '확인 코드 N10.',
+        kind === 'cache' ? '확인 코드 N20-15.' : '확인 코드 N10.',
       );
       expect((await stored(panel)).status).toBe('uncertain');
       await expect(panel.locator('.gemini-trial-result')).toHaveCount(0);
@@ -670,8 +1188,8 @@ test.describe('installed native receive graph with synthetic permission/allocati
           return {
             changed:
               kind === 'cache'
-                ? retained.config.fl[ns.dga].get(ns.eM) === 2
-                : ns.eM !== retained.originalGroup,
+                ? retained.config.fl[ns.dga].get(ns.XL) === 2
+                : ns.XL !== retained.originalGroup,
             unchanged: retained.config.fl[0] === retained.child,
             send: f.calls.send,
             query: n.calls.query,
@@ -692,7 +1210,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
       expect(await panel.evaluate(() => (window as any).fixtureAllocations)).toBe(1);
     });
   }
-  test('installed bundle quarantines equivalent original int64 raw type replacement', async ({
+  test('Native73 installed bundle propagates forward-before refusal and quarantines original int64 replacement', async ({
     extension,
   }) => {
     const { panel } = extension,
@@ -709,7 +1227,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
         return wasBigint;
       }),
     ).toBe(true);
-    await expect(panel.getByRole('status')).toContainText('확인 코드 N20.');
+    await expect(panel.getByRole('status')).toContainText('확인 코드 N20-15.');
     expect((await stored(panel)).status).toBe('uncertain');
     expect(await panel.locator('.gemini-trial-result').count()).toBe(0);
     expect(gemini.isClosed()).toBe(false);
@@ -737,10 +1255,10 @@ test.describe('installed native receive graph with synthetic permission/allocati
           ns = n.namespace,
           [config, query] = n.queued();
         return {
-          config: config.fl[ns.dga].get(ns.eM),
+          config: config.fl[ns.dga].get(ns.XL),
           cloned: config.fl[0].fl[ns.dga] === undefined,
-          query: query.fl[ns.dga].get(ns.eM),
-          text: query.fl[1].fl[ns.dga].get(ns.cM),
+          query: query.fl[ns.dga].get(ns.XL),
+          text: query.fl[1].fl[ns.dga].get(ns.VL),
           sends: n.calls.nativeSends,
         };
       }),
@@ -839,10 +1357,10 @@ test.describe('installed native receive graph with synthetic permission/allocati
         let value = envelope;
         return (
           [
-            ['hM', 2],
-            ['gM', 7],
-            ['CJd', 1],
-            ['fM', 4],
+            ['$L', 2],
+            ['ZL', 7],
+            ['SJd', 1],
+            ['YL', 4],
           ] as const
         ).map(([key, field]) => {
           const selected = value.fl[n.namespace.dga].get(n.namespace[key]);
@@ -901,13 +1419,13 @@ test.describe('installed native receive graph with synthetic permission/allocati
       n.receive(n.nativeEnvelope(raw));
       const routing = f.forwarded[1],
         action = f.actions.latest,
-        request = action.Wl.request;
+        request = action.Yl.request;
       n.receive(n.nativeEnvelope(n.nativeKf({ cid: 'c_47', rid: 'r_48' })));
       const unchanged =
         first.response.turnId === f.approved.clientTurnId &&
         routing.turnId === f.approved.clientTurnId &&
-        action.Xbd === routing &&
-        action.Wl.request === request &&
+        action.Wcd === routing &&
+        action.Yl.request === request &&
         request.clientTurnId === f.approved.clientTurnId;
       n.receive(n.nativeEnvelope(n.nativeKf({ cid: 'c_47', rid: 'r_48', final: true })));
       n.receive(n.nativeClose(5));
@@ -943,7 +1461,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
             n.flushOpen();
           } else if (scenario === 'owner' || scenario === 'source') {
             if (scenario === 'owner') f.consumer.Oa = {};
-            else n.namespace.LJd = () => {};
+            else n.namespace.aKd = () => {};
             n.flushOpen();
           } else {
             n.flushOpen();
@@ -1033,7 +1551,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
           n = f.native;
         n.flushOpen();
         const raw = n.nativeKf({ cid: 'c_terminal', rid: 'server-rid' });
-        // Inner W1 admission fails in the native decoder guard, which reports P18 after unwind.
+        // Malformed raw identity retains capture/unknown (R3/P1) through terminal fallback.
         raw.fl[0] = 'SYNTHETIC_UNSUPPORTED_RESPONSE_FIELD';
         try {
           n.receive(n.nativeEnvelope(raw));
@@ -1052,7 +1570,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
       await panel.evaluate(() => (window as any).fixtureReleaseTrialLease());
       await expect(
         panel.getByText(
-          '응답 요청의 전송 상태를 확인하지 못했습니다. 확인 코드 P18. 요청의 완료 여부는 확인하지 못했으며 자동으로 다시 보내지 않습니다.',
+          '응답 요청의 전송 상태를 확인하지 못했습니다. 확인 코드 P18. P18-R3-P1. 요청의 완료 여부는 확인하지 못했으며 자동으로 다시 보내지 않습니다.',
           { exact: true },
         ),
       ).toBeVisible();
@@ -1140,7 +1658,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
           if (unsubscribeThrows) n.shared.failProbeUnsubscribe();
           return {
             pending: n.shared.pending(),
-            probeClosed: state.Da.closed,
+            probeClosed: state.Ca.closed,
             query: n.calls.query,
             history: f.calls.history,
           };
@@ -1156,7 +1674,7 @@ test.describe('installed native receive graph with synthetic permission/allocati
             await gemini.evaluate(() => ({
               query: (window as any).fixtureNative.native.calls.query,
               history: (window as any).fixtureNative.calls.history,
-              probeClosed: (window as any).fixtureNative.native.shared.state().Da.closed,
+              probeClosed: (window as any).fixtureNative.native.shared.state().Ca.closed,
             })),
           ).toEqual({ query: 1, history: 0, probeClosed: true });
         } else await expect.poll(() => gemini.isClosed()).toBe(true);
@@ -1170,10 +1688,10 @@ test.describe('installed native receive graph with synthetic permission/allocati
     const gemini = await begin(extension);
     const observed = await gemini.evaluate(() => {
       const f = (window as any).fixtureNative,
-        prototype = f.native.namespace.PF.prototype;
-      const original = prototype.pG;
+        prototype = f.native.namespace.QF.prototype;
+      const original = prototype.sG;
       const replacement = Function('_', 'return ' + original.toString())({});
-      Object.defineProperty(prototype, 'pG', { value: replacement });
+      Object.defineProperty(prototype, 'sG', { value: replacement });
       try {
         f.native.flushOpen();
       } catch {}

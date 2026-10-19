@@ -7,6 +7,7 @@ import {
 } from '../../../src/infrastructure/providers/gemini/fixed-text-contract';
 
 import * as module from '../../../src/infrastructure/providers/gemini/sdk-webchannel';
+import * as contractModule from '../../../src/infrastructure/providers/gemini/fixed-text-contract';
 const arm = module.armGeminiColdWebChannel;
 function start(f = geminiSdkWebChannelFixture()) {
   const g = arm(f.namespace, f.api, f.approved, f.current, f.consumingOriginal, f.observer);
@@ -19,7 +20,10 @@ describe('Gemini cold WebChannel phase1', () => {
   it.each(['json', 'protobuf'] as const)(
     'preserves original %s config and query before deferred network',
     (codec) => {
-      const { f, g } = start(geminiSdkWebChannelFixture(codec));
+      const fixture = geminiSdkWebChannelFixture(codec);
+      expect(Object.hasOwn(fixture.namespace, 'xzd')).toBe(false);
+      expect(fixture.namespace.Kzd).toBeTypeOf('function');
+      const { f, g } = start(fixture);
       f.originalXub();
       expect(f.calls).toMatchObject({ factory: 1, open: 1, config: 1, query: 1, forward: 0 });
       expect(f.pending()).toBe(1);
@@ -37,13 +41,13 @@ describe('Gemini cold WebChannel phase1', () => {
   );
   it('refuses an out-of-scope registry lookup before factory', () => {
     const { f } = start();
-    expect(() => f.api.Eb.get()).toThrow();
+    expect(() => f.api.Fb.get()).toThrow();
     expect(() => f.originalXub()).toThrow();
     expect(f.calls.factory).toBe(0);
   });
   it('refuses a foreign registry receiver', () => {
     const { f } = start();
-    expect(() => f.api.Eb.get.call({})).toThrow();
+    expect(() => f.api.Fb.get.call({})).toThrow();
     expect(f.calls.factory).toBe(0);
   });
   it('refuses second binding', () => {
@@ -59,13 +63,13 @@ describe('Gemini cold WebChannel phase1', () => {
   it('refuses second factory', () => {
     const { f } = start();
     f.originalXub();
-    expect(() => f.namespace.dKd(f.api.ub, f.api.Ia, { xR: f.metadata })).toThrow();
+    expect(() => f.namespace.wKd(f.api.Ab, f.api.Ia, { xR: f.metadata })).toThrow();
   });
   it('refuses second configuration', () => {
     const { f } = start();
     f.originalXub();
     expect(() =>
-      f.namespace.LJd(f.graph(), f.ok, 1, f.approved.modeId, f.approved.clientTurnId),
+      f.namespace.aKd(f.graph(), f.ok, 1, f.approved.modeId, f.approved.clientTurnId),
     ).toThrow();
   });
   it('refuses another queued query', () => {
@@ -76,7 +80,7 @@ describe('Gemini cold WebChannel phase1', () => {
   it('refuses context ndc', () => {
     const { f } = start();
     f.originalXub();
-    expect(() => f.graph().thc(new f.namespace.dM())).toThrow();
+    expect(() => f.graph().Shc(new f.namespace.WL())).toThrow();
   });
   it.each(['Aa', 'protection', 'session', 'manager'] as const)(
     'refuses unsupported %s at arm',
@@ -84,8 +88,8 @@ describe('Gemini cold WebChannel phase1', () => {
       const f = geminiSdkWebChannelFixture();
       if (kind === 'Aa') f.api.Aa = false;
       if (kind === 'protection') f.api.Ja.isEnabled = false;
-      if (kind === 'session') f.api.ub.oa = undefined;
-      if (kind === 'manager') f.api.Eb.ha = {};
+      if (kind === 'session') f.api.Ab.wa = undefined;
+      if (kind === 'manager') f.api.Fb.ha = {};
       expect(() => start(f)).toThrow();
     },
   );
@@ -148,31 +152,34 @@ describe('Gemini cold WebChannel phase1', () => {
     g.close();
     g.detach();
     expect(f.queued()).toEqual([]);
-    expect(f.graph().connection.uq.ha.Da).toBeNull();
+    expect(f.graph().connection.wq.ha.Ca).toBeNull();
     try {
       f.flushOpen();
     } catch {}
     expect(f.calls.forward).toBe(0);
   });
-  it.each([true, false])('preserves the original registered idle branch enabled=%s', (enabled) => {
-    const f = geminiSdkWebChannelFixture();
-    const manager = f.registerIdle(enabled);
-    const { g } = start(f);
-    f.originalXub();
-    expect(f.calls).toMatchObject({ factory: 1, config: 1, query: 1, forward: 0 });
-    expect(Object.hasOwn(manager, 'wa')).toBe(enabled);
-    expect(Object.hasOwn(manager, 'Ja')).toBe(enabled);
-    if (enabled)
+  it.each([true, false])(
+    'preserves the original registered idle branch exclusion=%s',
+    (exclusion) => {
+      const f = geminiSdkWebChannelFixture();
+      const manager = f.registerIdle(exclusion);
+      const { g } = start(f);
+      f.originalXub();
+      expect(f.calls).toMatchObject({ factory: 1, config: 1, query: 1, forward: 0 });
+      expect(Object.hasOwn(manager, 'wa')).toBe(true);
+      expect(Object.hasOwn(manager, 'Ja')).toBe(true);
+      expect(manager.Za).toBe(exclusion);
       expect(Object.getOwnPropertyDescriptor(manager, 'wa')).toEqual({
         value: undefined,
         writable: true,
         enumerable: true,
         configurable: true,
       });
-    g.close();
-    g.detach();
-    expect(f.queued()).toEqual([]);
-  });
+      g.close();
+      g.detach();
+      expect(f.queued()).toEqual([]);
+    },
+  );
   it.each(['ha', 'wa', 'Ja', 'Ga', 'ka', 'kb', 'Na', 'Oa'])(
     'refuses non-idle manager %s',
     (key) => {
@@ -193,14 +200,6 @@ describe('Gemini cold WebChannel phase1', () => {
     const f = geminiSdkWebChannelFixture();
     Object.preventExtensions(f.registerIdle());
     expect(() => start(f)).toThrow();
-  });
-  it('accepts disabled nonextensible manager without adding idle slots', () => {
-    const f = geminiSdkWebChannelFixture();
-    const manager = Object.preventExtensions(f.registerIdle(false));
-    start(f);
-    f.originalXub();
-    expect(Object.hasOwn(manager, 'wa')).toBe(false);
-    expect(Object.hasOwn(manager, 'Ja')).toBe(false);
   });
   it('keeps original writable idle-slot attributes', () => {
     const f = geminiSdkWebChannelFixture();
@@ -288,7 +287,7 @@ describe('Gemini cold WebChannel phase1', () => {
     const { f } = start();
     f.hooks({
       current: () => {
-        f.namespace.hKd.prototype.get = () => undefined;
+        f.namespace.AKd.prototype.get = () => undefined;
       },
     });
     expect(() => f.originalXub()).toThrow();
@@ -306,8 +305,8 @@ describe('Gemini cold WebChannel phase1', () => {
   });
   it('retains the runner-owned API gate relationship', () => {
     const { f } = start();
-    const original = f.api.Zxb;
-    f.api.Zxb = function (packet: unknown) {
+    const original = f.api.ybb;
+    f.api.ybb = function (packet: unknown) {
       return original.call(this, packet);
     };
     f.originalXub();
@@ -317,7 +316,7 @@ describe('Gemini cold WebChannel phase1', () => {
     const { f } = start();
     f.hooks({
       afterFactory: () => {
-        f.graph().connection.uq.ha.lPb = {};
+        f.graph().connection.wq.ha.BPb = {};
       },
     });
     expect(() => f.originalXub()).toThrow();
@@ -328,16 +327,16 @@ describe('Gemini cold WebChannel phase1', () => {
   it('rejects queue identity replacement', () => {
     const { f, g } = start();
     f.originalXub();
-    f.graph().oa = [...f.queued()];
+    f.graph().wa = [...f.queued()];
     expect(() => g.identity()).toThrow();
   });
   it('quarantines an unowned cleanup gate', () => {
     const { f, g } = start();
     f.originalXub();
-    const gate = f.namespace.dKd;
-    f.graph().connection.uq.ha.Hf = () => {};
+    const gate = f.namespace.wKd;
+    f.graph().connection.wq.ha.Jf = () => {};
     expect(() => g.detach()).toThrow();
-    expect(f.namespace.dKd).toBe(gate);
+    expect(f.namespace.wKd).toBe(gate);
     expect(() => f.originalXub()).toThrow();
     expect(f.calls.forward).toBe(0);
   });
@@ -358,34 +357,34 @@ describe('Gemini cold WebChannel phase1', () => {
   });
   it('refuses nonwritable source hooks before changing any hook', () => {
     const f = geminiSdkWebChannelFixture();
-    const original = f.namespace.PLd;
-    Object.defineProperty(f.namespace, 'LJd', { writable: false });
+    const original = f.namespace.jMd;
+    Object.defineProperty(f.namespace, 'aKd', { writable: false });
     expect(() => start(f)).toThrow();
-    expect(f.namespace.PLd).toBe(original);
+    expect(f.namespace.jMd).toBe(original);
   });
   it('never enters the terminate branch after a cleanup callback changes iT', () => {
     const { f, g } = start();
     f.originalXub();
-    const dt = f.graph().connection.uq.ha;
+    const dt = f.graph().connection.wq.ha;
     f.hooks({
       current: () => {
-        dt.fU = 3;
+        dt.hU = 3;
       },
     });
     expect(() => g.identity()).toThrow();
     expect(() => g.detach()).toThrow();
     expect(dt.Gb).toBe(0);
   });
-  it.each(['wnf', 'aDc', 'isEnabled', 'get', 'subscribe', 'pipe', 'Da', 'ha'])(
+  it.each(['Oof', 'IDc', 'isEnabled', 'get', 'subscribe', 'pipe', 'Ca', 'ha'])(
     'refuses pre-arm live method replacement %s without calling it',
     (key) => {
       const f = geminiSdkWebChannelFixture();
       f.registerIdle();
       let foreign = 0;
-      const p = ['wnf', 'aDc', 'isEnabled'].includes(key)
-        ? f.namespace.qVd.prototype
+      const p = ['Oof', 'IDc', 'isEnabled'].includes(key)
+        ? f.namespace.JVd.prototype
         : key === 'get'
-          ? f.namespace.hKd.prototype
+          ? f.namespace.AKd.prototype
           : f.namespace.st.prototype;
       p[key] = function (this: any) {
         foreign++;
@@ -427,7 +426,7 @@ describe('Gemini cold WebChannel phase1', () => {
               : f.graph().connection;
           Object.defineProperty(
             owner,
-            'bfc',
+            'Afc',
             kind === 'getter'
               ? {
                   get: () => {
@@ -454,11 +453,11 @@ describe('Gemini cold WebChannel phase1', () => {
     (kind) => {
       const { f, g } = start();
       f.originalXub();
-      const c = f.graph().connection.uq;
+      const c = f.graph().connection.wq;
       let foreign = 0;
       if (kind === 'handler')
         c.ha.wa = {
-          Zjd: () => {
+          Ykd: () => {
             foreign++;
           },
         };
@@ -469,7 +468,7 @@ describe('Gemini cold WebChannel phase1', () => {
           },
         };
       if (kind === 'vjd')
-        c.oa.Zjd = () => {
+        c.oa.Ykd = () => {
           foreign++;
         };
       if (kind === 'dispatch')
@@ -536,7 +535,7 @@ describe('Gemini cold WebChannel phase1', () => {
         });
       g.detach();
       expect(f.queued()).toEqual([]);
-      expect(f.graph().connection.uq.ha.Da).toBeNull();
+      expect(f.graph().connection.wq.ha.Ca).toBeNull();
       expect(() => f.flushOpen()).toThrow();
       expect(f.calls.forward).toBe(0);
     },
@@ -546,7 +545,7 @@ describe('Gemini cold WebChannel phase1', () => {
     f.originalXub();
     f.setCurrent(false);
     const originalQueue = f.queued();
-    f.graph().oa = [];
+    f.graph().wa = [];
     expect(() => g.detach()).toThrow();
     expect(originalQueue).toHaveLength(2);
   });
@@ -562,9 +561,9 @@ describe('Gemini cold WebChannel phase1', () => {
   it('closes the actual owned channel before private constructor dZa runs', () => {
     const f = geminiSdkWebChannelFixture();
     let replacement = 0;
-    f.prototypes.connection.s0a = function (this: any) {
+    f.prototypes.connection.F0a = function (this: any) {
       replacement++;
-      this.Zp.open();
+      this.cq.open();
     };
     expect(() => {
       start(f);
@@ -575,7 +574,7 @@ describe('Gemini cold WebChannel phase1', () => {
     expect(f.calls.forward).toBe(0);
   });
 
-  it.each(['Yt.complete', 'qt.add', 'onb.unsubscribe', 'gu.ka', 'gu.value'])(
+  it.each(['Wt.complete', 'qt.add', 'onb.unsubscribe', 'fu.ka', 'fu.value'])(
     'refuses live inherited/subscription replacement %s before construction',
     (path) => {
       const f = geminiSdkWebChannelFixture();
@@ -583,7 +582,7 @@ describe('Gemini cold WebChannel phase1', () => {
       const [name, key] = path.split('.');
       const p =
         name === 'onb'
-          ? Object.getPrototypeOf(f.namespace.Tmb.prototype)
+          ? Object.getPrototypeOf(f.namespace.omb.prototype)
           : f.namespace[name!].prototype;
       Object.defineProperty(
         p,
@@ -611,6 +610,25 @@ describe('Gemini cold WebChannel phase1', () => {
       expect(foreign).toBe(0);
     },
   );
+  it('refuses an own current Ca accessor on the captured response subject before subscription', () => {
+    const f = geminiSdkWebChannelFixture('json', true);
+    const { g } = start(f);
+    f.bindOriginal(g.bindObservable);
+    const getter = vi.fn(() => f.namespace.Wt.prototype.Ca);
+    f.hooks({
+      afterFactory() {
+        Object.defineProperty(f.graph().wB, 'Ca', { get: getter, configurable: true });
+      },
+    });
+    expect(() => f.originalXub({ next() {}, complete() {} })).toThrow(
+      'Gemini cold WebChannel refused',
+    );
+    expect(getter).not.toHaveBeenCalled();
+    expect(f.calls).toMatchObject({ factory: 1, open: 0, config: 0, query: 0, forward: 0 });
+    expect(g.sent()).toBe(false);
+    expect(g.receiving()).toBe(false);
+    expect(() => g.identity()).toThrow();
+  });
   it.each(['teardown', 'observer'] as const)('quarantines a foreign cleanup %s', (kind) => {
     const { f, g } = start();
     f.originalXub();
@@ -620,7 +638,7 @@ describe('Gemini cold WebChannel phase1', () => {
         foreign++;
       };
     else
-      f.graph().tB.observers.push({
+      f.graph().wB.observers.push({
         complete: () => {
           foreign++;
         },
@@ -652,7 +670,7 @@ describe('Gemini cold WebChannel phase1', () => {
     const { f, g } = start();
     f.originalXub();
     let foreign = 0;
-    f.graph().Na.observers.push({
+    f.graph().Ua.observers.push({
       complete: () => {
         foreign++;
       },
@@ -675,7 +693,7 @@ describe('Gemini cold WebChannel phase1', () => {
     let foreign = 0;
     let shadowed = false;
     const shadow = () => {
-      const handler = f.graph().connection.Qj;
+      const handler = f.graph().connection.Rj;
       const original = handler[method];
       Object.defineProperty(
         handler,
@@ -702,7 +720,7 @@ describe('Gemini cold WebChannel phase1', () => {
     if (timing === 'current') {
       f.hooks({
         current: () => {
-          if (!shadowed && f.graph()?.connection.uq.ha.Da === true) shadow();
+          if (!shadowed && f.graph()?.connection.wq.ha.Ca === true) shadow();
         },
       });
       expect(() => f.originalXub()).toThrow();
@@ -725,9 +743,9 @@ describe('Gemini cold WebChannel phase1', () => {
     let foreign = 0;
     f.hooks({
       current: () => {
-        if (f.graph()?.connection.uq.ha.Da === true)
-          f.graph().connection.uq.ha.wa = {
-            Zjd: () => {
+        if (f.graph()?.connection.wq.ha.Ca === true)
+          f.graph().connection.wq.ha.wa = {
+            Ykd: () => {
               foreign++;
             },
           };
@@ -753,6 +771,10 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
       f.originalXub();
       const queued = f.queued().slice();
       f.flushOpen();
+      const requestPrototype = Object.getPrototypeOf(f.forwardRequest());
+      expect(Object.hasOwn(requestPrototype, 'lm')).toBe(false);
+      expect(requestPrototype.nm).toBeTypeOf('function');
+      expect(f.forwardRequest().nm()).toBe(f.forwardRequest().Zc);
       expect(f.calls).toMatchObject({ factory: 1, open: 1, config: 1, query: 1, forward: 1 });
       expect(g.sent()).toBe(true);
       expect(queued).toHaveLength(2);
@@ -800,9 +822,9 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
       if (kind === 'map') entry.map = { ...entry.map };
       if (kind === 'mapId') entry.mapId++;
       if (kind === 'data') entry.map.__data__ += 'x';
-      if (kind === 'sid') request.Aa.Sa = 'other-synthetic';
+      if (kind === 'sid') request.Aa.Ua = 'other-synthetic';
       if (kind === 'rid') request.oa++;
-      if (kind === 'schedule') request.Aa.Da = 12345;
+      if (kind === 'schedule') request.Aa.Ca = 12345;
       expect(() => f.retryForward()).toThrow();
       expect(f.calls.forward).toBe(1);
       expect(g.sent()).toBe(true);
@@ -834,12 +856,12 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     const { f, g } = start();
     f.originalXub();
     f.flushOpen();
-    const before = f.graph().connection.uq.ha.ka;
+    const before = f.graph().connection.wq.ha.ka;
     f.recoverBackchannel();
-    const after = f.graph().connection.uq.ha.ka;
+    const after = f.graph().connection.wq.ha.ka;
     expect(after).not.toBe(before);
     expect(after.Aa).toBe(before.Aa);
-    expect(after.Yc).toBe(before.Yc);
+    expect(after.Zc).toBe(before.Zc);
     expect(after.oa).toBe('rpc');
     expect(f.calls).toMatchObject({ forward: 1, backchannel: 2, config: 1, query: 1 });
     expect(g.sent()).toBe(true);
@@ -863,11 +885,11 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
       f.originalXub();
       f.flushOpen();
       f.protocolEnd(kind);
-      expect(f.graph().connection.uq.ha.fU).toBe(0);
-      expect(f.graph().wD).toBe(true);
+      expect(f.graph().connection.wq.ha.hU).toBe(0);
+      expect(f.graph().xD).toBe(true);
       expect(f.graph().hasError).toBe(kind === 'stop');
       expect(f.calls.terminate).toBe(kind === 'close' ? 1 : 0);
-      expect(() => f.graph().connection.uq.ha.Hf()).toThrow();
+      expect(() => f.graph().connection.wq.ha.Jf()).toThrow();
       expect(g.receiving()).toBe(false);
       expect(g.sent()).toBe(true);
     },
@@ -879,16 +901,16 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     const request = f.forwardRequest();
     const entries = request.Za.slice();
     f.failForward();
-    expect(request.DG).toBe(3);
+    expect(request.IG).toBe(3);
     expect(f.protocolErrors().map((event) => event.errorCode)).toEqual([6]);
-    expect(f.graph().connection.uq.ha.Ae[0]).toBe(entries[0]);
-    expect(f.graph().connection.uq.ha.Ae[1]).toBe(entries[1]);
-    expect(f.graph().connection.uq.ha.fU).toBe(0);
+    expect(f.graph().connection.wq.ha.xe[0]).toBe(entries[0]);
+    expect(f.graph().connection.wq.ha.xe[1]).toBe(entries[1]);
+    expect(f.graph().connection.wq.ha.hU).toBe(0);
     expect(f.graph().hasError).toBe(true);
-    expect(f.graph().connection.uq.ha.Ae).toHaveLength(2);
+    expect(f.graph().connection.wq.ha.xe).toHaveLength(2);
     expect(f.calls).toMatchObject({ forward: 1, query: 1, config: 1, terminate: 0 });
     expect(g.sent()).toBe(true);
-    expect(() => f.graph().connection.uq.ha.Hf()).toThrow();
+    expect(() => f.graph().connection.wq.ha.Jf()).toThrow();
   });
 
   it('keeps an index-zero Unknown SID marker on the generic HTTP400 branch', () => {
@@ -898,30 +920,30 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     const request = f.forwardRequest();
     const entries = request.Za.slice();
     f.failForward(false);
-    expect(request.DG).toBe(0);
+    expect(request.IG).toBe(0);
     expect(f.protocolErrors().map((event) => event.errorCode)).toEqual([2]);
-    expect(f.graph().connection.uq.ha.fU).toBe(0);
+    expect(f.graph().connection.wq.ha.hU).toBe(0);
     expect(f.graph().hasError).toBe(true);
-    expect(f.graph().connection.uq.ha.Ae).toHaveLength(2);
-    expect(f.graph().connection.uq.ha.Ae[0]).toBe(entries[0]);
-    expect(f.graph().connection.uq.ha.Ae[1]).toBe(entries[1]);
+    expect(f.graph().connection.wq.ha.xe).toHaveLength(2);
+    expect(f.graph().connection.wq.ha.xe[0]).toBe(entries[0]);
+    expect(f.graph().connection.wq.ha.xe[1]).toBe(entries[1]);
     expect(f.calls).toMatchObject({ forward: 1, query: 1, config: 1, terminate: 0 });
     expect(g.sent()).toBe(true);
-    expect(() => f.graph().connection.uq.ha.Hf()).toThrow();
+    expect(() => f.graph().connection.wq.ha.Jf()).toThrow();
   });
 
-  it.each(['zg', 'Fh', 'wh', 'Cf', 'Ac', 'Zb', 'Ab', 'Fd', 'Wd'] as const)(
+  it.each(['xg', 'Gh', 'wh', 'Cf', 'Ac', 'Zb', 'Ab', 'Fd', 'Wd'] as const)(
     'rejects changed constructor setting %s before physical delegation',
     (key) => {
       const { f } = start();
       f.originalXub();
-      const transport = f.graph().connection.uq.ha;
+      const transport = f.graph().connection.wq.ha;
       transport[key] = typeof transport[key] === 'boolean' ? !transport[key] : transport[key] + 1;
       expect(() => f.flushOpen()).toThrow();
       expect(f.requests()).toHaveLength(0);
     },
   );
-  it.each(['getLastError', 'zY', 'cancel', 'setTimeout'] as const)(
+  it.each(['getLastError', 'FY', 'cancel', 'setTimeout'] as const)(
     'rejects request method shadow %s before watchdog delegation',
     (key) => {
       const { f } = start();
@@ -937,7 +959,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
       expect(f.calls.forward).toBe(1);
     },
   );
-  it.each(['send', 'abort', 'pea', 'getStatus', 'dispose', 'Hc'] as const)(
+  it.each(['send', 'abort', 'uea', 'getStatus', 'dispose', 'Hc'] as const)(
     'rejects actual backend method shadow %s before callback delegation',
     (key) => {
       const { f } = start();
@@ -953,7 +975,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     },
   );
   it.each(
-    ['removeAllListeners', 'oqa', 'Sab', 'm4', 'removeAll'].flatMap((key) =>
+    ['removeAllListeners', 'zqa', 'hbb', 's4', 'removeAll'].flatMap((key) =>
       ['data', 'accessor'].flatMap((shape) =>
         ['cleanup', 'current'].map((stage) => ({ key, shape, stage })),
       ),
@@ -963,7 +985,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     f.originalXub();
     f.flushOpen();
     const xhr = f.forwardRequest().ha;
-    const owner = key === 'removeAll' ? xhr.Mpa : xhr;
+    const owner = key === 'removeAll' ? xhr.Xpa : xhr;
     const saved = f.watchdog();
     const sends = f.calls.nativeSends;
     let foreign = 0;
@@ -1010,7 +1032,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     f.originalXub();
     f.flushOpen();
     const xhr = f.forwardRequest().ha;
-    const owner = target === 'instance' ? xhr : f.namespace.Xj.prototype;
+    const owner = target === 'instance' ? xhr : f.namespace.Vj.prototype;
     const saved = f.watchdog();
     const calls = { ...f.calls };
     let markerGetter = 0;
@@ -1019,7 +1041,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     xhr.removeEventListener = () => fallback++;
     const mutate = () => {
       reached = true;
-      Object.defineProperty(owner, f.namespace.Aga, {
+      Object.defineProperty(owner, f.namespace.zga, {
         configurable: true,
         ...(shape === 'data'
           ? { value: false, writable: true }
@@ -1056,8 +1078,8 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
       const { f, g } = start();
       let markerGetter = 0;
       let fallback = 0;
-      f.namespace.Xj.prototype.removeEventListener = () => fallback++;
-      Object.defineProperty(f.namespace.Xj.prototype, f.namespace.Aga, {
+      f.namespace.Vj.prototype.removeEventListener = () => fallback++;
+      Object.defineProperty(f.namespace.Vj.prototype, f.namespace.zga, {
         configurable: true,
         ...(shape === 'data'
           ? { value: false, writable: true }
@@ -1079,7 +1101,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     },
   );
   it.each(
-    ['Dff', 'R0c', 'Mpa', 'src'].flatMap((key) =>
+    ['Rgf', 'F1c', 'Xpa', 'src'].flatMap((key) =>
       ['data', 'accessor'].flatMap((shape) =>
         ['cleanup', 'current'].map((stage) => ({ key, shape, stage })),
       ),
@@ -1089,7 +1111,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     f.originalXub();
     f.flushOpen();
     const xhr = f.forwardRequest().ha;
-    const owner = key === 'src' ? xhr.Mpa : xhr;
+    const owner = key === 'src' ? xhr.Xpa : xhr;
     const saved = f.watchdog();
     const sends = f.calls.nativeSends;
     let foreign = 0;
@@ -1106,7 +1128,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     };
     const replacement =
       key === 'Koa'
-        ? Object.assign(Object.create(Object.getPrototypeOf(xhr.Mpa)), xhr.Mpa)
+        ? Object.assign(Object.create(Object.getPrototypeOf(xhr.Xpa)), xhr.Xpa)
         : target;
     const mutate = () => {
       reached = true;
@@ -1143,7 +1165,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     expect(g.receiving()).toBe(false);
   });
   it.each(
-    ['removeAllListeners', 'oqa', 'Sab', 'm4', 'dispatchEvent'].flatMap((key) =>
+    ['removeAllListeners', 'zqa', 'hbb', 's4', 'dispatchEvent'].flatMap((key) =>
       ['data', 'accessor'].flatMap((shape) =>
         ['capture', 'current'].map((stage) => ({ key, shape, stage })),
       ),
@@ -1156,7 +1178,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
       return true;
     };
     const mutate = () =>
-      Object.defineProperty(f.namespace.Xj.prototype, key, {
+      Object.defineProperty(f.namespace.Vj.prototype, key, {
         configurable: true,
         ...(shape === 'data' ? { value: replacement, writable: true } : { get: replacement }),
       });
@@ -1230,12 +1252,12 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     const { f } = start();
     f.originalXub();
     f.flushOpen();
-    const transport = f.graph().connection.uq.ha;
-    const original = transport.Da;
+    const transport = f.graph().connection.wq.ha;
+    const original = transport.Ca;
     let count = 0;
     f.hooks({
       current() {
-        transport.Da = ++count === 1 ? 1234 : original;
+        transport.Ca = ++count === 1 ? 1234 : original;
       },
     });
     expect(() => f.retryForward()).toThrow();
@@ -1246,7 +1268,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     const { f, g } = start();
     f.originalXub();
     f.flushOpen();
-    f.graph().connection.uq.ha.Gb++;
+    f.graph().connection.wq.ha.Gb++;
     expect(() => g.detach()).toThrow();
     expect(f.calls.terminate).toBe(0);
   });
@@ -1279,7 +1301,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
           foreign++;
         };
       if (kind === 'factory')
-        f.namespace.bja.Z8 = () => {
+        f.namespace.aja.g9 = () => {
           foreign++;
         };
       if (kind === 'callback')
@@ -1287,7 +1309,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
           foreign++;
         };
       if (kind === 'wrapper')
-        f.namespace.Xj.prototype.l_c = () => {
+        f.namespace.Vj.prototype.Y_c = () => {
           foreign++;
         };
       expect(() => f.flushOpen()).toThrow();
@@ -1334,17 +1356,17 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     const { f, g } = start();
     f.originalXub();
     f.flushOpen();
-    expect(() => f.namespace.iM(f.graph())).toThrow('Gemini cold WebChannel refused');
+    expect(() => f.namespace.aM(f.graph())).toThrow('Gemini cold WebChannel refused');
     expect(g.receiving()).toBe(false);
     expect(f.calls.query).toBe(1);
   });
-  it.each(['Da', 'Gb', 'Ih'] as const)(
+  it.each(['Ca', 'Gb', 'Jh'] as const)(
     'rejects non-writable source target %s during graph capture',
     (key) => {
       const f = geminiSdkWebChannelFixture();
       f.hooks({
         afterFactory() {
-          const t = f.graph().connection.uq.ha;
+          const t = f.graph().connection.wq.ha;
           Object.defineProperty(t, key, { writable: false });
         },
       });
@@ -1370,7 +1392,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
       f.originalXub();
       f.flushOpen();
       const request = f.forwardRequest();
-      const events = request.ha.Mpa.listeners;
+      const events = request.ha.Xpa.listeners;
       if (kind === 'listener') events.readystatechange[0].listener = () => {};
       if (kind === 'extra-listener') events.complete = [];
       if (kind === 'event-owner') request.Zb.wa = {};
@@ -1386,9 +1408,9 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
       f.originalXub();
       f.flushOpen();
       f.prepareForwardRetry();
-      const transport = f.graph().connection.uq.ha;
-      expect(typeof transport.Da).toBe('number');
-      expect(() => (kind === 'missing' ? transport.Hf() : transport.Hf(f.requests()[0]))).toThrow(
+      const transport = f.graph().connection.wq.ha;
+      expect(typeof transport.Ca).toBe('number');
+      expect(() => (kind === 'missing' ? transport.Jf() : transport.Jf(f.requests()[0]))).toThrow(
         'Gemini cold WebChannel refused',
       );
       expect(f.calls.forward).toBe(1);
@@ -1400,9 +1422,9 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     f.protocolUpgrade();
     const { g } = start(f);
     f.originalXub();
-    expect(f.graph().connection.uq.ha.Aa.ha).toBe(null);
+    expect(f.graph().connection.wq.ha.Aa.ha).toBe(null);
     f.flushOpen();
-    expect(f.graph().connection.uq.ha.Aa.ha).toBeInstanceOf(Set);
+    expect(f.graph().connection.wq.ha.Aa.ha).toBeInstanceOf(Set);
     expect(f.calls).toMatchObject({ forward: 1, query: 1, config: 1 });
     expect(g.sent()).toBe(true);
   });
@@ -1415,7 +1437,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     let canceled = false;
     f.hooks({
       current() {
-        if (f.requests().some((request) => request.Za.length && request.ha?.TOc)) {
+        if (f.requests().some((request) => request.Za.length && request.ha?.EPc)) {
           canceled = true;
           f.setCurrent(false);
         }
@@ -1426,7 +1448,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     expect(f.calls.nativeSends).toBe(before);
   });
 
-  it.each(['throw', 'rk', 'native-send', 'owner', 'hook'] as const)(
+  it.each(['throw', 'nk', 'native-send', 'owner', 'hook'] as const)(
     'blocks native continuation after swallowed OPENED %s refusal',
     (kind) => {
       const { f } = start();
@@ -1443,11 +1465,11 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
       f.synchronousOpenEvents();
       f.hooks({
         current() {
-          const request = f.requests().findLast((r) => r.Za.length && r.ha?.TOc);
+          const request = f.requests().findLast((r) => r.Za.length && r.ha?.EPc);
           if (!request) return;
           reached = true;
           if (kind === 'throw') throw new Error('synthetic lease failure');
-          if (kind === 'rk') request.ha.vk = foreign;
+          if (kind === 'nk') request.ha.vk = foreign;
           if (kind === 'native-send')
             request.ha.vk.send = () => {
               foreignCalls++;
@@ -1466,7 +1488,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
       expect(f.calls.nativeSends).toBe(before);
     },
   );
-  it.each(['rk', 'send'] as const)(
+  it.each(['nk', 'send'] as const)(
     'does not resume after an OPENED %s mutation attempt is caught and later restored',
     (kind) => {
       const { f } = start();
@@ -1477,18 +1499,18 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
       f.synchronousOpenEvents();
       f.hooks({
         current() {
-          const request = f.requests().findLast((r) => r.Za.length && r.ha?.TOc);
+          const request = f.requests().findLast((r) => r.Za.length && r.ha?.EPc);
           if (!request) return;
           attempts++;
           const xhr = request.ha,
             native = xhr.vk,
             send = native.send;
           try {
-            if (kind === 'rk') xhr.vk = null;
+            if (kind === 'nk') xhr.vk = null;
             else native.send = () => {};
           } catch {}
           try {
-            if (kind === 'rk') xhr.vk = native;
+            if (kind === 'nk') xhr.vk = native;
             else native.send = send;
           } catch {}
         },
@@ -1520,7 +1542,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
     });
   });
 
-  it.each(['nE', 't6b', 'MWa'] as const)(
+  it.each(['qE', 'K6b', 'TWa'] as const)(
     'refuses OPENED control-state mutation of %s before native send',
     (key) => {
       const { f } = start();
@@ -1531,7 +1553,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
       f.synchronousOpenEvents();
       f.hooks({
         current() {
-          const request = f.requests().findLast((r) => r.Za.length && r.ha?.TOc);
+          const request = f.requests().findLast((r) => r.Za.length && r.ha?.EPc);
           if (!request) return;
           reached = true;
           request.ha[key] = !request.ha[key];
@@ -1579,16 +1601,16 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
       const terminal = f.requests().at(-1);
       expect(terminal.mb).toBe(2);
       expect(terminal.Za).toEqual([]);
-      expect(terminal.Da).toBe(null);
+      expect(terminal.Ca).toBe(null);
       if (kind.startsWith('beacon'))
-        expect(beacon).toHaveBeenCalledExactlyOnceWith(terminal.Sa.toString(), '');
+        expect(beacon).toHaveBeenCalledExactlyOnceWith(terminal.Ua.toString(), '');
       else expect(beacon).not.toHaveBeenCalled();
-      expect(f.images()).toEqual(kind === 'image' ? [terminal.Sa] : []);
+      expect(f.images()).toEqual(kind === 'image' ? [terminal.Ua] : []);
       if (kind !== 'beacon' && kind !== 'image') {
         const transmitted = f.nativeTransmissions().at(-1)!;
         expect(transmitted.receiver).toBe(terminal.ha.vk);
         expect(transmitted.args).toEqual(['']);
-        expect(terminal.ha.Mpa.listeners).toEqual({});
+        expect(terminal.ha.Xpa.listeners).toEqual({});
       }
       expect(f.calls.nativeSends).toBe(before + (kind === 'beacon' || kind === 'image' ? 0 : 1));
       expect(f.calls).toMatchObject({
@@ -1599,7 +1621,7 @@ describe('Gemini cold WebChannel phase2 physical ownership', () => {
         forward: 1,
         terminate: 1,
       });
-      expect(f.graph().connection.uq.ha.fU).toBe(0);
+      expect(f.graph().connection.wq.ha.hU).toBe(0);
       expect(() => f.graph().connect()).toThrow('Gemini cold WebChannel refused');
     },
   );
@@ -1616,11 +1638,11 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     'drainfix compare-restores shared hooks on original physical %s observer return',
     (kind) => {
       const f = geminiSdkWebChannelFixture('json', true);
-      const keys = ['PLd', 'Klb', 'dKd', 'LJd', '$b', 'uA', 'bu', 'Vt'];
+      const keys = ['jMd', 'Jlb', 'wKd', 'aKd', '$b', 'wA', 'au', 'Tt'];
       const shared = keys.map((key) => Object.getOwnPropertyDescriptor(f.namespace, key));
       const { g } = start(f);
       f.bindOriginal(g.bindObservable);
-      const cl = Object.getOwnPropertyDescriptor(f.namespace, 'iM');
+      const cl = Object.getOwnPropertyDescriptor(f.namespace, 'aM');
       const complete = vi.fn(() => {
         expect(g.receiving()).toBe(true);
         g.detach();
@@ -1637,19 +1659,19 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
       else f.protocolEnd(kind);
       expect(complete).toHaveBeenCalledTimes(kind === 'close' ? 1 : 0);
       expect(error).toHaveBeenCalledTimes(kind === 'close' ? 0 : 1);
-      if (kind !== 'close') expect(error.mock.calls[0]![0]).toBe(f.graph().tB.oa);
+      if (kind !== 'close') expect(error.mock.calls[0]![0]).toBe(f.graph().wB.oa);
       expect(g.receiving()).toBe(false);
-      expect(f.graph().connection.uq.ha.fU).toBe(0);
-      expect(f.lifetime.Ps[21]).toEqual([]);
+      expect(f.graph().connection.wq.ha.hU).toBe(0);
+      expect(f.lifetime.Qs[21]).toEqual([]);
       expect(f.graph().Ga.closed).toBe(true);
       expect(f.responseSubscription().closed).toBe(true);
       expect(f.outer().closed).toBe(true);
       expect(f.graph().hasError).toBe(kind !== 'close');
       expect(keys.map((key) => Object.getOwnPropertyDescriptor(f.namespace, key))).toEqual(shared);
-      expect(Object.getOwnPropertyDescriptor(f.namespace, 'iM')).toEqual(cl);
-      f.namespace.iM(f.graph());
+      expect(Object.getOwnPropertyDescriptor(f.namespace, 'aM')).toEqual(cl);
+      f.namespace.aM(f.graph());
       expect(() => f.graph().connect()).toThrow();
-      expect(() => f.graph().thc('late')).toThrow();
+      expect(() => f.graph().Shc('late')).toThrow();
       expect(() => f.retryForward()).toThrow();
       expect(f.calls).toEqual({
         ...before,
@@ -1661,7 +1683,7 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
   );
   it('drainfix preserves nested original unsubscribe before physical callback detach', () => {
     const f = geminiSdkWebChannelFixture('json', true);
-    const shared = Object.getOwnPropertyDescriptor(f.namespace, 'Klb');
+    const shared = Object.getOwnPropertyDescriptor(f.namespace, 'Jlb');
     const { g } = start(f);
     f.bindOriginal(g.bindObservable);
     const complete = vi.fn(() => {
@@ -1674,9 +1696,9 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     f.protocolEnd('close');
     expect(complete).toHaveBeenCalledTimes(1);
     expect(g.receiving()).toBe(false);
-    expect(Object.getOwnPropertyDescriptor(f.namespace, 'Klb')).toEqual(shared);
-    expect(f.lifetime.Ps[21]).toEqual([]);
-    expect(f.graph().connection.uq.ha.fU).toBe(0);
+    expect(Object.getOwnPropertyDescriptor(f.namespace, 'Jlb')).toEqual(shared);
+    expect(f.lifetime.Qs[21]).toEqual([]);
+    expect(f.graph().connection.wq.ha.hU).toBe(0);
     expect(f.calls.query).toBe(1);
   });
   it.each(['foreign-hook', 'failed-unsubscribe'] as const)(
@@ -1684,25 +1706,25 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     (kind) => {
       const { f, g } = lifecycle();
       const foreign = vi.fn();
-      const hook = f.namespace.Klb;
+      const hook = f.namespace.Jlb;
       const error = vi.fn(() => {
         expect(g.receiving()).toBe(true);
         g.detach();
-        if (kind === 'foreign-hook') f.namespace.Klb = foreign;
-        else Object.freeze(f.lifetime.Ps[21]);
+        if (kind === 'foreign-hook') f.namespace.Jlb = foreign;
+        else Object.freeze(f.lifetime.Qs[21]);
       });
       f.originalXub({ error });
       f.flushOpen();
       expect(() => f.failForward()).toThrow('Gemini cold WebChannel refused');
       expect(error).toHaveBeenCalledTimes(1);
       expect(g.receiving()).toBe(false);
-      expect(f.namespace.Klb).toBe(kind === 'foreign-hook' ? foreign : hook);
+      expect(f.namespace.Jlb).toBe(kind === 'foreign-hook' ? foreign : hook);
       expect(foreign).not.toHaveBeenCalled();
       expect(() => g.detach()).toThrow();
-      expect(() => f.graph().thc('late')).toThrow();
+      expect(() => f.graph().Shc('late')).toThrow();
       expect(() => f.retryForward()).toThrow();
       expect(f.calls.query).toBe(1);
-      if (kind === 'failed-unsubscribe') expect(f.lifetime.Ps[21].length).toBeGreaterThan(0);
+      if (kind === 'failed-unsubscribe') expect(f.lifetime.Qs[21].length).toBeGreaterThan(0);
     },
   );
   it.each(['complete', 'error'] as const)(
@@ -1714,23 +1736,23 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
         if (kind === 'error') expect(received).toBe(error);
         expect(g.receiving()).toBe(true);
         g.detach();
-        expect(f.graph().connection.uq.ha.fU).toBe(3);
+        expect(f.graph().connection.wq.ha.hU).toBe(3);
       });
       f.originalXub({ [kind]: terminal });
       f.flushOpen();
-      if (kind === 'error') f.graph().tB.error(error);
-      else f.graph().tB.complete();
+      if (kind === 'error') f.graph().wB.error(error);
+      else f.graph().wB.complete();
       expect(terminal).toHaveBeenCalledTimes(1);
       expect(g.receiving()).toBe(false);
-      expect(f.graph().connection.uq.ha.fU).toBe(0);
-      expect(f.lifetime.Ps[21]).toEqual([]);
+      expect(f.graph().connection.wq.ha.hU).toBe(0);
+      expect(f.lifetime.Qs[21]).toEqual([]);
       expect(f.graph().Ga.closed).toBe(true);
       expect(f.outer().closed).toBe(true);
       expect(f.calls.query).toBe(1);
-      expect(() => f.graph().thc('late')).toThrow();
+      expect(() => f.graph().Shc('late')).toThrow();
     },
   );
-  it.each(['outer', 'S0', 'S1', 'S2', 'N0', 'N1', 'R2', 'Z2'] as const)(
+  it.each(['outer', 'S0', 'S1', 'S2', 'N0', 'N1', 'R2', 'j3'] as const)(
     'reviewfix rejects data/accessor iterator overrides on the actual %s teardown array',
     (owner) => {
       for (const trigger of ['detach', 'unsubscribe']) {
@@ -1739,7 +1761,7 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
           f.originalXub();
           const s0 = f.graph().Ga;
           const s1 = f.responseSubscription();
-          const t2 = f.graph().Da.observers[0];
+          const t2 = f.graph().Ca.observers[0];
           const s2 = t2.destination;
           const subscription = {
             outer: f.outer(),
@@ -1749,7 +1771,7 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
             N0: s0.wa[0],
             N1: s1.wa[0],
             R2: s2.wa[0],
-            Z2: t2,
+            j3: t2,
           }[owner];
           const foreign = vi.fn();
           const iterator = vi.fn(function* () {
@@ -1783,13 +1805,13 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
       else
         expect(() =>
           stage === 'complete'
-            ? f.graph().tB.complete()
-            : f.graph().tB.error(new Error('synthetic-terminal')),
+            ? f.graph().wB.complete()
+            : f.graph().wB.error(new Error('synthetic-terminal')),
         ).toThrow();
       expect(() => g.detach()).toThrow();
       expect(notifier.closed).toBe(false);
-      expect(f.lifetime.Ps[21].length).toBeGreaterThan(0);
-      expect(() => f.graph().thc('late')).toThrow();
+      expect(f.lifetime.Qs[21].length).toBeGreaterThan(0);
+      expect(() => f.graph().Shc('late')).toThrow();
       expect(f.calls.query).toBe(1);
     },
   );
@@ -1800,7 +1822,7 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     f.outer().unsubscribe();
     const parent = f.graph().Ga;
     const [notifier, removal] = parent.wa;
-    Object.freeze(f.lifetime.Ps[21]);
+    Object.freeze(f.lifetime.Qs[21]);
     let thrown: any;
     try {
       f.runCloseFallback();
@@ -1811,23 +1833,23 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     expect(thrown.errors).toHaveLength(1);
     expect([parent.closed, notifier.closed, removal.closed]).toEqual([true, true, true]);
     expect(f.graph().connection.Ki.observers).toEqual([]);
-    expect(f.graph().connection.uq.ha.fU).toBe(3);
+    expect(f.graph().connection.wq.ha.hU).toBe(3);
     expect(() => g.detach()).toThrow();
     parent.unsubscribe();
     expect(() => g.detach()).toThrow();
-    expect(f.lifetime.Ps[21]).toHaveLength(1);
-    expect(() => f.graph().thc('late')).toThrow();
+    expect(f.lifetime.Qs[21]).toHaveLength(1);
+    expect(() => f.graph().Shc('late')).toThrow();
     expect(() => f.retryForward()).toThrow();
     expect(f.calls.query).toBe(1);
   });
-  it.each(['outer', 'S0', 'S1', 'S2', 'N0', 'N1', 'R2', 'Z2'] as const)(
+  it.each(['outer', 'S0', 'S1', 'S2', 'N0', 'N1', 'R2', 'j3'] as const)(
     'reviewfix refuses disappearance of a captured %s child before cleanup',
     (owner) => {
       const { f, g } = lifecycle();
       f.originalXub();
       const s0 = f.graph().Ga;
       const s1 = f.responseSubscription();
-      const t2 = f.graph().Da.observers[0];
+      const t2 = f.graph().Ca.observers[0];
       const s2 = t2.destination;
       const subscription = {
         outer: f.outer(),
@@ -1837,7 +1859,7 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
         N0: s0.wa[0],
         N1: s1.wa[0],
         R2: s2.wa[0],
-        Z2: t2,
+        j3: t2,
       }[owner];
       subscription.wa.pop();
       expect(() => g.detach()).toThrow();
@@ -1859,9 +1881,9 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
       },
     });
     f.flushOpen();
-    f.graph().tB.complete();
-    expect(f.graph().connection.uq.ha.fU).toBe(0);
-    expect(f.lifetime.Ps[21]).toEqual([]);
+    f.graph().wB.complete();
+    expect(f.graph().connection.wq.ha.hU).toBe(0);
+    expect(f.lifetime.Qs[21]).toEqual([]);
     expect(g.receiving()).toBe(false);
   });
   it('reviewfix catches a deleted edge before a later application callback can restore it', () => {
@@ -1876,7 +1898,7 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     });
     f.flushOpen();
     children = [...f.graph().Ga.wa];
-    expect(() => f.graph().tB.complete()).toThrow();
+    expect(() => f.graph().wB.complete()).toThrow();
     expect(restore).not.toHaveBeenCalled();
     expect(() => g.detach()).toThrow();
   });
@@ -1886,9 +1908,9 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     const w = f.graph();
     expect(f.calls.open).toBe(1);
     expect(w.Ga.wa[0].destination).toBe(w.Ga);
-    expect(f.lifetime.Ps[21]).toHaveLength(3);
-    expect(w.tB.observers[0]).toBe(f.responseSubscription());
-    expect(w.Da.observers[0].destination).not.toBe(w.Ga);
+    expect(f.lifetime.Qs[21]).toHaveLength(3);
+    expect(w.wB.observers[0]).toBe(f.responseSubscription());
+    expect(w.Ca.observers[0].destination).not.toBe(w.Ga);
     expect(g.sent()).toBe(false);
     expect(g.receiving()).toBe(false);
   });
@@ -1896,7 +1918,7 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     const { f } = lifecycle();
     f.hooks({
       afterFactory() {
-        f.graph().tB.subscribe(() => {});
+        f.graph().wB.subscribe(() => {});
       },
     });
     expect(() => f.originalXub()).toThrow();
@@ -1905,14 +1927,14 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
   it('runs the captured one-shot open listener and its automatic child teardown', () => {
     const { f, g } = lifecycle();
     f.originalXub();
-    const s2 = f.graph().Da.observers[0].destination;
+    const s2 = f.graph().Ca.observers[0].destination;
     f.flushOpen();
     expect(s2.closed).toBe(true);
-    expect(f.graph().Da.observers).toEqual([]);
-    expect(f.lifetime.Ps[21]).toHaveLength(2);
+    expect(f.graph().Ca.observers).toEqual([]);
+    expect(f.lifetime.Qs[21]).toHaveLength(2);
     expect(g.sent()).toBe(true);
     g.detach();
-    expect(f.lifetime.Ps[21]).toEqual([]);
+    expect(f.lifetime.Qs[21]).toEqual([]);
   });
   it('encloses later original outer unsubscribe and admits exactly one original close frame', () => {
     const { f, g } = lifecycle();
@@ -1920,15 +1942,15 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     f.flushOpen();
     f.setCurrent(false);
     f.outer().unsubscribe();
-    expect(f.graph().t$).toBe(true);
+    expect(f.graph().p6).toBe(true);
     expect(
       f.serialized().map(({ message }) => readGeminiNativeSendKind(f.namespace, message)),
     ).toEqual(['configuration', 'query', 'close']);
-    f.namespace.iM(f.graph());
+    f.namespace.aM(f.graph());
     expect(f.serialized()).toHaveLength(3);
     expect(g.sent()).toBe(true);
     g.detach();
-    expect(f.graph().wD).toBe(true);
+    expect(f.graph().xD).toBe(true);
   });
   it('keeps the original close fallback usable after producer consumption ends', () => {
     const { f } = lifecycle();
@@ -1936,23 +1958,23 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     f.flushOpen();
     f.outer().unsubscribe();
     f.runCloseFallback();
-    expect(f.graph().wD).toBe(true);
-    expect(f.graph().connection.uq.ha.fU).toBe(0);
+    expect(f.graph().xD).toBe(true);
+    expect(f.graph().connection.wq.ha.hU).toBe(0);
   });
   it('accepts only the original bounded close after explicit stop, never forged H9', () => {
     const { f, g } = lifecycle();
     f.originalXub();
     f.flushOpen();
-    f.graph().t$ = true;
+    f.graph().p6 = true;
     g.close();
-    expect(() => f.namespace.iM(f.graph())).toThrow();
+    expect(() => f.namespace.aM(f.graph())).toThrow();
     expect(f.serialized()).toHaveLength(2);
   });
   it('preserves late source CL and unsubscribe idempotence after full retirement', () => {
     const { f, g } = lifecycle();
     f.originalXub();
     f.flushOpen();
-    const close = f.namespace.iM;
+    const close = f.namespace.aM;
     g.detach();
     close.call(f.namespace, f.graph());
     f.graph().Ga.unsubscribe();
@@ -1974,17 +1996,17 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
   });
   it('restores shared creator and Yc hooks after their one original capture', () => {
     const f = geminiSdkWebChannelFixture('json', true);
-    const original = [f.namespace.uA, f.namespace.bu, f.namespace.Vt];
+    const original = [f.namespace.wA, f.namespace.au, f.namespace.Tt];
     const { g } = start(f);
     f.bindOriginal(g.bindObservable);
     f.originalXub();
-    expect([f.namespace.uA, f.namespace.bu, f.namespace.Vt]).toEqual(original);
-    expect(Object.hasOwn(f.api.Ia, 'Wc')).toBe(false);
+    expect([f.namespace.wA, f.namespace.au, f.namespace.Tt]).toEqual(original);
+    expect(Object.hasOwn(f.api.Ia, 'Uc')).toBe(false);
     g.detach();
   });
   it('refuses an already destroyed owner before the first physical open', () => {
     const { f, g } = lifecycle();
-    f.lifetime.Ps[2] |= 256;
+    f.lifetime.Qs[2] |= 256;
     expect(() => f.originalXub()).toThrow();
     expect(f.calls.open).toBe(0);
     expect(f.requests()).toEqual([]);
@@ -1994,10 +2016,10 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
   it('allows source owner destruction with the old list retained and its later null phase', () => {
     const { f, g } = lifecycle();
     f.originalXub();
-    const callbacks = [...f.lifetime.Ps[21]];
-    f.lifetime.Ps[2] |= 256;
+    const callbacks = [...f.lifetime.Qs[21]];
+    f.lifetime.Qs[2] |= 256;
     callbacks[0]();
-    f.lifetime.Ps[21] = null;
+    f.lifetime.Qs[21] = null;
     callbacks[1]();
     callbacks[2]();
     expect(f.graph().Ga.closed).toBe(true);
@@ -2009,14 +2031,14 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     const { g } = start(f);
     f.bindOriginal(g.bindObservable);
     f.originalXub();
-    expect(f.api.Ia.Zpb).toHaveLength(3);
-    f.api.Ia.Bwc.add({
+    expect(f.api.Ia.uqb).toHaveLength(3);
+    f.api.Ia.ixc.add({
       Lb() {
         f.graph().Ga.unsubscribe();
       },
     });
     f.api.Ia.destroy();
-    expect(f.api.Ia.Zpb).toEqual([]);
+    expect(f.api.Ia.uqb).toEqual([]);
     expect(f.responseSubscription().closed).toBe(true);
     g.detach();
   });
@@ -2032,8 +2054,8 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     f.originalXub();
     expect(inside).toBe(true);
     expect(f.outer().closed).toBe(true);
-    expect(f.graph().wD).toBe(true);
-    expect(f.lifetime.Ps[21]).toEqual([]);
+    expect(f.graph().xD).toBe(true);
+    expect(f.lifetime.Qs[21]).toEqual([]);
     expect(f.calls.forward).toBe(0);
     expect(g.receiving()).toBe(false);
   });
@@ -2046,14 +2068,14 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
         if (!requested && g.receiving()) {
           requested = true;
           g.detach();
-          expect(f.graph().wD).toBe(false);
+          expect(f.graph().xD).toBe(false);
         }
       },
     });
     expect(() => f.flushOpen()).toThrow();
     expect(requested).toBe(true);
     expect(g.receiving()).toBe(false);
-    expect(f.graph().wD).toBe(true);
+    expect(f.graph().xD).toBe(true);
   });
   it('checks lifecycle state immediately before a second callback can restore it', () => {
     const { f } = lifecycle();
@@ -2061,10 +2083,10 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
       afterFactory() {
         f.hooks({
           current() {
-            f.graph().Ga.Ys = true;
+            f.graph().Ga.Zs = true;
           },
           scope() {
-            f.graph().Ga.Ys = false;
+            f.graph().Ga.Zs = false;
           },
         });
       },
@@ -2076,7 +2098,7 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     const { f, g } = lifecycle();
     f.originalXub();
     f.flushOpen();
-    f.graph().tB.complete();
+    f.graph().wB.complete();
     expect(f.outer().closed).toBe(true);
     expect(f.serialized()).toHaveLength(3);
     expect(() => g.completion({} as never)).toThrow();
@@ -2101,7 +2123,7 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     'late',
   ] as const)('rejects %s observable binding without another physical request', (kind) => {
     const { f, g } = lifecycle();
-    const value = f.api.Zxb(f.packet);
+    const value = f.api.ybb(f.packet);
     if (kind === 'duplicate') {
       g.bindObservable(value);
       expect(() => g.bindObservable(value)).toThrow();
@@ -2122,14 +2144,14 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     }
     expect(f.requests()).toEqual([]);
   });
-  it.each(['Wc', 'dg'] as const)('refuses a foreign owner %s getter without invoking it', (key) => {
+  it.each(['Uc', 'dg'] as const)('refuses a foreign owner %s getter without invoking it', (key) => {
     const f = geminiSdkWebChannelFixture('json', true);
     const getter = vi.fn();
     Object.defineProperty(f.api.Ia, key, { get: getter });
     expect(() => start(f)).toThrow();
     expect(getter).not.toHaveBeenCalled();
   });
-  it.each(['Nj', 'ha', 'Ca', 'destination', 'oa'] as const)(
+  it.each(['Pj', 'ha', 'Ca', 'destination', 'oa'] as const)(
     'refuses changed captured child %s before cleanup',
     (key) => {
       const { f, g } = lifecycle();
@@ -2167,7 +2189,7 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     expect(inside).toBe(true);
     expect(f.deferredErrors).toContain(error);
     expect(f.outer().closed).toBe(true);
-    expect(f.graph().wD).toBe(true);
+    expect(f.graph().xD).toBe(true);
     expect(() => g.completion({} as never)).toThrow();
   });
   it('preserves original ft aggregation while retiring every proved sibling in that unsubscribe', () => {
@@ -2175,7 +2197,7 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     f.originalXub();
     const parent = f.graph().Ga;
     const [notifier, removal] = parent.wa;
-    Object.freeze(f.lifetime.Ps[21]);
+    Object.freeze(f.lifetime.Qs[21]);
     let thrown: any;
     try {
       parent.unsubscribe();
@@ -2206,7 +2228,7 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
         f.hooks({
           current() {
             try {
-              f.namespace.uA(f.api.Ia);
+              f.namespace.wA(f.api.Ia);
             } catch {}
           },
         });
@@ -2219,7 +2241,7 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     const { f } = lifecycle();
     f.originalXub();
     const next = vi.fn();
-    expect(() => f.graph().connection.uC.subscribe(next)).toThrow();
+    expect(() => f.graph().connection.xC.subscribe(next)).toThrow();
     expect(next).not.toHaveBeenCalled();
   });
   it.each(['bind', 'call', 'apply'] as const)(
@@ -2258,7 +2280,7 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     const { f, g } = lifecycle();
     f.originalXub();
     const w = f.graph();
-    const s2 = w.Da.observers[0].destination;
+    const s2 = w.Ca.observers[0].destination;
     f.hooks({
       current() {
         throw new Error('synthetic-current');
@@ -2267,7 +2289,7 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     expect(() => g.identity()).toThrow();
     g.detach();
     expect([w.Ga.closed, f.responseSubscription().closed, s2.closed]).toEqual([true, true, true]);
-    expect(f.lifetime.Ps[21]).toEqual([]);
+    expect(f.lifetime.Qs[21]).toEqual([]);
     expect(f.calls.forward).toBe(0);
   });
   it.each(['stop', 'close'] as const)(
@@ -2277,10 +2299,10 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
       f.originalXub();
       f.flushOpen();
       f.protocolEnd(kind);
-      expect(f.graph().wD).toBe(true);
+      expect(f.graph().xD).toBe(true);
       expect(f.outer().closed).toBe(true);
-      expect(f.lifetime.Ps[21]).toEqual([]);
-      expect(f.graph().connection.uq.ha.fU).toBe(0);
+      expect(f.lifetime.Qs[21]).toEqual([]);
+      expect(f.graph().connection.wq.ha.hU).toBe(0);
       expect(f.graph().hasError).toBe(kind === 'stop');
       g.detach();
       expect(() => g.completion({} as never)).toThrow();
@@ -2293,7 +2315,7 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     f.failForward();
     expect(f.graph().hasError).toBe(true);
     expect(f.outer().closed).toBe(true);
-    expect(f.lifetime.Ps[21]).toEqual([]);
+    expect(f.lifetime.Qs[21]).toEqual([]);
     g.detach();
     expect(() => g.completion({} as never)).toThrow();
   });
@@ -2306,10 +2328,10 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
       const sentinel = Object.getOwnPropertyDescriptors(f.namespace.qt.ha);
       f.hooks({
         afterFactory() {
-          f.graph().tB.Ys = true;
+          f.graph().wB.Zs = true;
           if (kind === 'error') {
-            f.graph().tB.hasError = true;
-            f.graph().tB.oa = error;
+            f.graph().wB.hasError = true;
+            f.graph().wB.oa = error;
           }
         },
       });
@@ -2330,8 +2352,8 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
   it('passes through unrelated creator use outside original consumption without claiming its subscription', () => {
     const f = geminiSdkWebChannelFixture('json', true);
     start(f);
-    const other = new f.namespace.Yt();
-    const subscription = other.pipe(f.namespace.uA(f.api.Ia)).subscribe(() => {});
+    const other = new f.namespace.Wt();
+    const subscription = other.pipe(f.namespace.wA(f.api.Ia)).subscribe(() => {});
     expect(subscription.closed).toBe(false);
     expect(Object.hasOwn(subscription, 'unsubscribe')).toBe(false);
     subscription.unsubscribe();
@@ -2342,12 +2364,12 @@ describe('Gemini cold WebChannel actual lifecycle capture', () => {
     const { f, g } = lifecycle();
     f.originalXub();
     const w = f.graph();
-    const s2 = w.Da.observers[0].destination;
+    const s2 = w.Ca.observers[0].destination;
     f.setCurrent(false);
     g.detach();
     expect([w.Ga.closed, f.responseSubscription().closed, s2.closed]).toEqual([true, true, true]);
-    expect(f.lifetime.Ps[21]).toEqual([]);
-    expect([w.tB.observers, w.Da.observers, w.connection.Ki.observers]).toEqual([[], [], []]);
+    expect(f.lifetime.Qs[21]).toEqual([]);
+    expect([w.wB.observers, w.Ca.observers, w.connection.Ki.observers]).toEqual([[], [], []]);
     expect(f.calls.forward).toBe(0);
   });
 });
@@ -2382,15 +2404,15 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
       f.receive(envelope);
       let value = envelope;
       for (const [key, field] of [
-        ['hM', 2],
-        ['gM', 7],
-        ['CJd', 1],
-        ['fM', 4],
+        ['$L', 2],
+        ['ZL', 7],
+        ['SJd', 1],
+        ['YL', 4],
       ] as const) {
         expect(value.fl[ns.dga].get(ns[key])).toBe(field);
         value = value.fl[field - 1];
       }
-      expect(next).toHaveBeenCalledTimes(1);
+      expect(next).toHaveBeenCalledTimes(2);
       expect(g.identity().turnId).toBe('server-rid');
       f.receive(f.nativeClose(5));
       expect(complete).toHaveBeenCalledTimes(1);
@@ -2401,7 +2423,7 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
       ns = f.namespace;
     const envelope: any = f.nativeClose(field);
     f.receive(envelope);
-    expect(envelope.fl[ns.dga].get(ns.hM)).toBe(field);
+    expect(envelope.fl[ns.dga].get(ns.$L)).toBe(field);
     expect(complete).toHaveBeenCalledTimes(1);
   });
   it.each(['json', 'protobuf'] as const)(
@@ -2434,15 +2456,16 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
       }
       f.receive(f.nativeClose(5));
       expect(scope).toEqual([
-        ...Array.from({ length: 2 }, () =>
-          ['receipt', 'RJd:before', 'projection', 'RJd:after', 'DJd'].map((stage) => [
-            stage,
-            true,
-            true,
-            false,
-            false,
-          ]),
-        ).flat(),
+        ...[false, true].flatMap((final) =>
+          [
+            'receipt',
+            'RJd:before',
+            'projection',
+            ...(final ? ['projection'] : []),
+            'RJd:after',
+            'DJd',
+          ].map((stage) => [stage, true, true, false, false]),
+        ),
         ['control', true, false, false, false],
         ['complete', true, false, false, false],
       ]);
@@ -2474,7 +2497,7 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
       const { f, g, next } = receiveFixture(codec);
       const raw = f.nativeKf({ cid: 'c_47', rid: 'server-rid' });
       const envelope = f.nativeEnvelope(raw);
-      const seed = f.graph().Aa;
+      const seed = f.graph().oa;
       const observe = vi.spyOn(f.observer, 'next').mockImplementation((receipt: any) => {
         expect(g.receiving()).toBe(true);
         expect(receipt.original).toBe(raw);
@@ -2484,7 +2507,7 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
           turnId: 'server-rid',
           ridOrigin: 'server',
         });
-        expect(f.graph().Aa).not.toBe(seed);
+        expect(f.graph().oa).not.toBe(seed);
         expect(next).not.toHaveBeenCalled();
       });
       f.onReceive(() => expect(g.receiving()).toBe(true));
@@ -2587,7 +2610,7 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
       let removed = false;
       next.mockImplementation(() => {
         s0.unsubscribe();
-        removed = s0.closed && s0.Ys && ii.observers.length === 0;
+        removed = s0.closed && s0.Zs && ii.observers.length === 0;
         ii.observers.push(s0);
       });
       f.onReceive((stage) => {
@@ -2618,7 +2641,7 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
       expect(() => g.detach()).toThrow();
       const calls = { ...f.calls };
       expect(() => f.graph().connect()).toThrow();
-      expect(() => f.graph().thc('late')).toThrow();
+      expect(() => f.graph().Shc('late')).toThrow();
       expect(() => f.retryForward()).toThrow();
       expect(f.calls).toEqual(calls);
       expect(f.calls.query).toBe(1);
@@ -2628,12 +2651,12 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
     it(`final reviewfix latches ${codec} outer lifecycle mutation before source restoration`, () => {
       const { f, g, next } = receiveFixture(codec);
       const s0 = f.graph().Ga;
-      expect(s0.Ys).toBe(false);
+      expect(s0.Zs).toBe(false);
       next.mockImplementation(() => {
-        s0.Ys = true;
+        s0.Zs = true;
       });
       f.onReceive((stage) => {
-        if (stage === 'RJd:after') s0.Ys = false;
+        if (stage === 'RJd:after') s0.Zs = false;
       });
       const notifications: Array<[boolean, string | undefined]> = [];
       const failure = vi.spyOn(f.observer, 'error').mockImplementation(() => {
@@ -2650,7 +2673,7 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
         'DJd',
       ]);
       expect(f.receiveTrace.every((entry) => entry.value === raw)).toBe(true);
-      expect(s0.Ys).toBe(false);
+      expect(s0.Zs).toBe(false);
       expect(failure).toHaveBeenCalledTimes(1);
       expect(notifications).toEqual([[false, 'DJd']]);
       expect(f.deferredErrors).toEqual([]);
@@ -2659,7 +2682,7 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
       expect(() => g.detach()).toThrow();
       const calls = { ...f.calls };
       expect(() => f.graph().connect()).toThrow();
-      expect(() => f.graph().thc('late')).toThrow();
+      expect(() => f.graph().Shc('late')).toThrow();
       expect(() => f.retryForward()).toThrow();
       expect(f.calls).toEqual(calls);
       expect(f.calls.query).toBe(1);
@@ -2668,7 +2691,7 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
 
     it(`phase3b reviewfix latches ${codec} outer physical mutation before source restoration`, () => {
       const { f, g, next } = receiveFixture(codec);
-      const transport = f.graph().connection.uq.ha;
+      const transport = f.graph().connection.wq.ha;
       const counter = transport.Gb;
       next.mockImplementation(() => {
         transport.Gb++;
@@ -2695,9 +2718,9 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
 
     it(`phase3b reviewfix never adopts ${codec} outer physical mutation after observer failure`, () => {
       const { f, g, next } = receiveFixture(codec);
-      const transport = f.graph().connection.uq.ha;
+      const transport = f.graph().connection.wq.ha;
       const counter = transport.Gb;
-      const hook = f.namespace.PLd;
+      const hook = f.namespace.jMd;
       vi.spyOn(f.observer, 'next').mockImplementation(() => {
         throw Error('synthetic-observer');
       });
@@ -2717,22 +2740,22 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
       expect(failure).toHaveBeenCalledTimes(1);
       expect(firstError).toBeInstanceOf(Error);
       expect(() => g.detach()).toThrow(firstError as Error);
-      expect(f.namespace.PLd).toBe(hook);
-      expect(transport.fU).toBe(3);
+      expect(f.namespace.jMd).toBe(hook);
+      expect(transport.hU).toBe(3);
       expect(() => g.identity()).toThrow(firstError as Error);
       expect(f.calls.query).toBe(1);
     });
 
     it(`phase3b reviewfix quarantines ${codec} error observer hook mutation after later restoration`, () => {
       const { f, g, next } = receiveFixture(codec);
-      const hook = f.namespace.PLd;
+      const hook = f.namespace.jMd;
       vi.spyOn(f.observer, 'next').mockImplementation(() => {
         throw Error('synthetic-observer');
       });
       const failure = vi.spyOn(f.observer, 'error').mockImplementation(() => {
         expect(g.receiving()).toBe(false);
         expect(f.receiveTrace.at(-1)?.stage).toBe('DJd');
-        f.namespace.PLd = () => {};
+        f.namespace.jMd = () => {};
       });
       let firstError: unknown;
       try {
@@ -2740,13 +2763,13 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
       } catch (error) {
         firstError = error;
       }
-      expect(f.namespace.PLd).not.toBe(hook);
-      f.namespace.PLd = hook;
+      expect(f.namespace.jMd).not.toBe(hook);
+      f.namespace.jMd = hook;
       expect(next).toHaveBeenCalledTimes(1);
       expect(failure).toHaveBeenCalledTimes(1);
       expect(firstError).toBeInstanceOf(Error);
       expect(() => g.detach()).toThrow(firstError as Error);
-      expect(f.namespace.PLd).toBe(hook);
+      expect(f.namespace.jMd).toBe(hook);
       expect(() => g.identity()).toThrow(firstError as Error);
       expect(f.calls.query).toBe(1);
     });
@@ -2761,7 +2784,7 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
       f.api.gja = false;
       f.api.i1 = false;
       const eligibility = vi.fn(() => false);
-      f.namespace.jL = eligibility;
+      f.namespace.Osd = eligibility;
       const observe = vi.spyOn(f.observer, 'next');
       const error = vi.spyOn(f.observer, 'error');
       try {
@@ -2789,8 +2812,8 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
       f.receive(f.nativeClose(4));
       expect(control).toHaveBeenCalledWith(4);
       expect(complete).toHaveBeenCalledTimes(1);
-      expect(f.graph().connection.uq.ha.fU).toBe(0);
-      expect(f.lifetime.Ps[21]).toEqual([]);
+      expect(f.graph().connection.wq.ha.hU).toBe(0);
+      expect(f.lifetime.Qs[21]).toEqual([]);
       expect(g.completion((observe.mock.calls[0]![0] as any).observation.completed!)).toMatchObject(
         { turnId: 'server-rid' },
       );
@@ -2844,7 +2867,7 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
         vi.spyOn(f.observer, 'next').mockImplementation(() => {
           if (kind === 'field65') raw.fl[64] = [];
           else if (kind === 'candidate-extra') {
-            const extra = new f.namespace.bw([]);
+            const extra = new f.namespace.$v([]);
             extra.fl[150] = [['synthetic']];
             raw.fl[4][0].fl[12] = extra;
           } else Object.defineProperty(raw.fl[4], '0', { get: getter });
@@ -2866,14 +2889,14 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
         const { f, g, next } = receiveFixture(codec);
         let restore = () => {};
         vi.spyOn(f.observer, 'next').mockImplementation(() => {
-          const aa = f.graph().Aa,
+          const aa = f.graph().oa,
             backing = aa.fl,
             flags = backing[f.namespace.La],
             rid = backing[1];
           if (kind === 'slot') {
-            f.graph().Aa = new f.namespace.CI([...backing]);
+            f.graph().oa = new f.namespace.CI([...backing]);
             restore = () => {
-              f.graph().Aa = aa;
+              f.graph().oa = aa;
             };
           }
           if (kind === 'backing') {
@@ -2908,7 +2931,7 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
         expect(() => g.identity()).toThrow();
       },
     );
-    it.each(['decode', 'Ii', 'xD'] as const)(
+    it.each(['decode', 'Gi', 'yD'] as const)(
       `phase3b refuses caught ${codec} %s reentry without a second source event`,
       (kind) => {
         const { f, g, next } = receiveFixture(codec);
@@ -2919,10 +2942,10 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
           if (stage !== 'RJd:before' || reentered) return;
           reentered = true;
           try {
-            if (kind === 'decode') f.graph().connection.NTa(envelope);
-            if (kind === 'Ii')
+            if (kind === 'decode') f.graph().connection.RTa(envelope);
+            if (kind === 'Gi')
               f.graph().connection.Ki.next({ eventType: 'channel_message', message: envelope });
-            if (kind === 'xD') f.graph().tB.next(raw);
+            if (kind === 'yD') f.graph().wB.next(raw);
           } catch {}
         });
         const error = vi.spyOn(f.observer, 'error');
@@ -2942,11 +2965,11 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
   }
   it('phase3b refuses an isolated fake parser invocation outside owned transport dispatch', () => {
     const { f, g } = receiveFixture('json');
-    expect(() => f.graph().connection.NTa(f.nativeEnvelope(f.nativeKf({ cid: 'c_47' })))).toThrow();
+    expect(() => f.graph().connection.RTa(f.nativeEnvelope(f.nativeKf({ cid: 'c_47' })))).toThrow();
     expect(() => g.identity()).toThrow();
   });
 
-  it.each(['zL', 'ci', 'zJd', 'Yh', 'Zh', 'n'] as const)(
+  it.each(['wL', 'bi', 'PJd', 'Xh', 'Yh', 'n'] as const)(
     'phase3b refuses replaced source normalization helper %s before invocation',
     (key) => {
       const { f, g } = receiveFixture('json');
@@ -3009,9 +3032,9 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
   it('phase3b keeps source network errors distinct from success and forwards original error identity', () => {
     const { f, g, error, complete } = receiveFixture('json');
     const failure = vi.spyOn(f.observer, 'error');
-    f.graph().connection.aza({ status: 1 });
+    f.graph().connection.kza({ status: 1 });
     expect(error).toHaveBeenCalledTimes(1);
-    expect(error.mock.calls[0]?.[0]).toBe(f.graph().tB.oa);
+    expect(error.mock.calls[0]?.[0]).toBe(f.graph().wB.oa);
     expect(complete).not.toHaveBeenCalled();
     expect(failure).toHaveBeenCalledTimes(1);
     expect(f.deferredErrors).toEqual([]);
@@ -3023,7 +3046,7 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
     const { f, g, complete } = receiveFixture('json');
     const observe = vi.spyOn(f.observer, 'next');
     f.receive(f.nativeEnvelope(f.nativeKf({ cid: 'c_47', rid: 'server-rid', final: true })));
-    f.graph().tB.complete();
+    f.graph().wB.complete();
     expect(complete).toHaveBeenCalledTimes(1);
     expect(g.completion((observe.mock.calls[0]![0] as any).observation.completed)).toMatchObject({
       turnId: 'server-rid',
@@ -3050,7 +3073,7 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
       try {
         g.detach();
       } catch {}
-      expect(f.graph().connection.uq.ha.fU).toBe(0);
+      expect(f.graph().connection.wq.ha.hU).toBe(0);
       expect(f.outer().closed).toBe(true);
       expect(f.graph().Ga.closed).toBe(true);
       expect(g.receiving()).toBe(false);
@@ -3081,9 +3104,9 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
       const { f, g } = receiveFixture('json');
       const foreign = vi.fn();
       vi.spyOn(f.observer, 'next').mockImplementation(() => {
-        if (kind === 'observer-list') f.graph().tB.observers.push({ next: foreign });
+        if (kind === 'observer-list') f.graph().wB.observers.push({ next: foreign });
         if (kind === 'callback') f.responseSubscription().destination.ha.next = foreign;
-        if (kind === 'alias') f.graph().tB = { next: foreign };
+        if (kind === 'alias') f.graph().wB = { next: foreign };
       });
       try {
         f.receive(f.nativeEnvelope(f.nativeKf({ cid: 'c_47', rid: 'server-rid' })));
@@ -3130,9 +3153,16 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
       expect(g.receiving()).toBe(false);
       expect(() => g.identity()).toThrow();
       expect(failure).toHaveBeenCalledTimes(1);
-      if (stage === 'source')
-        expect(f.deferredErrors.map((error: any) => error.message)).toEqual(['synthetic-source']);
-      else expect(f.deferredErrors).toEqual([]);
+      if (stage === 'source') {
+        expect(next.mock.calls.map(([event]: any[]) => event.responseType)).toEqual([
+          'TURN_COMPLETED',
+          'TURN',
+        ]);
+        expect(f.deferredErrors.map((error: any) => error.message)).toEqual([
+          'synthetic-source',
+          'synthetic-source',
+        ]);
+      } else expect(f.deferredErrors).toEqual([]);
       if (stage !== 'control') expect(f.receiveTrace.at(-1)?.stage).toBe('DJd');
     },
   );
@@ -3160,18 +3190,18 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
   );
 
   for (const codec of ['json', 'protobuf'] as const) {
-    it.each(['Ii', 'xD'] as const)(
+    it.each(['Gi', 'yD'] as const)(
       `phase3b rejects uncorrelated ${codec} %s data before original dispatch`,
       (channel) => {
         const { f, g, next } = receiveFixture(codec);
         const raw = f.nativeKf({ cid: 'c_47', rid: 'server-rid' });
         try {
-          if (channel === 'Ii')
+          if (channel === 'Gi')
             f.graph().connection.Ki.next({
               eventType: 'channel_message',
               message: f.nativeEnvelope(raw),
             });
-          else f.graph().tB.next(raw);
+          else f.graph().wB.next(raw);
         } catch {}
         expect(next).not.toHaveBeenCalled();
         expect(f.receiveTrace).toEqual([]);
@@ -3209,7 +3239,7 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
       try {
         f.receive(f.nativeEnvelope(f.nativeKf({ cid: 'c_47', rid: 'server-rid', final: true })));
       } catch {}
-      expect(next).toHaveBeenCalledTimes(1);
+      expect(next).toHaveBeenCalledTimes(2);
       expect(() => g.identity()).toThrow();
     });
   }
@@ -3273,13 +3303,13 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
         } catch (error) {
           firstError = error;
         }
-        if (when === 'later') expect(f.graph().connection.uq.ha.fU).toBe(3);
+        if (when === 'later') expect(f.graph().connection.wq.ha.hU).toBe(3);
         g.detach();
-        expect(f.graph().connection.uq.ha.fU).toBe(0);
+        expect(f.graph().connection.wq.ha.hU).toBe(0);
         expect(f.outer().closed).toBe(true);
         expect(f.graph().Ga.closed).toBe(true);
         expect(f.responseSubscription().closed).toBe(true);
-        expect(f.lifetime.Ps[21]).toEqual([]);
+        expect(f.lifetime.Qs[21]).toEqual([]);
         expect(failure).toHaveBeenCalledTimes(1);
         expect(next).toHaveBeenCalledTimes(1);
         expect(f.receiveTrace.at(-1)?.stage).toBe('DJd');
@@ -3307,7 +3337,7 @@ describe('Gemini cold WebChannel phase3b native receipts', () => {
       } catch {}
       delete raw.fl[64];
       expect(() => g.detach()).toThrow();
-      expect(f.graph().connection.uq.ha.fU).toBe(3);
+      expect(f.graph().connection.wq.ha.hU).toBe(3);
       expect(next).not.toHaveBeenCalled();
       expect(() => g.identity()).toThrow();
       expect(f.calls.query).toBe(1);
@@ -3393,7 +3423,7 @@ describe('current shared native preparation and recovery ownership', () => {
       f.shared
         .observer()
         .error(Object.assign(Error('synthetic-network'), { syntheticNetwork: true }));
-      expect(state.Da.closed).toBe(false);
+      expect(state.Ca.closed).toBe(false);
       expect(f.shared.pending()).toBe(1);
       f.shared.failProbeUnsubscribe();
       expect(() => f.outer().unsubscribe()).toThrow();
@@ -3405,7 +3435,7 @@ describe('current shared native preparation and recovery ownership', () => {
   );
   it('refuses a continuation72 CID before another native configuration or query', () => {
     const f = geminiSdkWebChannelFixture('json', true);
-    f.ok.fl[71] = new f.namespace.yL(['c_prior']);
+    f.ok.fl[71] = new f.namespace.vL(['c_prior']);
     const { g } = start(f);
     f.bindOriginal(g.bindObservable);
     expect(() => f.originalXub()).toThrow();
@@ -3474,10 +3504,10 @@ for (const codec of ['json', 'protobuf'] as const)
   );
 
 it.each([
-  ['PLd', 'dispatch-native-n01'],
-  ['dKd', 'dispatch-native-n02'],
-  ['LJd', 'dispatch-native-n03'],
-  ['Klb', 'dispatch-native-n04'],
+  ['jMd', 'dispatch-native-n01'],
+  ['wKd', 'dispatch-native-n02'],
+  ['aKd', 'dispatch-native-n03'],
+  ['Jlb', 'dispatch-native-n04'],
 ] as const)('latches the before-arm %s fingerprint failure as immutable %s', (key, code) => {
   const f = geminiSdkWebChannelFixture();
   f.namespace[key] = () => {};
@@ -3498,8 +3528,8 @@ it.each([
 });
 it('distinguishes an unreadable preflight descriptor from its source fingerprint without invoking getters', () => {
   const f = geminiSdkWebChannelFixture(),
-    getter = vi.fn(() => f.namespace.LJd);
-  Object.defineProperty(f.namespace, 'LJd', { get: getter, configurable: true });
+    getter = vi.fn(() => f.namespace.aKd);
+  Object.defineProperty(f.namespace, 'aKd', { get: getter, configurable: true });
   let error: unknown;
   try {
     arm(f.namespace, f.api, f.approved, f.current, f.consumingOriginal, f.observer);
@@ -3546,7 +3576,7 @@ it('keeps classified teardown origin while preserving original UnsubscriptionErr
   f.originalXub();
   const parent = f.graph().Ga,
     [notifier, removal] = parent.wa;
-  Object.freeze(f.lifetime.Ps[21]);
+  Object.freeze(f.lifetime.Qs[21]);
   let original: any;
   try {
     parent.unsubscribe();
@@ -3603,7 +3633,7 @@ it('restores successful nested construction scopes before a new identity-only re
 it('distinguishes backend fingerprint from the first later identity poll', () => {
   const f = geminiSdkWebChannelFixture(),
     { g } = start(f);
-  f.namespace.cja.prototype.Z8 = () => {};
+  f.namespace.bja.prototype.g9 = () => {};
   try {
     f.originalXub();
   } catch {}
@@ -3622,7 +3652,7 @@ it('distinguishes backend fingerprint from the first later identity poll', () =>
 
 it('uses the selected backend predicate under actual factory construction scope', () => {
   const f = geminiSdkWebChannelFixture();
-  const xhr = f.namespace.Xj.prototype;
+  const xhr = f.namespace.Vj.prototype;
   Object.setPrototypeOf(xhr, Object.create(Object.getPrototypeOf(xhr)));
   const { g } = start(f);
   let first: any;
@@ -3654,16 +3684,16 @@ it('uses the selected physical predicate inside original shared-close scope', ()
   f.flushOpen();
   const before = f.calls.nativeSends;
   g.close();
-  f.graph().connection.uq.ha.Ih++;
+  f.graph().connection.wq.ha.Jh++;
   let first: any;
   try {
-    f.namespace.iM(f.graph());
+    f.namespace.aM(f.graph());
   } catch (error) {
     first = error;
   }
   expect(first).toBeInstanceOf(Error);
   expect(Object.getOwnPropertyDescriptor(first, 'geminiNativeDiagnostic')?.value).toBe(
-    'dispatch-native-n20',
+    'dispatch-native-n20-map-count',
   );
   expect(f.calls).toMatchObject({ factory: 1, config: 1, query: 1, nativeSends: before });
   expect(() => g.detach()).toThrow();
@@ -3686,7 +3716,7 @@ it('uses the selected native-send gate inside actual Kf physical scope', () => {
     first: any;
   f.hooks({
     current() {
-      const request = f.requests().findLast((r) => r.Za.length && r.ha?.TOc);
+      const request = f.requests().findLast((r) => r.Za.length && r.ha?.EPc);
       if (!request || attempted) return;
       attempted++;
       // Actual source OPENED delivery reenters the existing current checkpoint.
@@ -3895,7 +3925,7 @@ it.each(['retirement', 'reentry'] as const)(
           attempts = 0;
         f.hooks({
           current() {
-            const request = f.requests().findLast((r) => r.Za.length && r.ha?.TOc);
+            const request = f.requests().findLast((r) => r.Za.length && r.ha?.EPc);
             if (!request || attempts) return;
             attempts++;
             try {
@@ -3932,12 +3962,12 @@ describe('Native57 first outbound predicate', () => {
   ] as const)('retains the actual %s rejection through a later poll', (kind, code) => {
     const f = geminiSdkWebChannelFixture();
     if (kind === 'configuration-zero') {
-      const write = f.namespace.Wh;
-      f.namespace.Wh = (value: any, field: number, data: unknown, ...rest: any[]) => {
+      const write = f.namespace.Vh;
+      f.namespace.Vh = (value: any, field: number, data: unknown, ...rest: any[]) => {
         const result = write(value, field, data, ...rest);
         if (
           kind === 'configuration-zero' &&
-          Object.getPrototypeOf(value) === f.namespace.qJd.prototype &&
+          Object.getPrototypeOf(value) === f.namespace.GJd.prototype &&
           field === 2
         )
           value.fl[1] = 2n;
@@ -3952,7 +3982,7 @@ describe('Native57 first outbound predicate', () => {
         if (kind === 'argument-mode') {
           changed = true;
           try {
-            f.namespace.LJd(
+            f.namespace.aKd(
               f.graph(),
               f.ok,
               f.api.requestSource,
@@ -3965,8 +3995,8 @@ describe('Native57 first outbound predicate', () => {
         }
         if (kind === 'queue-order') {
           changed = true;
-          const close = f.namespace.Th(
-            new f.namespace.tJd([undefined, undefined, undefined, new f.namespace.UId([1])]),
+          const close = f.namespace.Rh(
+            new f.namespace.JJd([undefined, undefined, undefined, new f.namespace.jJd([1])]),
           );
           try {
             f.queued().push(close);
@@ -3985,9 +4015,9 @@ describe('Native57 first outbound predicate', () => {
           changed = true;
           f.produced().fl[0].fl[0].fl[f.namespace.La] |= 128;
         }
-        if (kind === 'evidence-seed-immutable' && f.graph()?.Aa) {
+        if (kind === 'evidence-seed-immutable' && f.graph()?.oa) {
           changed = true;
-          f.graph().Aa.Fb = f.namespace.Kaa;
+          f.graph().oa.Fb = f.namespace.Kaa;
         }
       },
     });
@@ -4032,7 +4062,7 @@ it('Native57 keeps exact original gJd unknown throws distinct from owned asserti
   const original = Object.defineProperty(new Error('SYNTHETIC_PRIVATE'), 'geminiNativeDiagnostic', {
     get: getter,
   });
-  f.namespace.XL = () => {
+  f.namespace.hGd = () => {
     throw original;
   };
   const { g } = start(f);
@@ -4059,9 +4089,9 @@ it('Native57 keeps exact original gJd unknown throws distinct from owned asserti
 
 it('Native57 refines a missing seed object at its existing graph assertion', () => {
   const f = geminiSdkWebChannelFixture(),
-    original = f.namespace.LAd.prototype.setLocale;
-  f.namespace.LAd.prototype.setLocale = function (this: unknown, value: unknown) {
-    f.graph().Aa = null;
+    original = f.namespace.$Ad.prototype.setLocale;
+  f.namespace.$Ad.prototype.setLocale = function (this: unknown, value: unknown) {
+    f.graph().oa = null;
     return Reflect.apply(original, this, [value]);
   };
   const { g } = start(f);
@@ -4105,7 +4135,7 @@ it.each([
       ];
       args[index] = index === 2 ? 999 : 'synthetic-other';
       try {
-        Reflect.apply(f.namespace.LJd, f.namespace, args);
+        Reflect.apply(f.namespace.aKd, f.namespace, args);
       } catch (error) {
         first = error;
       }
@@ -4135,9 +4165,9 @@ describe('Native58 inherited ZKa checkpoints', () => {
       const f = geminiSdkWebChannelFixture('json', true);
       const { g } = start(f);
       const getter = vi.fn(() => false);
-      const previous = Object.getOwnPropertyDescriptor(Object.prototype, 'ZKa');
+      const previous = Object.getOwnPropertyDescriptor(Object.prototype, 'dLa');
       f.bindOriginal((observable) => {
-        Object.defineProperty(Object.prototype, 'ZKa', {
+        Object.defineProperty(Object.prototype, 'dLa', {
           configurable: true,
           ...(kind === 'data' ? { value: false } : { get: getter }),
         });
@@ -4151,8 +4181,8 @@ describe('Native58 inherited ZKa checkpoints', () => {
         expect(f.produced()).toBeUndefined();
         expect(getter).not.toHaveBeenCalled();
       } finally {
-        if (previous) Object.defineProperty(Object.prototype, 'ZKa', previous);
-        else Reflect.deleteProperty(Object.prototype, 'ZKa');
+        if (previous) Object.defineProperty(Object.prototype, 'dLa', previous);
+        else Reflect.deleteProperty(Object.prototype, 'dLa');
       }
     },
   );
@@ -4161,12 +4191,12 @@ describe('Native58 inherited ZKa checkpoints', () => {
     (kind) => {
       const f = geminiSdkWebChannelFixture();
       const { g } = start(f);
-      const original = vi.spyOn(f.namespace, 'Fyd');
+      const original = vi.spyOn(f.namespace, 'Ryd');
       const getter = vi.fn(() => undefined);
-      const previous = Object.getOwnPropertyDescriptor(Object.prototype, 'ZKa');
+      const previous = Object.getOwnPropertyDescriptor(Object.prototype, 'dLa');
       f.hooks({
         current() {
-          Object.defineProperty(Object.prototype, 'ZKa', {
+          Object.defineProperty(Object.prototype, 'dLa', {
             configurable: true,
             ...(kind === 'data' ? { value: undefined } : { get: getter }),
           });
@@ -4179,8 +4209,8 @@ describe('Native58 inherited ZKa checkpoints', () => {
         expect(() => g.identity()).toThrow();
         expect(getter).not.toHaveBeenCalled();
       } finally {
-        if (previous) Object.defineProperty(Object.prototype, 'ZKa', previous);
-        else Reflect.deleteProperty(Object.prototype, 'ZKa');
+        if (previous) Object.defineProperty(Object.prototype, 'dLa', previous);
+        else Reflect.deleteProperty(Object.prototype, 'dLa');
       }
     },
   );
@@ -4219,7 +4249,7 @@ it.each(
     // Fresh IKd delegates BKd after guard refusal; source-internal SUCCESS cannot grant a receipt.
     expect(service.oa).toBe(0);
     expect(service.ka).toBe(0);
-    expect(service.ha.getValue()).toEqual({ status: 'SUCCESS', ze: f.approved.storeId });
+    expect(service.ha.getValue()).toEqual({ status: 'SUCCESS', Ae: f.approved.storeId });
     expect(f.projectionTimerStarts()).toBe(1);
     expect(f.projectionTimers()).toBe(0);
     expect(f.projectionCleanup).toEqual(['timer']);
@@ -4254,11 +4284,11 @@ it.each(['value', 'backing'] as const)(
   'Native63 retains s4d %s before original factory',
   (kind) => {
     const f = geminiSdkWebChannelFixture();
-    const privacy = new f.namespace.wxd([1]);
-    f.packet.request.s4d = privacy;
+    const privacy = new f.namespace.Ixd([1]);
+    f.packet.request.x5d = privacy;
     const { g } = start(f);
     if (kind === 'value') privacy.fl[0] = 2;
-    else privacy.fl = new f.namespace.wxd([2]).fl;
+    else privacy.fl = new f.namespace.Ixd([2]).fl;
     expect(assertGeminiTrialPacket(f.namespace, f.packet, f.approved)).toBe(f.packet);
     expect(() => f.originalXub()).toThrow();
     expect(f.calls).toMatchObject({ factory: 0, query: 0, forward: 0 });
@@ -4277,11 +4307,11 @@ it.each(['cache', 'group', 'symbol', 'namespace'] as const)(
     if (kind === 'cache') {
       Object.freeze(config.fl);
       Object.freeze(config.fl[ns.dga]);
-      config.fl[ns.dga].set(ns.eM, 2);
+      config.fl[ns.dga].set(ns.XL, 2);
     }
-    if (kind === 'group') ns.eM[0] = 2;
+    if (kind === 'group') ns.XL[0] = 2;
     if (kind === 'symbol') ns.dga = Symbol('replacement');
-    if (kind === 'namespace') ns.eM = [...ns.eM];
+    if (kind === 'namespace') ns.XL = [...ns.XL];
     expect(() => f.flushOpen()).toThrow();
     let failure: any;
     try {
@@ -4292,10 +4322,1089 @@ it.each(['cache', 'group', 'symbol', 'namespace'] as const)(
     expect(failure).toBeInstanceOf(Error);
     expect(failure.cause).toBe('dispatch-cold-webchannel');
     expect(Object.getOwnPropertyDescriptor(failure, 'geminiNativeDiagnostic')?.value).toBe(
-      kind === 'namespace' || kind === 'symbol' ? 'dispatch-native-n10' : 'dispatch-native-n20',
+      kind === 'namespace' || kind === 'symbol'
+        ? 'dispatch-native-n10'
+        : 'dispatch-native-n20-forward-before',
     );
     expect(config.fl[0]).toBe(child);
     expect(f.calls).toMatchObject({ factory: 1, config: 1, query: 1, forward: 0, nativeSends: 0 });
     expect(f.serialized()).toHaveLength(0);
   },
 );
+
+function native66Fixture(codec: 'json' | 'protobuf' = 'json') {
+  const f = geminiSdkWebChannelFixture(codec, true);
+  const { g } = start(f);
+  f.bindOriginal(g.bindObservable);
+  const next = vi.fn();
+  f.originalXub({ next });
+  f.flushOpen();
+  const error = vi.spyOn(f.observer, 'error');
+  return { f, g, next, error };
+}
+
+describe('Native66 first observed receive diagnostic', () => {
+  it.each(['json', 'protobuf'] as const)(
+    'distinguishes %s capture wire leaf from normalization',
+    (codec) => {
+      for (const origin of ['capture', 'normalize'] as const) {
+        const { f, g, next, error } = native66Fixture(codec);
+        const raw: any = f.nativeKf({ cid: 'c_47', rid: 'server-rid' });
+        if (origin === 'capture') raw.fl.extra = 'SYNTHETIC_PRIVATE';
+        else
+          f.onNormalize((aa) => {
+            aa.fl.extra = 'SYNTHETIC_PRIVATE';
+          });
+        try {
+          f.receive(f.nativeEnvelope(raw));
+        } catch {}
+        expect(error).toHaveBeenCalledExactlyOnceWith({
+          origin,
+          predicate: 'dispatch-native-n15-wire-06',
+        });
+        expect(next).toHaveBeenCalledTimes(origin === 'capture' ? 0 : 1);
+        expect(f.calls).toMatchObject({ factory: 1, config: 1, query: 1 });
+        expect(() => g.identity()).toThrow();
+      }
+    },
+  );
+  it.each(['extension-callback', 'original-callback'] as const)(
+    'keeps %s sentinel A before finally mutation B and report C',
+    (origin) => {
+      const { f, g, next, error } = native66Fixture();
+      const raw: any = f.nativeKf({ cid: 'c_47', rid: 'server-rid' });
+      const sentinel = Object.defineProperty(
+        new Error('SYNTHETIC_A'),
+        'geminiNativeReceiveDiagnostic',
+        {
+          get: () => {
+            throw Error('must not inspect');
+          },
+        },
+      );
+      const callback = origin === 'extension-callback' ? vi.spyOn(f.observer, 'next') : next;
+      callback.mockImplementation(() => {
+        raw.fl[14] = true;
+        throw sentinel;
+      });
+      f.onReceive((stage) => {
+        if (stage === 'RJd:before') raw.fl[14] = false;
+      });
+      const receiving: boolean[] = [];
+      error.mockImplementation(() => {
+        receiving.push(g.receiving());
+        throw Error('SYNTHETIC_C');
+      });
+      try {
+        f.receive(f.nativeEnvelope(raw));
+      } catch {}
+      expect(receiving).toEqual([false]);
+      expect(error).toHaveBeenCalledExactlyOnceWith({ origin, predicate: 'unknown' });
+      expect(f.receiveTrace.at(-1)?.stage).toBe('DJd');
+      if (origin === 'original-callback')
+        expect(f.deferredErrors.some((value) => value === sentinel)).toBe(true);
+      try {
+        g.detach();
+      } catch {}
+      expect(error).toHaveBeenCalledTimes(1);
+    },
+  );
+  it('keeps a first guard failure before a later extension callback throw and starts a fresh latch on another arm', () => {
+    const { f, g, error } = native66Fixture();
+    vi.spyOn(f.observer, 'next').mockImplementation(() => {
+      try {
+        f.graph().connection.RTa({});
+      } catch {}
+      throw Error('SYNTHETIC_LATER');
+    });
+    try {
+      f.receive(f.nativeEnvelope(f.nativeKf({ cid: 'c_47', rid: 'server-rid' })));
+    } catch {}
+    expect(error).toHaveBeenCalledExactlyOnceWith({ origin: 'capture', predicate: 'unknown' });
+    expect(() => g.identity()).toThrow();
+    const fresh = native66Fixture();
+    fresh.f.onDecode(() => {
+      throw Error('SYNTHETIC_DECODE');
+    });
+    try {
+      fresh.f.receive(fresh.f.nativeEnvelope(fresh.f.nativeKf({ cid: 'c_47' })));
+    } catch {}
+    expect(fresh.error).toHaveBeenCalledExactlyOnceWith({ origin: 'decode', predicate: 'unknown' });
+  });
+});
+
+it.each([
+  ['prior-guard', 'unknown'],
+  ['correlation', 'event-binding'],
+  ['lifecycle-admission', 'lifecycle-feature'],
+  ['receipt-currentness', 'receipt-content'],
+  ['owner-currentness', 'dispatch-native-n23'],
+  ['provider-terminal', 'provider-error'],
+  ['provider-terminal', 'provider-control'],
+] as const)('Native66 observes %s at the existing owning boundary', (origin, predicate) => {
+  const { f, g, error } = native66Fixture();
+  const raw: any = f.nativeKf({ cid: 'c_47', rid: 'server-rid' });
+  if (origin === 'prior-guard') {
+    try {
+      g.bindObservable({});
+    } catch {}
+  }
+  if (origin === 'lifecycle-admission')
+    f.onNormalize(() => {
+      raw.fl[64] = [];
+    });
+  if (origin === 'receipt-currentness')
+    vi.spyOn(f.observer, 'next').mockImplementation(() => {
+      raw.fl[14] = true;
+    });
+  if (origin === 'owner-currentness')
+    vi.spyOn(f.observer, 'next').mockImplementation(() => {
+      f.setCurrent(false);
+    });
+  try {
+    if (predicate === 'provider-control')
+      f.graph().connection.Ki.next({ eventType: 'channel_close' });
+    else if (origin === 'provider-terminal') f.graph().connection.kza({ status: 1 });
+    else if (origin === 'correlation' || origin === 'prior-guard') f.graph().wB.next(raw);
+    else f.receive(f.nativeEnvelope(raw));
+  } catch {}
+  expect(error).toHaveBeenCalledExactlyOnceWith({ origin, predicate });
+  expect(f.calls.query).toBe(1);
+  expect(() => g.identity()).toThrow();
+});
+
+it('Native66 observes finish-envelope before later owner cleanup and does not promote a later throw', () => {
+  const create = contractModule.createGeminiNativeReceipt;
+  const sentinel = Error('SYNTHETIC_FINISH');
+  const mock = vi
+    .spyOn(contractModule, 'createGeminiNativeReceipt')
+    .mockImplementation((...args) => {
+      const receipt = create(...args);
+      return {
+        ...receipt,
+        finishEnvelope() {
+          throw sentinel;
+        },
+      };
+    });
+  try {
+    const { f, g, error } = native66Fixture();
+    try {
+      f.receive(f.nativeEnvelope(f.nativeKf({ cid: 'c_47', rid: 'server-rid' })));
+    } catch {}
+    expect(error).toHaveBeenCalledExactlyOnceWith({
+      origin: 'finish-envelope',
+      predicate: 'unknown',
+    });
+    try {
+      g.detach();
+    } catch {}
+    expect(error).toHaveBeenCalledTimes(1);
+  } finally {
+    mock.mockRestore();
+  }
+});
+
+it.each(['lifecycle', 'physical'] as const)(
+  'Native66 returned %s witness owns its first direct assertion after a callback returns normally',
+  (kind) => {
+    const { f, g, next, error } = native66Fixture();
+    const target = kind === 'lifecycle' ? f.outer() : f.graph().connection.wq.ha;
+    const key = kind === 'lifecycle' ? 'Zs' : 'Gb';
+    const before = Object.getOwnPropertyDescriptor(target, key)!;
+    let returnedNormally = false;
+    const callback = vi.spyOn(f.observer, 'next').mockImplementation(() => {
+      // Receipt/source/Aa are intact: the returned snapshot's direct descriptor check fails first.
+      target[key] = kind === 'lifecycle' ? !before.value : before.value + 1;
+      returnedNormally = true;
+    });
+    const restore = vi.fn(() => Object.defineProperty(target, key, before));
+    f.onReceive((stage) => {
+      if (stage === 'RJd:before') restore();
+    });
+    const receiving: boolean[] = [];
+    error.mockImplementation(() => {
+      receiving.push(g.receiving());
+    });
+    try {
+      f.receive(f.nativeEnvelope(f.nativeKf({ cid: 'c_47', rid: 'server-rid' })));
+    } catch {}
+    expect(receiving).toEqual([false]);
+    expect(returnedNormally).toBe(true);
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(error).toHaveBeenCalledExactlyOnceWith({
+      origin: 'owner-currentness',
+      predicate: 'unknown',
+    });
+    expect(restore).toHaveBeenCalledTimes(1);
+    expect(Object.getOwnPropertyDescriptor(target, key)).toEqual(before);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(f.receiveTrace.map((entry) => entry.stage)).toEqual(['RJd:before', 'RJd:after', 'DJd']);
+    expect(f.deferredErrors).toEqual([]);
+    expect(f.calls).toMatchObject({ factory: 1, config: 1, query: 1 });
+    expect(() => g.identity()).toThrow();
+    try {
+      g.detach();
+    } catch {}
+    expect(error).toHaveBeenCalledTimes(1);
+  },
+);
+
+it('Native66 review reaches the exact response-transition descriptor gate before restoration', () => {
+  const { f, g, next, error } = native66Fixture();
+  const graph = f.graph();
+  const before = Object.getOwnPropertyDescriptor(graph, 'oa')!;
+  const normalize = vi.fn(() => {
+    const current = Object.getOwnPropertyDescriptor(graph, 'oa')!;
+    expect(current).toEqual(before);
+    Object.defineProperty(graph, 'oa', { ...current, enumerable: !current.enumerable });
+    const changed = Object.getOwnPropertyDescriptor(graph, 'oa')!;
+    expect(changed).toEqual({ ...before, enumerable: !before.enumerable });
+  });
+  f.onNormalize(normalize);
+  const restore = vi.fn(() => {
+    const current = Object.getOwnPropertyDescriptor(graph, 'oa')!;
+    Object.defineProperty(graph, 'oa', { ...current, enumerable: before.enumerable });
+  });
+  f.onReceive((stage) => {
+    if (stage === 'RJd:before') restore();
+  });
+  const receiving: boolean[] = [];
+  error.mockImplementation(() => {
+    receiving.push(g.receiving());
+  });
+  try {
+    f.receive(f.nativeEnvelope(f.nativeKf({ cid: 'c_47', rid: 'server-rid' })));
+  } catch {}
+  expect(receiving).toEqual([false]);
+  expect(normalize).toHaveBeenCalledTimes(1);
+  expect(error).toHaveBeenCalledExactlyOnceWith({
+    origin: 'normalize',
+    predicate: 'response-transition',
+  });
+  expect(restore).toHaveBeenCalledTimes(1);
+  expect(Object.getOwnPropertyDescriptor(graph, 'oa')).toMatchObject({
+    enumerable: before.enumerable,
+    writable: before.writable,
+    configurable: before.configurable,
+  });
+  expect(graph.oa).not.toBe(before.value);
+  expect(next).toHaveBeenCalledTimes(1);
+  expect(f.receiveTrace.map((entry) => entry.stage)).toEqual(['RJd:before', 'RJd:after', 'DJd']);
+  expect(f.deferredErrors).toEqual([]);
+  expect(f.calls).toMatchObject({ factory: 1, config: 1, query: 1 });
+  expect(() => g.identity()).toThrow();
+  expect(() =>
+    g.completion({ kind: 'marker', conversationId: 'c_47', turnId: 'server-rid' }),
+  ).toThrow();
+  try {
+    g.detach();
+  } catch {}
+  expect(error).toHaveBeenCalledTimes(1);
+});
+
+it.each(['envelope', 'hjd', 'bjd', 'ajd'] as const)(
+  'Native67 identifies known ignored %s branch without changing original handler behavior',
+  (boundary) => {
+    // Original handler/getters, synthetic decoded envelope; this is not an original decoder witness.
+    const original = geminiSdkWebChannelFixture('json', true);
+    const owner = original.namespace.wKd(original.api.Ab, original.api.Ia, {
+      xR: original.metadata,
+    });
+    const emitted = vi.fn();
+    owner.wB.subscribe(emitted);
+    const make = (f: ReturnType<typeof geminiSdkWebChannelFixture>) => {
+      const envelope: any = f.nativeEnvelope(f.nativeKf({ cid: 'c_47', rid: 'server-rid' }));
+      const hjd = envelope.fl[1],
+        bjd = hjd[6],
+        ajd = bjd[0];
+      if (boundary === 'envelope') {
+        delete envelope.fl[1];
+        envelope.fl[0] = [];
+      }
+      if (boundary === 'hjd') {
+        delete hjd[6];
+        hjd[1] = [];
+      }
+      if (boundary === 'bjd') {
+        delete bjd[0];
+        bjd[1] = [];
+      }
+      if (boundary === 'ajd') {
+        delete ajd[3];
+        ajd[2] = [];
+      }
+      return envelope;
+    };
+    owner.connection.Ki.next({ eventType: 'channel_message', message: make(original) });
+    expect(original.deferredErrors).toEqual([]);
+    expect(emitted).not.toHaveBeenCalled();
+    expect(owner.xD).toBe(false);
+    expect(original.calls.query).toBe(0);
+    const { f, g, next, error } = native66Fixture();
+    try {
+      f.receive(make(f));
+    } catch {}
+    if (boundary === 'envelope') {
+      expect(error).not.toHaveBeenCalled();
+      expect(g.identity()).toMatchObject({ ridOrigin: 'request', cidOrigin: 'absent' });
+    } else {
+      expect(error).toHaveBeenCalledExactlyOnceWith({
+        origin: 'capture',
+        predicate: 'fields-' + boundary + '-ignored-branch',
+      });
+      expect(() => g.identity()).toThrow();
+    }
+    expect(next).not.toHaveBeenCalled();
+    expect(f.calls.query).toBe(1);
+    expect(f.deferredErrors).toEqual([]);
+  },
+);
+
+it.each([
+  ['root', 1],
+  ['root', 3],
+  ['root', 6],
+  ['hjd', 2],
+  ['bjd', 2],
+  ['ajd', 3],
+] as const)(
+  'Native68 root %s/%s finishes while nested ignored branches stay unsupported',
+  (owner, field) => {
+    const { f, g, next, error } = native66Fixture();
+    const control = vi.spyOn(f.observer, 'control');
+    const before = g.identity();
+    if (owner !== 'root') {
+      try {
+        f.receive(f.nativeIgnored(owner, field));
+      } catch {}
+      expect(error).toHaveBeenCalledExactlyOnceWith({
+        origin: 'capture',
+        predicate: 'fields-' + owner + '-ignored-branch',
+      });
+      expect(next).not.toHaveBeenCalled();
+      expect(control).not.toHaveBeenCalled();
+      expect(() => g.identity()).toThrow();
+      return;
+    }
+    f.receive(f.nativeIgnored(owner, field));
+    expect(f.deferredErrors).toEqual([]);
+    expect(error).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+    expect(control).not.toHaveBeenCalled();
+    expect(g.identity()).toEqual(before);
+    f.receive(f.nativeEnvelope(f.nativeKf({ cid: 'c_47', rid: 'server-rid' })));
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(error).not.toHaveBeenCalled();
+    expect(f.calls.query).toBe(1);
+  },
+);
+
+it.each([
+  'none',
+  'Aa',
+  'payload-reference',
+  'source',
+  'projection',
+  'nested-callback',
+  'reentrant-message',
+] as const)(
+  'Native68 original root handler runs once and treats %s as no-output or sticky failure',
+  (mutation) => {
+    const f = geminiSdkWebChannelFixture('json', true),
+      ns = f.namespace;
+    const envelope: any = f.nativeIgnored('root', 1);
+    const originalYh = ns.Xh;
+    let originalCalls = 0;
+    let g: ReturnType<typeof start>['g'];
+    f.onRootSelection((backing) => {
+      if (backing === envelope.fl) {
+        originalCalls++;
+        const aa = Object.getOwnPropertyDescriptor(f.graph(), 'oa');
+        const payload = envelope.fl[0];
+        if (mutation === 'Aa') f.graph().oa = new ns.CI(['c_63', 'r_64']);
+        if (mutation === 'payload-reference') envelope.fl[0] = [];
+        if (mutation === 'source') ns.Xh = () => 1;
+        if (mutation === 'projection') f.graph().wB.next(f.nativeKf({ cid: 'c_47', rid: 'r_48' }));
+        if (mutation === 'nested-callback') f.graph().wB.complete();
+        if (mutation === 'reentrant-message') {
+          try {
+            f.graph().connection.Ki.next({ eventType: 'channel_message', message: envelope });
+          } catch {}
+        }
+        if (['Aa', 'payload-reference', 'source'].includes(mutation)) {
+          try {
+            g.identity();
+          } catch {}
+          if (aa) Object.defineProperty(f.graph(), 'oa', aa);
+          else delete f.graph().oa;
+          envelope.fl[0] = payload;
+          ns.Xh = originalYh;
+        }
+      }
+    });
+    ({ g } = start(f));
+    f.bindOriginal(g.bindObservable);
+    const next = vi.fn();
+    f.originalXub({ next });
+    f.flushOpen();
+    const error = vi.spyOn(f.observer, 'error');
+    const control = vi.spyOn(f.observer, 'control');
+    const receiving: boolean[] = [];
+    error.mockImplementation(() => {
+      receiving.push(g.receiving());
+    });
+    try {
+      f.receive(envelope);
+    } catch {}
+    expect(originalCalls).toBe(1);
+    expect(next).not.toHaveBeenCalled();
+    expect(control).not.toHaveBeenCalled();
+    expect(f.calls.query).toBe(1);
+    if (mutation === 'none') {
+      expect(error).not.toHaveBeenCalled();
+      expect(f.deferredErrors).toEqual([]);
+      f.receive(f.nativeEnvelope(f.nativeKf({ cid: 'c_47', rid: 'server-rid' })));
+      expect(next).toHaveBeenCalledTimes(1);
+    } else {
+      expect(error).toHaveBeenCalledTimes(1);
+      expect(receiving).toEqual([false]);
+      expect(() => g.identity()).toThrow();
+    }
+  },
+);
+
+it('Native68 ignored-envelope replay and close-only cannot satisfy completion', () => {
+  const { f, g, next, error } = native66Fixture();
+  const envelope = f.nativeIgnored('root', 6);
+  f.receive(envelope);
+  try {
+    f.receive(envelope);
+  } catch {}
+  expect(error).toHaveBeenCalledTimes(1);
+  expect(next).not.toHaveBeenCalled();
+  expect(() => g.identity()).toThrow();
+});
+
+it.each([
+  ['hjd', 1, 7n],
+  ['hjd', 4, []],
+  ['ajd', 1, true],
+  ['ajd', 2, ['c_dead']],
+  ['holder', 1, []],
+  ['holder', 2, []],
+  ['holder', 3, []],
+  ['all', 0, undefined],
+] as const)(
+  'Native69 original handler and guarded selected response accept %s/%s ancillary metadata',
+  (boundary, field, value) => {
+    // Original handler/helpers with an invented decoded message, not original decoder provenance.
+    const options =
+      boundary === 'all'
+        ? {
+            hjd: { 1: 7n, 4: [] },
+            ajd: { 1: true, 2: ['c_dead'] },
+            holder: { 1: [], 2: [], 3: [] },
+          }
+        : { [boundary]: { [field]: value } };
+    const original = geminiSdkWebChannelFixture('json', true);
+    const owner = original.namespace.wKd(original.api.Ab, original.api.Ia, {
+      xR: original.metadata,
+    });
+    const projected = vi.fn();
+    owner.wB.subscribe(projected);
+    const originalRaw = original.nativeKf({ cid: 'c_47', rid: 'server-rid', final: true });
+    owner.connection.Ki.next({
+      eventType: 'channel_message',
+      message: original.nativeEnvelope(originalRaw, options),
+    });
+    expect(original.deferredErrors).toEqual([]);
+    expect(projected).toHaveBeenCalledExactlyOnceWith(originalRaw);
+    const f = geminiSdkWebChannelFixture('json', true),
+      { g } = start(f);
+    f.bindOriginal(g.bindObservable);
+    const next = vi.fn(),
+      complete = vi.fn();
+    f.originalXub({ next, complete });
+    f.flushOpen();
+    const error = vi.spyOn(f.observer, 'error');
+    try {
+      f.receive(
+        f.nativeEnvelope(f.nativeKf({ cid: 'c_47', rid: 'server-rid', final: true }), options),
+      );
+    } catch {}
+    expect(f.deferredErrors).toEqual([]);
+    expect(error).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledTimes(2);
+    expect(g.identity()).toMatchObject({ conversationId: 'c_47', turnId: 'server-rid' });
+    f.receive(f.nativeClose(5));
+    expect(complete).toHaveBeenCalledTimes(1);
+    expect(f.calls.query).toBe(1);
+  },
+);
+
+for (const codec of ['json', 'protobuf'] as const)
+  it.each(['array', 'typed', 'mutable-holder', 'logical-mutable'] as const)(
+    `Native69 ${codec} source materialization preserves all ancillary owners for %s`,
+    (representation) => {
+      const f = geminiSdkWebChannelFixture(codec, true),
+        { g } = start(f),
+        ns = f.namespace;
+      f.bindOriginal(g.bindObservable);
+      const next = vi.fn(),
+        complete = vi.fn();
+      f.originalXub({ next, complete });
+      f.flushOpen();
+      const error = vi.spyOn(f.observer, 'error');
+      const raw: any = f.nativeKf({ cid: 'c_47', rid: 'r_48', final: true });
+      const envelope: any = f.nativeEnvelope(raw, {
+        hjd: { 1: 7n, 4: [] },
+        ajd: { 1: true, 2: ['c_dead'] },
+        holder: { 1: [], 2: [], 3: [] },
+      });
+      if (representation === 'typed' || representation === 'mutable-holder') {
+        const hjd = ns.bi(envelope, ns.XJd, 2, ns.$L),
+          bjd = ns.bi(hjd, ns.RJd, 7, ns.ZL),
+          ajd = ns.bi(bjd, ns.QJd, 1, ns.SJd);
+        if (representation === 'mutable-holder') ajd.fl[ns.La] &= ~2;
+      }
+      if (representation === 'logical-mutable') {
+        raw.Fb = ns.Kaa;
+        raw.tcc = ns.Kaa;
+      }
+      try {
+        f.receive(envelope);
+      } catch {}
+      expect(f.deferredErrors).toEqual([]);
+      expect(error).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledTimes(2);
+      expect(g.identity()).toMatchObject({ conversationId: 'c_47', turnId: 'r_48' });
+      f.receive(f.nativeClose(representation === 'array' ? 4 : 5));
+      expect(complete).toHaveBeenCalledTimes(1);
+      expect(f.deferredErrors).toEqual([]);
+      expect(f.calls.query).toBe(1);
+    },
+  );
+
+it.each([false, true])('Native70 guarded copy-on-write source witness packed=%s', (packed) => {
+  const f = geminiSdkWebChannelFixture('json', true),
+    { g } = start(f),
+    ns = f.namespace;
+  f.bindOriginal(g.bindObservable);
+  const next = vi.fn(),
+    complete = vi.fn();
+  f.originalXub({ next, complete });
+  f.flushOpen();
+  const error = vi.spyOn(f.observer, 'error');
+  const raw: any = f.nativeKf({ cid: 'c_47', rid: 'r_48', final: true });
+  raw.Fb = ns.Kaa;
+  raw.tcc = ns.Kaa;
+  raw.fl[1].Fb = ns.Kaa;
+  raw.fl[1].tcc = ns.Kaa;
+  if (packed) raw.fl = new ns.IF([{ 2: raw.fl[1], 5: raw.fl[4], 15: raw.fl[14] }]).fl;
+  let backing: any[],
+    mutable = false;
+  f.onReceive((stage, value: any) => {
+    if (stage === 'RJd:before') {
+      backing = value.fl;
+      mutable = value.Fb === ns.Kaa;
+    }
+  });
+  try {
+    f.receive(f.nativeEnvelope(raw));
+  } catch {}
+  expect(error.mock.calls).toEqual([]);
+  expect(f.deferredErrors).toEqual([]);
+  expect(mutable).toBe(true);
+  expect(raw.fl).not.toBe(backing!);
+  expect(next.mock.calls.map(([e]) => e.responseType)).toEqual(['TURN_COMPLETED', 'TURN']);
+  f.receive(f.nativeClose(5));
+  expect(complete).toHaveBeenCalledTimes(1);
+});
+
+it.each(['list', 'flags'] as const)('Native70 preserves detached old graph %s evidence', (kind) => {
+  const f = geminiSdkWebChannelFixture('json', true),
+    { g } = start(f),
+    ns = f.namespace;
+  f.bindOriginal(g.bindObservable);
+  f.originalXub();
+  f.flushOpen();
+  const error = vi.spyOn(f.observer, 'error');
+  const raw: any = f.nativeKf({ cid: 'c_47', rid: 'r_48', final: true });
+  raw.Fb = ns.Kaa;
+  raw.tcc = ns.Kaa;
+  raw.fl[1].Fb = ns.Kaa;
+  raw.fl[1].tcc = ns.Kaa;
+  let old: any[], list: any[], flags: number;
+  f.onReceive((stage, value: any) => {
+    if (stage === 'RJd:before') {
+      old = value.fl;
+      list = old[4];
+      flags = old[ns.La];
+    }
+  });
+  f.project((_value, _sink) => {
+    if (kind === 'flags') old[ns.La] = old[ns.La] ^ 4096;
+    else {
+      const copy = list.slice();
+      Object.defineProperty(copy, ns.La, Object.getOwnPropertyDescriptor(list, ns.La)!);
+      old[4] = copy;
+    }
+  });
+  try {
+    f.receive(f.nativeEnvelope(raw));
+  } catch {}
+  expect(error).toHaveBeenCalledTimes(1);
+  expect(() => g.identity()).toThrow();
+  old![4] = list!;
+  old![ns.La] = flags!;
+  expect(() => g.identity()).toThrow();
+});
+
+it.each([
+  'nb',
+  'tba',
+  'tb',
+  'pb',
+  'Pba',
+  'Rba',
+  'Qba',
+  'Laa',
+  'Ma',
+  'Qa',
+  'Hoa',
+  'xb',
+  'Mg',
+  'Lba',
+  'ci',
+] as const)('Native70 retains clone dependency %s identity', (key) => {
+  const f = geminiSdkWebChannelFixture('json', true),
+    { g } = start(f),
+    ns = f.namespace;
+  f.bindOriginal(g.bindObservable);
+  f.originalXub();
+  f.flushOpen();
+  const error = vi.spyOn(f.observer, 'error'),
+    original = ns[key];
+  ns[key] = function (...args: any[]) {
+    return original.apply(this, args);
+  };
+  const raw: any = f.nativeKf({ cid: 'c_47', rid: 'r_48', final: true });
+  raw.Fb = ns.Kaa;
+  raw.tcc = ns.Kaa;
+  try {
+    f.receive(f.nativeEnvelope(raw));
+  } catch {}
+  expect(error).toHaveBeenCalledTimes(1);
+  ns[key] = original;
+  expect(() => g.identity()).toThrow();
+});
+
+it.each([
+  'Oa',
+  'Pa',
+  'prototype-marker',
+  'constructor',
+  'constructor-parent',
+  'm',
+  'Roa',
+  'ub',
+] as const)('Native70 pins materializer binding %s through restoration', (key) => {
+  const f = geminiSdkWebChannelFixture('json', true),
+    ns = f.namespace,
+    { g } = start(f);
+  f.bindOriginal(g.bindObservable);
+  f.originalXub();
+  f.flushOpen();
+  const error = vi.spyOn(f.observer, 'error');
+  const input = f.nativeEnvelope(f.nativeKf({ cid: 'c_47', rid: 'r_48', final: true }));
+  const owner = key === 'prototype-marker' || key === 'constructor' ? ns.FF.prototype : ns;
+  const property = key === 'prototype-marker' ? ns.Oa : key === 'constructor' ? 'constructor' : key;
+  const descriptor = Object.getOwnPropertyDescriptor(owner, property);
+  const parent = Object.getPrototypeOf(ns.FF);
+  f.onReceive((stage) => {
+    if (stage !== 'RJd:before') return;
+    if (key === 'constructor-parent') Object.setPrototypeOf(ns.FF, Function.prototype);
+    else
+      Object.defineProperty(owner, property, {
+        configurable: true,
+        writable: true,
+        value:
+          typeof descriptor?.value === 'function'
+            ? function (this: unknown, ...args: any[]) {
+                return descriptor!.value.apply(this, args);
+              }
+            : {},
+      });
+  });
+  try {
+    f.receive(input);
+  } catch {}
+  expect(error).toHaveBeenCalledTimes(1);
+  Object.setPrototypeOf(ns.FF, parent);
+  if (descriptor) Object.defineProperty(owner, property, descriptor);
+  else Reflect.deleteProperty(owner, property);
+  expect(() => g.identity()).toThrow();
+});
+
+it.each(['extension', 'original', 'after-finish'] as const)(
+  'Native70 refuses owned materialization from %s callback or retired scope',
+  (where) => {
+    const f = geminiSdkWebChannelFixture('json', true),
+      ns = f.namespace,
+      { g } = start(f);
+    const raw: any = f.nativeKf({ cid: 'c_47', rid: 'r_48', final: true });
+    const invoke = vi.fn(() => {
+      try {
+        ns.m(raw, ns.W4c, 6);
+      } catch {}
+    });
+    if (where === 'extension') vi.spyOn(f.observer, 'next').mockImplementation(invoke);
+    f.bindOriginal(g.bindObservable);
+    f.originalXub({ next: where === 'original' ? invoke : () => {} });
+    f.flushOpen();
+    const error = vi.spyOn(f.observer, 'error');
+    try {
+      f.receive(f.nativeEnvelope(raw));
+    } catch {}
+    if (where === 'after-finish') {
+      expect(error).not.toHaveBeenCalled();
+      invoke();
+    } else expect(error).toHaveBeenCalledTimes(1);
+    expect(invoke).toHaveBeenCalled();
+    expect(() => g.identity()).toThrow();
+    expect(f.calls.query).toBe(1);
+  },
+);
+
+it('Native70 leaves unrelated materialization transparent inside the extension callback', () => {
+  const f = geminiSdkWebChannelFixture('json', true),
+    ns = f.namespace;
+  const foreign: any = f.nativeKf({ cid: 'c_ab', rid: 'r_cd', final: false });
+  foreign.Fb = ns.Kaa;
+  foreign.tcc = ns.Kaa;
+  const { g } = start(f);
+  f.bindOriginal(g.bindObservable);
+  const next = vi.fn();
+  f.originalXub({ next });
+  f.flushOpen();
+  const callback = vi.spyOn(f.observer, 'next').mockImplementation(() => {
+    expect(ns.m(foreign, ns.CI, 2)).toBeDefined();
+    expect(ns.ci(foreign, ns.FF, 5)).toHaveLength(1);
+    expect(ns.ub(foreign)).toBe(false);
+  });
+  const error = vi.spyOn(f.observer, 'error');
+  f.receive(f.nativeEnvelope(f.nativeKf({ cid: 'c_47', rid: 'r_48', final: true })));
+  expect(callback).toHaveBeenCalledTimes(1);
+  expect(error).not.toHaveBeenCalled();
+  expect(next).toHaveBeenCalledTimes(2);
+  expect(f.deferredErrors).toEqual([]);
+});
+
+it('Native70 rejects a lease cancelled at the original source boundary before materialization', () => {
+  const f = geminiSdkWebChannelFixture('json', true),
+    ns = f.namespace,
+    { g } = start(f);
+  f.bindOriginal(g.bindObservable);
+  const next = vi.fn();
+  f.originalXub({ next });
+  f.flushOpen();
+  const raw: any = f.nativeKf({ cid: 'c_47', rid: 'r_48', final: true });
+  raw.Fb = ns.Kaa;
+  raw.tcc = ns.Kaa;
+  raw.fl[1].Fb = ns.Kaa;
+  const error = vi.spyOn(f.observer, 'error');
+  f.onReceive((stage) => {
+    if (stage === 'RJd:before') f.setCurrent(false);
+  });
+  try {
+    f.receive(f.nativeEnvelope(raw));
+  } catch {}
+  expect(error).toHaveBeenCalledTimes(1);
+  // Original source delivery still unwinds once; no receipt can accept it.
+  expect(next.mock.calls.map(([event]) => event.responseType)).toEqual(['TURN_COMPLETED', 'TURN']);
+  f.setCurrent(true);
+  expect(() => g.identity()).toThrow();
+  expect(f.calls.query).toBe(1);
+});
+
+it.each([0, 1, 2, 3])(
+  'Native70 witnessed source clone handles admitted empty repeated flags %s',
+  (flags) => {
+    const f = geminiSdkWebChannelFixture('json', true),
+      ns = f.namespace,
+      { g } = start(f);
+    f.bindOriginal(g.bindObservable);
+    const next = vi.fn();
+    f.originalXub({ next });
+    f.flushOpen();
+    const raw: any = f.nativeKf({ cid: 'c_47', rid: 'r_48', final: true });
+    raw.Fb = ns.Kaa;
+    raw.tcc = ns.Kaa;
+    raw.fl[1].Fb = ns.Kaa;
+    const empty: any[] = [];
+    Object.defineProperty(empty, ns.La, { value: flags, writable: true, configurable: true });
+    raw.fl[11] = empty;
+    const error = vi.spyOn(f.observer, 'error');
+    try {
+      f.receive(f.nativeEnvelope(raw));
+    } catch {}
+    expect(error.mock.calls).toEqual([]);
+    expect(next).toHaveBeenCalledTimes(2);
+    if (flags & 1) expect(raw.fl[11]).toBeUndefined();
+    else expect(raw.fl[11]).toHaveLength(0);
+    expect(f.deferredErrors).toEqual([]);
+    g.identity();
+  },
+);
+
+it.each(['ub', 'Roa-backing', 'Roa-mode', 'm-constructor'] as const)(
+  'Native70 refuses invalid owned operation %s before original call',
+  (kind) => {
+    const f = geminiSdkWebChannelFixture('json', true),
+      ns = f.namespace,
+      { g } = start(f);
+    f.bindOriginal(g.bindObservable);
+    f.originalXub();
+    f.flushOpen();
+    const raw: any = f.nativeKf({ cid: 'c_47', rid: 'r_48', final: true }),
+      error = vi.spyOn(f.observer, 'error');
+    let invoked = false;
+    f.onReceive((stage, value: any) => {
+      if (stage !== 'RJd:before') return;
+      invoked = true;
+      try {
+        if (kind === 'ub') ns.ub(value);
+        else if (kind === 'm-constructor') ns.m(value, ns.IF, 2);
+        else
+          ns.Roa(
+            value,
+            kind === 'Roa-backing' ? value.fl.slice() : value.fl,
+            value.fl[ns.La],
+            ns.FF,
+            5,
+            kind === 'Roa-mode' ? 2 : undefined,
+            undefined,
+            false,
+            true,
+          );
+      } catch {}
+    });
+    try {
+      f.receive(f.nativeEnvelope(raw));
+    } catch {}
+    expect(invoked).toBe(true);
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(() => g.identity()).toThrow();
+    expect(f.calls.query).toBe(1);
+  },
+);
+
+it.each([
+  'healthy',
+  'absent-m-sibling',
+  'selected-m-sibling',
+  'ub-descendant',
+  'ub-retired',
+  'Roa-sibling',
+] as const)('Native70 operation transition rejects lexical fault %s', (fault) => {
+  const f = geminiSdkWebChannelFixture('json', true),
+    ns = f.namespace;
+  let enabled = false,
+    injected = false,
+    root: any;
+  const exactQoa = Function(
+    '_',
+    'return function(a,b,c,d,e){var f=!1;d=_.de(a,d,e,g=>{var k=_.Hoa(g,c,!1,b);f=k!==g&&k!=null;return k});if(d!=null)return f&&!_.Ra(d)&&_.Mg(a,b),d}',
+  )(ns);
+  const originalM = ns.m;
+  ns.m = Function(
+    '_',
+    'Qoa',
+    `return (${Function.prototype.toString.call(originalM)})`,
+  )(ns, (raw: any, flags: number, C: any, field: number, offset: any) => {
+    if (
+      enabled &&
+      !injected &&
+      raw === root &&
+      ((fault === 'absent-m-sibling' && field === 55) ||
+        (fault === 'selected-m-sibling' && field === 6))
+    ) {
+      raw[4] = Object.defineProperties([], Object.getOwnPropertyDescriptors(raw[4]));
+      injected = true;
+    }
+    return exactQoa(raw, flags, C, field, offset);
+  });
+  const originalTb = ns.tb,
+    originalPb = ns.pb;
+  ns.tb = Function(
+    '_',
+    `return (${Function.prototype.toString.call(originalTb)})`,
+  )(
+    new Proxy(ns, {
+      get(target, key) {
+        if (key !== 'pb') return Reflect.get(target, key);
+        return (raw: any, ...args: any[]) => {
+          const result = originalPb(raw, ...args);
+          if (enabled && !injected && raw === root && fault.startsWith('ub-')) {
+            if (fault === 'ub-descendant') result[4][ns.La] ^= 8;
+            else raw[4] = Object.defineProperties([], Object.getOwnPropertyDescriptors(raw[4]));
+            injected = true;
+          }
+          return result;
+        };
+      },
+    }),
+  );
+  expect(Function.prototype.toString.call(ns.m)).toBe(Function.prototype.toString.call(originalM));
+  expect(Function.prototype.toString.call(ns.tb)).toBe(
+    Function.prototype.toString.call(originalTb),
+  );
+  if (fault === 'Roa-sibling') {
+    const helpers: Record<string, any> = {};
+    const create = (text: string) => Function('_', 'h', `with(h){return (${text})}`)(ns, helpers);
+    helpers.Og = create('function(a){return!!(2&a)&&!!(4&a)||!!(256&a)}');
+    helpers.Pg = create('function(a,b){return a=(2&b?a|2:a&-3)&-273}');
+    helpers.Moa = create('function(a,b){2&b&&(a|=2);return a|1}');
+    helpers.Koa = create(
+      'function(a,b,c,d,e,f,g,k,r){var u=b;g===1||(g!==4?0:2&b||!(16&b)&&32&d)?Og(b)||(b|=!a.length||k&&!(4096&b)||32&d&&!(4096&b||16&b)?2:256,b!==u&&(a[_.La]=b),Object.freeze(a)):(g===2&&Og(b)&&(a=[...a],u=0,b=Pg(b,d),d=_.yb(c,d,e,a,f)),Og(b)||(r||(b|=16),b!==u&&(a[_.La]=b)));2&b||!(4096&b||16&b)||_.Ng(c,d);return a}',
+    );
+    helpers.Loa = (raw: any, field: number, offset: any) => {
+      if (enabled && !injected && raw === root && field === 5) {
+        const previous = raw[5];
+        raw[5] = Object.create(
+          Object.getPrototypeOf(previous),
+          Object.getOwnPropertyDescriptors(previous),
+        );
+        injected = true;
+      }
+      const list = ns.de(raw, field, offset);
+      return Array.isArray(list) ? list : ns.Yd;
+    };
+    ns.Roa = create(Function.prototype.toString.call(ns.Roa));
+  }
+  const { g } = start(f);
+  f.bindOriginal(g.bindObservable);
+  const next = vi.fn(),
+    complete = vi.fn(),
+    error = vi.spyOn(f.observer, 'error');
+  f.originalXub({ next, complete });
+  f.flushOpen();
+  const raw: any = f.nativeKf({ cid: 'c_47', rid: 'r_48', final: true });
+  if (fault === 'selected-m-sibling' || fault === 'Roa-sibling') raw.fl[5] = new ns.W4c();
+  if (fault.startsWith('ub-')) {
+    raw.Fb = ns.Kaa;
+    raw.tcc = ns.Kaa;
+    raw.fl[1].Fb = ns.Kaa;
+  }
+  f.onReceive((stage, value: any) => {
+    if (stage === 'RJd:before') {
+      enabled = true;
+      root = value.fl;
+    }
+  });
+  try {
+    f.receive(f.nativeEnvelope(raw));
+  } catch {}
+  expect(injected).toBe(fault !== 'healthy');
+  let identityAccepted = false;
+  try {
+    g.identity();
+    identityAccepted = true;
+  } catch {}
+  try {
+    f.receive(f.nativeClose(5));
+  } catch {}
+  if (fault === 'healthy') {
+    expect(f.deferredErrors).toEqual([]);
+    expect(error).not.toHaveBeenCalled();
+    expect(identityAccepted).toBe(true);
+    expect(next.mock.calls.map(([event]) => event.responseType)).toEqual([
+      'TURN_COMPLETED',
+      'TURN',
+    ]);
+    expect(complete).toHaveBeenCalledTimes(1);
+  } else {
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(f.deferredErrors).toHaveLength(1);
+    expect(f.deferredErrors[0]).toMatchObject({ cause: 'dispatch-cold-webchannel' });
+    expect(identityAccepted).toBe(false);
+    expect(() => g.identity()).toThrow();
+  }
+  expect(f.calls.query).toBe(1);
+});
+
+it.each([false, true])(
+  'Native71 absent marker completes and retires original session membership kb=%s',
+  (kb) => {
+    const f = geminiSdkWebChannelFixture('json', true);
+    f.api.kb = kb;
+    const membership = f.api.Ab.ha;
+    const { g } = start(f);
+    f.bindOriginal(g.bindObservable);
+    const complete = vi.fn();
+    f.originalXub({ complete });
+    expect(membership.size).toBe(1);
+    expect(membership.has(f.graph())).toBe(true);
+    expect(f.graph().Ja.observers).toHaveLength(1);
+    f.flushOpen();
+    f.receive(f.nativeEnvelope(f.nativeKf({ cid: 'c_47', rid: 'r_48', final: true })));
+    f.receive(f.nativeClose(5));
+    expect(f.completionFlags).toEqual([true]);
+    expect(complete).toHaveBeenCalledTimes(1);
+    expect(f.api.Ab.ha).toBe(membership);
+    expect(membership.size).toBe(0);
+    expect(f.graph().Ja.observers).toHaveLength(0);
+  },
+);
+it.each(['mode', 'flag', 'override', 'selected', 'set', 'foreign', 'kb'] as const)(
+  'Native71 refuses captured selected/session drift before original open: %s',
+  (kind) => {
+    const f = geminiSdkWebChannelFixture('json', true);
+    const { g } = start(f);
+    f.bindOriginal(g.bindObservable);
+    f.originalXub();
+    if (kind === 'mode') f.api.Ua.ha = 67;
+    if (kind === 'flag') f.api.Aa.ha = false;
+    if (kind === 'override') f.api.Aa.oa = !f.api.Aa.oa;
+    if (kind === 'selected')
+      f.api.Aa = Object.assign(Object.create(Object.getPrototypeOf(f.api.Aa)), f.api.Aa);
+    if (kind === 'set') f.api.Ab.ha = new Set([f.graph()]);
+    if (kind === 'foreign') expect(() => f.api.Ab.ha.add({})).toThrow();
+    if (kind === 'kb') f.api.kb = !f.api.kb;
+    expect(() => f.flushOpen()).toThrow();
+    expect(f.calls.nativeSends).toBe(0);
+  },
+);
+
+it('Native73 retains original forward throw phase without exposing its message or retrying', () => {
+  const { f, g } = start();
+  f.originalXub();
+  let originalCalls = 0;
+  const random = vi.spyOn(Math, 'random').mockImplementation(() => {
+    originalCalls++;
+    throw Error('SYNTHETIC_PRIVATE_SOURCE_THROW');
+  });
+  let first: any;
+  try {
+    f.flushOpen();
+  } catch (error) {
+    first = error;
+  } finally {
+    random.mockRestore();
+  }
+  expect(originalCalls).toBe(1);
+  expect(first).toBeInstanceOf(Error);
+  expect(Object.getOwnPropertyDescriptor(first, 'geminiNativeDiagnostic')?.value).toBe(
+    'dispatch-native-n20-forward-original',
+  );
+  expect(first.message).not.toContain('SYNTHETIC_PRIVATE');
+  expect(f.calls).toMatchObject({ factory: 1, config: 1, query: 1, nativeSends: 0 });
+  let again: unknown;
+  try {
+    g.identity();
+  } catch (error) {
+    again = error;
+  }
+  expect(again).toBe(first);
+});

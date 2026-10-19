@@ -115,7 +115,7 @@ export function readGeminiClientCapability(
     const namespace = data(window, 'default_BardChatUi');
     if (!object(namespace)) fail('runtime-shape');
     const exported = (name: string) => data(namespace, name);
-    const views = exported('uPb');
+    const views = exported('zPb');
     reason = 'owner-view-registry';
     if (!exact(views, Map.prototype)) fail('owner-view-registry');
     reason = 'owner-view-missing';
@@ -164,7 +164,7 @@ export function readGeminiClientCapability(
     }
 
     reason = 'runtime-shape';
-    const componentClass = exported('ZU');
+    const componentClass = exported('SU');
     const componentPrototype = prototype(componentClass);
     const definition = data(componentClass, 'Ra');
     if (!object(definition) || data(definition, 'type') !== componentClass) fail('runtime-shape');
@@ -187,7 +187,7 @@ export function readGeminiClientCapability(
       const node = data(nodes, index);
       if (!object(node) || data(node, 'index') !== index) fail(reason);
       if (stage === 'owner-declaration-3') reason = 'owner-declaration-3-template';
-      if (data(node, 'zB') !== data(declaration, 1)) fail(reason);
+      if (data(node, 'DB') !== data(declaration, 1)) fail(reason);
       if (stage === 'owner-declaration-3') {
         reason = 'owner-declaration-3-binding';
         // Transplant insertion replaces slot 5; slot 16 retains the declaration origin.
@@ -216,19 +216,19 @@ export function readGeminiClientCapability(
       fail('owner-component');
 
     reason = 'runtime-shape';
-    const conversationPrototype = prototype(exported('GN'));
-    const apiPrototype = prototype(exported('pM'));
-    const protectionPrototype = prototype(exported('bM'));
-    const sessionPrototype = prototype(exported('eKd'));
-    const registryPrototype = prototype(exported('hKd'));
+    const conversationPrototype = prototype(exported('wN'));
+    const apiPrototype = prototype(exported('gM'));
+    const protectionPrototype = prototype(exported('UL'));
+    const sessionPrototype = prototype(exported('xKd'));
+    const registryPrototype = prototype(exported('AKd'));
     reason = 'service-identity';
     const conversation = data(consumer, 'Oa');
     if (!exact(conversation, conversationPrototype)) fail('service-identity');
     const api = data(conversation, 'ha');
     if (!exact(api, apiPrototype)) fail('service-identity');
     const protection = data(api, 'Ja');
-    const session = data(api, 'ub');
-    const registry = data(api, 'Eb');
+    const session = data(api, 'Ab');
+    const registry = data(api, 'Fb');
     if (
       !exact(protection, protectionPrototype) ||
       !exact(session, sessionPrototype) ||
@@ -240,7 +240,29 @@ export function readGeminiClientCapability(
     // The bundled trial only captures these references; route approval happens afterward.
     capture?.({ namespace, consumer, conversation, api, host, owner });
     reason = 'transport-route';
-    const route = data(api, 'Aa');
+    const eligibility = data(api, 'Aa');
+    const mode = data(api, 'Ua');
+    const headers = data(api, 'Eb');
+    if (
+      !exact(eligibility, prototype(exported('CKd'))) ||
+      !exact(mode, prototype(exported('cM'))) ||
+      !exact(headers, prototype(exported('zKd'))) ||
+      data(eligibility, 'ka') !== mode ||
+      data(headers, 'wa') !== mode
+    )
+      fail('transport-route');
+    const enabled = data(eligibility, 'ha');
+    const override = data(eligibility, 'oa');
+    const featureMode = data(mode, 'ha');
+    if (
+      typeof enabled !== 'boolean' ||
+      typeof override !== 'boolean' ||
+      typeof featureMode !== 'number' ||
+      !Number.isFinite(featureMode) ||
+      !Number.isInteger(featureMode)
+    )
+      fail('transport-route');
+    const route = enabled && (override || (featureMode !== 43 && featureMode !== 42));
     if (route === false) {
       reason = 'transport-api';
       const initial = data(api, 'Kd');
@@ -249,9 +271,9 @@ export function readGeminiClientCapability(
       fail('transport-api');
     }
     if (route !== true) fail('transport-route');
-    // Kd selects only the legacy path; native sessions use the factory's oa flag.
+    // Kd selects only the legacy path; native sessions use the factory's wa flag.
     reason = 'transport-session';
-    const nativeSse = data(session, 'oa');
+    const nativeSse = data(session, 'wa');
     if (nativeSse !== true && nativeSse !== false) fail('transport-session');
 
     reason = 'prewarm';
@@ -267,7 +289,7 @@ export function readGeminiClientCapability(
       if (!Object.hasOwn(manager, 'value')) fail('prewarm');
       if (manager.value !== undefined) {
         try {
-          const managerClass = exported('qVd');
+          const managerClass = exported('JVd');
           if (typeof managerClass !== 'function') fail('prewarm');
           const managerPrototype = data(managerClass, 'prototype');
           const idle = manager.value;
@@ -281,6 +303,8 @@ export function readGeminiClientCapability(
             Object.getPrototypeOf(Object.prototype) !== null ||
             data(idle, 'Na') !== session ||
             data(idle, 'Oa') !== conversation ||
+            data(idle, 'Va') !== eligibility ||
+            data(idle, 'Ua') !== headers ||
             data(idle, 'ka') !== false
           )
             fail('prewarm');
@@ -293,9 +317,8 @@ export function readGeminiClientCapability(
             const state = data(idle, key);
             if (state !== missing && state !== undefined) fail('prewarm');
           }
-          const enabled = data(idle, 'Za');
           const sse = data(idle, 'kb');
-          if ((enabled !== true && enabled !== false) || sse !== nativeSse) fail('prewarm');
+          if (sse !== nativeSse) fail('prewarm');
         } catch {
           // Unsupported manager descriptors retain the existing bounded prewarm reason.
           fail('prewarm');
@@ -304,8 +327,8 @@ export function readGeminiClientCapability(
     }
 
     reason = 'hook';
-    const connection = Object.getOwnPropertyDescriptor(namespace as object, 'dKd');
-    const dispatch = Object.getOwnPropertyDescriptor(apiPrototype, 'Zxb');
+    const connection = Object.getOwnPropertyDescriptor(namespace as object, 'wKd');
+    const dispatch = Object.getOwnPropertyDescriptor(apiPrototype, 'ybb');
     if (
       !connection ||
       !Object.hasOwn(connection, 'value') ||
@@ -315,7 +338,7 @@ export function readGeminiClientCapability(
       !dispatch ||
       !Object.hasOwn(dispatch, 'value') ||
       typeof dispatch.value !== 'function' ||
-      Object.getOwnPropertyDescriptor(api as object, 'Zxb') ||
+      Object.getOwnPropertyDescriptor(api as object, 'ybb') ||
       !Object.isExtensible(api)
     )
       fail('hook');

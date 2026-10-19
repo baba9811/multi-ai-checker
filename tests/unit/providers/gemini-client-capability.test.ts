@@ -7,7 +7,7 @@ function fixture() {
     throw new Error('SYNTHETIC_PRIVATE_MARKER');
   });
   const namespace: Record<string, any> = {};
-  for (const name of ['FVb', 'zw', 'GN', 'pM', 'bM', 'eKd', 'hKd', 'ZU']) {
+  for (const name of ['FVb', 'zw', 'wN', 'gM', 'UL', 'xKd', 'AKd', 'SU']) {
     namespace[name] = function () {
       calls();
     };
@@ -23,7 +23,7 @@ function fixture() {
       'JEa',
       'register',
       'sendRequest',
-      'Zxb',
+      'ybb',
     ])
       namespace[name].prototype[method] = calls;
   }
@@ -31,22 +31,33 @@ function fixture() {
     namespace[name] = Object.assign(Object.create(namespace.zw.prototype), {
       RTc: 'InjectionToken',
     });
-  for (const name of ['uC', 'KL', 'bM', 'eKd', 'hKd', 'RHd'])
+  for (const name of ['uC', 'KL', 'UL', 'xKd', 'AKd', 'RHd'])
     namespace[name].Za = { token: namespace[name], kb: 'root', Xa: calls };
-  namespace.dKd = calls;
-  const conversation = Object.create(namespace.GN.prototype);
-  const api = Object.assign(Object.create(namespace.pM.prototype), { Kd: true, Aa: true });
-  const protection = Object.assign(Object.create(namespace.bM.prototype), { isEnabled: true });
-  const session = Object.assign(Object.create(namespace.eKd.prototype), { oa: true });
-  const registry = Object.create(namespace.hKd.prototype);
+  namespace.wKd = calls;
+  const conversation = Object.create(namespace.wN.prototype);
+  const api = Object.assign(Object.create(namespace.gM.prototype), { Kd: true });
+  const protection = Object.assign(Object.create(namespace.UL.prototype), { isEnabled: true });
+  const session = Object.assign(Object.create(namespace.xKd.prototype), { wa: true });
+  const registry = Object.create(namespace.AKd.prototype);
   conversation.ha = api;
-  Object.assign(api, { Ja: protection, ub: session, Eb: registry, Ia: { unrelated: true } });
+  Object.assign(api, { Ja: protection, Ab: session, Fb: registry, Ia: { unrelated: true } });
+  namespace.CKd = class {};
+  namespace.cM = class {};
+  namespace.zKd = class {};
+  const mode = Object.assign(Object.create(namespace.cM.prototype), { ha: 67 });
+  const eligibility = Object.assign(Object.create(namespace.CKd.prototype), {
+    ha: true,
+    oa: false,
+    ka: mode,
+  });
+  const headers = Object.assign(Object.create(namespace.zKd.prototype), { wa: mode });
+  Object.assign(api, { Aa: eligibility, Ua: mode, Eb: headers });
   const values = {
     uC: conversation,
     KL: api,
-    bM: protection,
-    eKd: session,
-    hKd: registry,
+    UL: protection,
+    xKd: session,
+    AKd: registry,
     RHd: true,
   };
   const cache = new Map();
@@ -88,15 +99,15 @@ function fixture() {
   host.__ngContext__ = 7;
   const view: any[] = [];
   Object.assign(view, { 0: null, 1: {}, 2: 0, 9: injector, 19: 7, 28: host });
-  namespace.uPb = new Map([[7, view]]);
+  namespace.zPb = new Map([[7, view]]);
   namespace.UOb = function () {}; // Current public UOb is unrelated to the view registry.
-  namespace.ZU.Ra = { type: namespace.ZU, template: calls };
-  const consumer = Object.assign(Object.create(namespace.ZU.prototype), { Oa: conversation });
+  namespace.SU.Ra = { type: namespace.SU, template: calls };
+  const consumer = Object.assign(Object.create(namespace.SU.prototype), { Oa: conversation });
   const declarations = [view];
   const declarationNodes: any[] = [];
   for (const [depth, index] of [30, 29, 83].entries()) {
     const child = declarations[depth]!;
-    const node = { index, zB: child[1] };
+    const node = { index, DB: child[1] };
     const data: any[] = [];
     data[index] = node;
     const parent: any[] = Object.assign([], { 0: null, 1: { data }, 2: 0, 19: 10 + depth });
@@ -114,7 +125,7 @@ function fixture() {
   componentView[0] = owner;
   componentView[8] = consumer;
   componentView[1].type = 1;
-  componentView[1].template = namespace.ZU.Ra.template;
+  componentView[1].template = namespace.SU.Ra.template;
 
   const window = { default_BardChatUi: namespace } as any;
   window.top = window;
@@ -129,7 +140,7 @@ function fixture() {
   for (const [object, key] of [
     [namespace.zw.prototype, 'Ig'],
     [namespace.FVb.prototype, 'Yf'],
-    [namespace.eKd.prototype, 'wa'],
+    [namespace.xKd.prototype, 'wa'],
     [window, 'WIZ_global_data'],
     [api, 'headers'],
     [api, 'ha'],
@@ -187,16 +198,18 @@ const getter = (object: object, key: PropertyKey) =>
     configurable: true,
   });
 function registeredIdle(nativeSse = true, enabled = true, ownUndefined = false) {
-  current.session.oa = nativeSse;
+  current.session.wa = nativeSse;
   current.cache.get(current.namespace.RHd).value = nativeSse;
-  current.namespace.qVd = function () {
+  current.namespace.JVd = function () {
     current.calls();
   };
   for (const method of ['isEnabled', 'Pff', 'Ryc', 'Aa', 'oa'])
-    current.namespace.qVd.prototype[method] = current.calls;
-  const manager = Object.assign(Object.create(current.namespace.qVd.prototype), {
+    current.namespace.JVd.prototype[method] = current.calls;
+  const manager = Object.assign(Object.create(current.namespace.JVd.prototype), {
     Na: current.session,
     Oa: current.conversation,
+    Va: current.api.Aa,
+    Ua: current.api.Eb,
     ka: false,
     Za: enabled,
     kb: nativeSse,
@@ -236,14 +249,14 @@ function slotContainer() {
 
 describe('Gemini actual consumer client capability', () => {
   it('admits the fresh source registry without a historical registry alias', () => {
-    expect(Object.hasOwn(current.namespace, 'uPb')).toBe(true);
+    expect(Object.hasOwn(current.namespace, 'zPb')).toBe(true);
     expect(Object.hasOwn(current.namespace, 'fPb')).toBe(false);
     check();
   });
   it('accepts only the current loaded-source owner and selected SDK references', () => {
     check();
-    current.namespace.UOb = current.namespace.uPb;
-    delete current.namespace.uPb;
+    current.namespace.UOb = current.namespace.zPb;
+    delete current.namespace.zPb;
     check('owner-view-registry');
   });
   it('shares confirmed references only with a synchronous provider-private capture', () => {
@@ -263,9 +276,9 @@ describe('Gemini actual consumer client capability', () => {
     expect(Object.keys(result)).toEqual(['status']);
   });
   it('captures the existing RPC consumer without applying the native-only gates', () => {
-    current.api.Aa = false;
+    current.api.Aa.ha = false;
     current.api.Kd = false;
-    getter(current.session, 'oa');
+    getter(current.session, 'wa');
     getter(current.registry, 'ha');
     const capture = vi.fn();
     expect(readGeminiClientCapability(capture)).toEqual({
@@ -338,7 +351,7 @@ describe('Gemini actual consumer client capability', () => {
     [
       'owner-view-missing',
       (f) => {
-        f.namespace.uPb.delete(7);
+        f.namespace.zPb.delete(7);
       },
     ],
     [
@@ -380,7 +393,7 @@ describe('Gemini actual consumer client capability', () => {
     [
       'owner-declaration-3-template',
       (f) => {
-        f.declarationNodes[2].zB = {};
+        f.declarationNodes[2].DB = {};
       },
     ],
     [
@@ -540,21 +553,21 @@ describe('Gemini actual consumer client capability', () => {
       'fake view map',
       'owner-view-registry',
       (f) => {
-        f.namespace.uPb = { get: f.calls };
+        f.namespace.zPb = { get: f.calls };
       },
     ],
     [
       'missing view map',
       'owner-view-registry',
       (f) => {
-        delete f.namespace.uPb;
+        delete f.namespace.zPb;
       },
     ],
     [
       'missing exact view',
       'owner-view-missing',
       (f) => {
-        f.namespace.uPb.delete(7);
+        f.namespace.zPb.delete(7);
       },
     ],
     [
@@ -589,7 +602,7 @@ describe('Gemini actual consumer client capability', () => {
       'non-array exact view',
       'owner-view-shape',
       (f) => {
-        f.namespace.uPb.set(7, {});
+        f.namespace.zPb.set(7, {});
       },
     ],
   ] satisfies [string, string, (f: ReturnType<typeof fixture>) => void][])(
@@ -893,8 +906,8 @@ describe('Gemini actual consumer client capability', () => {
     },
   );
   it('uses the native Map intrinsic for only the owned context, never map iteration', () => {
-    current.namespace.uPb.get = current.calls;
-    current.namespace.uPb[Symbol.iterator] = current.calls;
+    current.namespace.zPb.get = current.calls;
+    current.namespace.zPb[Symbol.iterator] = current.calls;
     check();
   });
   it('rejects a wrong selected consumer despite a healthy root cache', () => {
@@ -907,7 +920,7 @@ describe('Gemini actual consumer client capability', () => {
     getter(current.view, '9');
     getter(current.injector, 'oq');
     current.cache.clear();
-    for (const name of ['bM', 'eKd', 'hKd']) getter(current.namespace[name], 'Za');
+    for (const name of ['UL', 'xKd', 'AKd']) getter(current.namespace[name], 'Za');
     check();
     check(undefined, true);
   });
@@ -926,25 +939,25 @@ describe('Gemini actual consumer client capability', () => {
     [
       'missing exact service export',
       (f) => {
-        delete f.namespace.hKd;
+        delete f.namespace.AKd;
       },
     ],
     [
       'missing component export',
       (f) => {
-        delete f.namespace.ZU;
+        delete f.namespace.SU;
       },
     ],
     [
       'wrong component definition type',
       (f) => {
-        f.namespace.ZU.Ra.type = f.namespace.GN;
+        f.namespace.SU.Ra.type = f.namespace.wN;
       },
     ],
     [
       'non-function component template',
       (f) => {
-        f.namespace.ZU.Ra.template = {};
+        f.namespace.SU.Ra.template = {};
       },
     ],
   ] satisfies [string, (f: ReturnType<typeof fixture>) => void][])(
@@ -970,7 +983,7 @@ describe('Gemini actual consumer client capability', () => {
         [parent[1].data, index, undefined, 'node'],
         [child, depth === 2 ? 16 : 5, {}, 'binding'],
         [node, 'index', index + 1, 'node'],
-        [node, 'zB', {}, 'template'],
+        [node, 'DB', {}, 'template'],
       ] as const) {
         const descriptor = Object.getOwnPropertyDescriptor(object, key)!;
         Object.defineProperty(object, key, { value, configurable: true, writable: true });
@@ -1122,26 +1135,26 @@ describe('Gemini actual consumer client capability', () => {
   );
   it.each([
     ['window export', (f) => getter(f.window, 'default_BardChatUi')],
-    ['namespace export', (f) => getter(f.namespace, 'uPb')],
+    ['namespace export', (f) => getter(f.namespace, 'zPb')],
     ['host context', (f) => getter(f.host, '__ngContext__')],
     ['view slot', (f) => getter(f.view, '28')],
-    ['component definition', (f) => getter(f.namespace.ZU, 'Ra')],
-    ['definition type', (f) => getter(f.namespace.ZU.Ra, 'type')],
-    ['definition template', (f) => getter(f.namespace.ZU.Ra, 'template')],
-    ['declaration TNode', (f) => getter(f.declarationNodes[0], 'zB')],
+    ['component definition', (f) => getter(f.namespace.SU, 'Ra')],
+    ['definition type', (f) => getter(f.namespace.SU.Ra, 'type')],
+    ['definition template', (f) => getter(f.namespace.SU.Ra, 'template')],
+    ['declaration TNode', (f) => getter(f.declarationNodes[0], 'DB')],
     ['declaration TView data', (f) => getter(f.declarations[1]![1], 'data')],
     ['final instance', (f) => getter(f.componentView, '8')],
     ['selected service', (f) => getter(f.consumer, 'Oa')],
     ['selected API', (f) => getter(f.conversation, 'ha')],
     ['actual protection', (f) => getter(f.api, 'Ja')],
-    ['actual session', (f) => getter(f.api, 'ub')],
-    ['actual registry', (f) => getter(f.api, 'Eb')],
+    ['actual session', (f) => getter(f.api, 'Ab')],
+    ['actual registry', (f) => getter(f.api, 'Fb')],
     ['protection', (f) => getter(f.protection, 'isEnabled')],
-    ['session transport', (f) => getter(f.session, 'oa')],
+    ['session transport', (f) => getter(f.session, 'wa')],
     [
       'API transport',
       (f) => {
-        f.api.Aa = false;
+        f.api.Aa.ha = false;
         getter(f.api, 'Kd');
       },
     ],
@@ -1192,7 +1205,7 @@ describe('Gemini actual consumer client capability', () => {
       'registry available only at Ia',
       (f) => {
         f.api.Ia = f.registry;
-        delete f.api.Eb;
+        delete f.api.Fb;
       },
     ],
   ] satisfies [string, (f: ReturnType<typeof fixture>) => void][])(
@@ -1212,7 +1225,7 @@ describe('Gemini actual consumer client capability', () => {
     [
       'different protection instance',
       (f) => {
-        f.api.Ja = Object.create(f.namespace.bM.prototype);
+        f.api.Ja = Object.create(f.namespace.UL.prototype);
       },
     ],
   ] satisfies [string, (f: ReturnType<typeof fixture>) => void][])(
@@ -1248,13 +1261,13 @@ describe('Gemini actual consumer client capability', () => {
     [
       'transport-webchannel',
       (f) => {
-        f.session.oa = false;
+        f.session.wa = false;
       },
     ],
     [
       'transport-api',
       (f) => {
-        f.api.Aa = false;
+        f.api.Aa.ha = false;
         delete f.api.Kd;
       },
     ],
@@ -1267,21 +1280,21 @@ describe('Gemini actual consumer client capability', () => {
     [
       'transport-sse',
       (f) => {
-        f.api.Aa = false;
+        f.api.Aa.ha = false;
         f.api.Kd = true;
       },
     ],
     [
       'transport-rpc',
       (f) => {
-        f.api.Aa = false;
+        f.api.Aa.ha = false;
         f.api.Kd = false;
       },
     ],
     [
       'transport-session',
       (f) => {
-        f.api.ub = Object.create(f.namespace.eKd.prototype);
+        f.api.Ab = Object.create(f.namespace.xKd.prototype);
       },
     ],
   ] satisfies [string, (f: ReturnType<typeof fixture>) => void][])(
@@ -1292,50 +1305,50 @@ describe('Gemini actual consumer client capability', () => {
       check(reason, true);
     },
   );
-  it.each([true, false])('ignores session oa and stops before hooks for legacy Kd=%s', (value) => {
-    current.api.Aa = false;
+  it.each([true, false])('ignores session wa and stops before hooks for legacy Kd=%s', (value) => {
+    current.api.Aa.ha = false;
     current.api.Kd = value;
-    getter(current.session, 'oa');
+    getter(current.session, 'wa');
     getter(current.registry, 'ha');
-    getter(current.namespace, 'dKd');
+    getter(current.namespace, 'wKd');
     check(value ? 'transport-sse' : 'transport-rpc');
     check(value ? 'transport-sse' : 'transport-rpc', true);
   });
   it.each([undefined, null, 0, 1, 'true', {}])(
-    'rejects unknown route Aa=%j without reading oa/Kd',
+    'rejects unknown route Aa=%j without reading wa/Kd',
     (value) => {
       current.api.Aa = value;
-      getter(current.session, 'oa');
+      getter(current.session, 'wa');
       getter(current.api, 'Kd');
       check('transport-route');
     },
   );
   it.each([undefined, null, 0, 1, 'true', {}])(
-    'rejects unknown legacy Kd=%j without reading oa',
+    'rejects unknown legacy Kd=%j without reading wa',
     (value) => {
-      current.api.Aa = false;
+      current.api.Aa.ha = false;
       current.api.Kd = value;
-      getter(current.session, 'oa');
+      getter(current.session, 'wa');
       check('transport-api');
     },
   );
   it.each([undefined, null, 0, 1, 'false', 'true', {}, []])(
-    'rejects unknown session oa=%j before reading prewarm or hooks',
+    'rejects unknown session wa=%j before reading prewarm or hooks',
     (value) => {
-      current.session.oa = value;
+      current.session.wa = value;
       getter(current.registry, 'ha');
-      getter(current.namespace, 'dKd');
+      getter(current.namespace, 'wKd');
       check('transport-session');
       check('transport-session', true);
     },
   );
-  it('rejects a session oa accessor without invoking it', () => {
-    getter(current.session, 'oa');
+  it('rejects a session wa accessor without invoking it', () => {
+    getter(current.session, 'wa');
     check('runtime-shape');
     check('runtime-shape', true);
   });
   it('keeps session reflection failures bounded before inspecting native state', () => {
-    current.api.ub = new Proxy(current.session, {
+    current.api.Ab = new Proxy(current.session, {
       getOwnPropertyDescriptor() {
         throw new Error('SYNTHETIC_PRIVATE_MARKER');
       },
@@ -1344,9 +1357,9 @@ describe('Gemini actual consumer client capability', () => {
     check('transport-session', true);
   });
   it.each([false, true])(
-    'captures canonical session oa=%s once and exports only bounded metadata',
+    'captures canonical session wa=%s once and exports only bounded metadata',
     (value) => {
-      current.session.oa = value;
+      current.session.wa = value;
       for (const read of [
         readGeminiClientCapability,
         new Function(
@@ -1378,7 +1391,7 @@ describe('Gemini actual consumer client capability', () => {
   );
   it('checks configured session route before native session state', () => {
     getter(current.api, 'Aa');
-    current.session.oa = false;
+    current.session.wa = false;
     check('runtime-shape');
   });
   describe('source-shaped registered-idle manager metadata', () => {
@@ -1392,7 +1405,7 @@ describe('Gemini actual consumer client capability', () => {
       [true, false, true],
       [true, true, true],
     ])(
-      'classifies oa=%s Za=%s own undefined=%s without invoking the manager',
+      'classifies wa=%s unused Za=%s own undefined=%s without invoking the manager',
       (nativeSse, Za, ownUndefined) => {
         const manager = registeredIdle(nativeSse, Za, ownUndefined);
         const before = Object.getOwnPropertyDescriptors(manager);
@@ -1410,7 +1423,7 @@ describe('Gemini actual consumer client capability', () => {
               : { status: 'unsupported', reason: 'transport-webchannel' },
           );
           expect(capture).toHaveBeenCalledTimes(1);
-          expect(capture.mock.calls[0]![0].api.ub).toBe(manager.Na);
+          expect(capture.mock.calls[0]![0].api.Ab).toBe(manager.Na);
           expect(Object.getOwnPropertyDescriptors(manager)).toEqual(before);
           expect(JSON.stringify(result)).not.toMatch(/SYNTHETIC_PRIVATE|namespace|Na|Za|kb/);
         }
@@ -1438,53 +1451,53 @@ describe('Gemini actual consumer client capability', () => {
       [
         'function manager',
         () => {
-          Object.setPrototypeOf(current.calls, current.namespace.qVd.prototype);
+          Object.setPrototypeOf(current.calls, current.namespace.JVd.prototype);
           current.registry.ha = current.calls;
         },
       ],
       [
         'missing export',
         () => {
-          delete current.namespace.qVd;
+          delete current.namespace.JVd;
         },
       ],
       [
         'wrong export',
         () => {
-          current.namespace.qVd = {};
+          current.namespace.JVd = {};
         },
       ],
-      ['accessor export', () => getter(current.namespace, 'qVd')],
+      ['accessor export', () => getter(current.namespace, 'JVd')],
       [
         'missing prototype',
         () => {
-          current.namespace.qVd = () => current.calls();
+          current.namespace.JVd = () => current.calls();
         },
       ],
       [
         'null prototype',
         () => {
-          current.namespace.qVd.prototype = null;
+          current.namespace.JVd.prototype = null;
         },
       ],
       [
         'primitive prototype',
         () => {
-          current.namespace.qVd.prototype = false;
+          current.namespace.JVd.prototype = false;
         },
       ],
       [
         'function prototype',
         () => {
-          current.namespace.qVd.prototype = current.calls;
+          current.namespace.JVd.prototype = current.calls;
           Object.setPrototypeOf(current.registry.ha, current.calls);
         },
       ],
       [
         'accessor prototype',
         () => {
-          current.namespace.qVd = () => current.calls();
-          getter(current.namespace.qVd, 'prototype');
+          current.namespace.JVd = () => current.calls();
+          getter(current.namespace.JVd, 'prototype');
         },
       ],
       [
@@ -1496,19 +1509,19 @@ describe('Gemini actual consumer client capability', () => {
       [
         'wrong prototype parent',
         () => {
-          Object.setPrototypeOf(current.namespace.qVd.prototype, {});
+          Object.setPrototypeOf(current.namespace.JVd.prototype, {});
         },
       ],
       [
         'null prototype parent',
         () => {
-          Object.setPrototypeOf(current.namespace.qVd.prototype, null);
+          Object.setPrototypeOf(current.namespace.JVd.prototype, null);
         },
       ],
       [
         'foreign session',
         () => {
-          current.registry.ha.Na = Object.create(current.namespace.eKd.prototype);
+          current.registry.ha.Na = Object.create(current.namespace.xKd.prototype);
         },
       ],
       [
@@ -1521,7 +1534,7 @@ describe('Gemini actual consumer client capability', () => {
       [
         'foreign conversation',
         () => {
-          current.registry.ha.Oa = Object.create(current.namespace.GN.prototype);
+          current.registry.ha.Oa = Object.create(current.namespace.wN.prototype);
         },
       ],
       [
@@ -1550,19 +1563,26 @@ describe('Gemini actual consumer client capability', () => {
           current.registry.ha.ka = 0;
         },
       ],
-      [
-        'Za missing',
-        () => {
-          delete current.registry.ha.Za;
-        },
-      ],
-      ['Za accessor', () => getter(current.registry.ha, 'Za')],
-      [
-        'Za noncanonical',
-        () => {
-          current.registry.ha.Za = 1;
-        },
-      ],
+      ...(['Va', 'Ua'] as const).flatMap((key): [string, () => void][] => [
+        [
+          `${key} missing`,
+          () => {
+            delete current.registry.ha[key];
+          },
+        ],
+        [
+          `${key} accessor`,
+          () => {
+            getter(current.registry.ha, key);
+          },
+        ],
+        [
+          `${key} foreign`,
+          () => {
+            current.registry.ha[key] = {};
+          },
+        ],
+      ]),
       [
         'kb missing',
         () => {
@@ -1588,7 +1608,7 @@ describe('Gemini actual consumer client capability', () => {
         registeredIdle();
         check();
         mutate();
-        getter(current.namespace, 'dKd');
+        getter(current.namespace, 'wKd');
         check('prewarm');
         check('prewarm', true);
       },
@@ -1614,11 +1634,11 @@ describe('Gemini actual consumer client capability', () => {
         check('prewarm', true);
       });
       it.each(['data', 'accessor'])(
-        `refuses inherited manager ${key} %s on the exact CUd prototype`,
+        `refuses inherited manager ${key} %s on the exact JVd prototype`,
         (shape) => {
           registeredIdle();
           check();
-          const proto = current.namespace.qVd.prototype;
+          const proto = current.namespace.JVd.prototype;
           if (shape === 'accessor') getter(proto, key);
           else proto[key] = undefined;
           check('prewarm');
@@ -1648,11 +1668,11 @@ describe('Gemini actual consumer client capability', () => {
         );
     }
     it.each(['data', 'accessor'])(
-      'retains the earlier Object.prototype.ha %s refusal before CUd reads',
+      'retains the earlier Object.prototype.ha %s refusal before JVd reads',
       (shape) => {
         registeredIdle();
         check();
-        getter(current.namespace, 'qVd');
+        getter(current.namespace, 'JVd');
         if (shape === 'accessor') getter(Object.prototype, 'ha');
         else
           Object.defineProperty(Object.prototype, 'ha', { value: undefined, configurable: true });
@@ -1679,22 +1699,22 @@ describe('Gemini actual consumer client capability', () => {
       },
     );
     it.each([false, true])(
-      'still checks hook refusal after recognizing oa=%s idle state',
+      'still checks hook refusal after recognizing wa=%s idle state',
       (nativeSse) => {
         registeredIdle(nativeSse);
         check(nativeSse ? undefined : 'transport-webchannel');
-        getter(current.namespace, 'dKd');
+        getter(current.namespace, 'wKd');
         check('hook');
         check('hook', true);
       },
     );
     it.each([false, true])(
-      'does not read CUd on absent/undefined registry state (%s)',
+      'does not read JVd on absent/undefined registry state (%s)',
       (ownUndefined) => {
         if (ownUndefined) current.registry.ha = undefined;
-        getter(current.namespace, 'qVd');
+        getter(current.namespace, 'JVd');
         check();
-        current.session.oa = false;
+        current.session.wa = false;
         check('transport-webchannel', true);
       },
     );
@@ -1706,10 +1726,11 @@ describe('Gemini actual consumer client capability', () => {
       [true, undefined, 'transport-session'],
     ])('avoids manager reads for Aa=%s Kd=%s %s', (route, legacy, reason) => {
       registeredIdle();
-      current.api.Aa = route;
+      if (typeof route === 'boolean') current.api.Aa.ha = route;
+      else current.api.Aa = route;
       current.api.Kd = legacy;
-      current.session.oa = undefined;
-      getter(current.namespace, 'qVd');
+      current.session.wa = undefined;
+      getter(current.namespace, 'JVd');
       getter(current.registry, 'ha');
       check(reason as string);
       check(reason as string, true);
@@ -1718,11 +1739,11 @@ describe('Gemini actual consumer client capability', () => {
       const reads: string[] = [];
       current.session = new Proxy(current.session, {
         getOwnPropertyDescriptor(target, key) {
-          if (key === 'oa') reads.push('session.oa');
+          if (key === 'wa') reads.push('session.wa');
           return Reflect.getOwnPropertyDescriptor(target, key);
         },
       });
-      current.api.ub = current.session;
+      current.api.Ab = current.session;
       const manager = registeredIdle(false);
       current.registry.ha = new Proxy(manager, {
         get: current.calls,
@@ -1731,7 +1752,7 @@ describe('Gemini actual consumer client capability', () => {
           return Reflect.getOwnPropertyDescriptor(target, key);
         },
       });
-      current.api.Eb = new Proxy(current.registry, {
+      current.api.Fb = new Proxy(current.registry, {
         getOwnPropertyDescriptor(target, key) {
           reads.push(`registry.${String(key)}`);
           return Reflect.getOwnPropertyDescriptor(target, key);
@@ -1739,7 +1760,7 @@ describe('Gemini actual consumer client capability', () => {
       });
       current.window.default_BardChatUi = new Proxy(current.namespace, {
         getOwnPropertyDescriptor(target, key) {
-          if (key === 'qVd' || key === 'dKd') reads.push(`namespace.${String(key)}`);
+          if (key === 'JVd' || key === 'wKd') reads.push(`namespace.${String(key)}`);
           return Reflect.getOwnPropertyDescriptor(target, key);
         },
       });
@@ -1751,26 +1772,27 @@ describe('Gemini actual consumer client capability', () => {
       });
       expect(capture).toHaveBeenCalledTimes(1);
       expect(reads).toEqual([
-        'session.oa',
+        'session.wa',
         'registry.ha',
-        'namespace.qVd',
+        'namespace.JVd',
         'manager.Na',
         'manager.Oa',
+        'manager.Va',
+        'manager.Ua',
         'manager.ka',
         'manager.ha',
         'manager.wa',
         'manager.Ja',
         'manager.Ga',
-        'manager.Za',
         'manager.kb',
-        'namespace.dKd',
+        'namespace.wKd',
       ]);
     });
   });
   it('accepts explicit undefined manager only in the known prototype chain', () => {
     current.registry.ha = undefined;
     check();
-    current.session.oa = false;
+    current.session.wa = false;
     check('transport-webchannel');
     check('transport-webchannel', true);
   });
@@ -1797,14 +1819,14 @@ describe('Gemini actual consumer client capability', () => {
     [
       'inherited manager',
       (f) => {
-        f.namespace.hKd.prototype.ha = undefined;
+        f.namespace.AKd.prototype.ha = undefined;
       },
     ],
-    ['inherited manager accessor', (f) => getter(f.namespace.hKd.prototype, 'ha')],
+    ['inherited manager accessor', (f) => getter(f.namespace.AKd.prototype, 'ha')],
     [
       'unsupported registry prototype chain',
       (f) => {
-        Object.setPrototypeOf(f.namespace.hKd.prototype, {});
+        Object.setPrototypeOf(f.namespace.AKd.prototype, {});
       },
     ],
   ] satisfies [string, (f: ReturnType<typeof fixture>) => void][])(
@@ -1812,7 +1834,7 @@ describe('Gemini actual consumer client capability', () => {
     (_name, mutate) => {
       mutate(current);
       check('prewarm');
-      current.session.oa = false;
+      current.session.wa = false;
       check('prewarm');
       check('prewarm', true);
     },
@@ -1821,7 +1843,7 @@ describe('Gemini actual consumer client capability', () => {
     getter(Object.prototype, 'ha');
     try {
       check('prewarm');
-      current.session.oa = false;
+      current.session.wa = false;
       check('prewarm');
       check('prewarm', true);
     } finally {
@@ -1832,10 +1854,10 @@ describe('Gemini actual consumer client capability', () => {
     [
       'own API wrapper',
       (f) => {
-        f.api.Zxb = f.calls;
+        f.api.ybb = f.calls;
       },
     ],
-    ['own API accessor', (f) => getter(f.api, 'Zxb')],
+    ['own API accessor', (f) => getter(f.api, 'ybb')],
     [
       'non-extensible API',
       (f) => {
@@ -1845,27 +1867,27 @@ describe('Gemini actual consumer client capability', () => {
     [
       'absent API prototype method',
       (f) => {
-        delete f.namespace.pM.prototype.Zxb;
+        delete f.namespace.gM.prototype.ybb;
       },
     ],
-    ['accessor API prototype method', (f) => getter(f.namespace.pM.prototype, 'Zxb')],
+    ['accessor API prototype method', (f) => getter(f.namespace.gM.prototype, 'ybb')],
     [
       'absent connection factory',
       (f) => {
-        delete f.namespace.dKd;
+        delete f.namespace.wKd;
       },
     ],
-    ['accessor connection factory', (f) => getter(f.namespace, 'dKd')],
+    ['accessor connection factory', (f) => getter(f.namespace, 'wKd')],
     [
       'immutable connection factory',
       (f) => {
-        Object.defineProperty(f.namespace, 'dKd', { writable: false });
+        Object.defineProperty(f.namespace, 'wKd', { writable: false });
       },
     ],
     [
       'non-configurable connection factory',
       (f) => {
-        Object.defineProperty(f.namespace, 'dKd', { configurable: false });
+        Object.defineProperty(f.namespace, 'wKd', { configurable: false });
       },
     ],
   ] satisfies [string, (f: ReturnType<typeof fixture>) => void][])(
@@ -1873,7 +1895,7 @@ describe('Gemini actual consumer client capability', () => {
     (_name, mutate) => {
       mutate(current);
       check('hook');
-      current.session.oa = false;
+      current.session.wa = false;
       check('hook');
       check('hook', true);
     },
@@ -1897,7 +1919,7 @@ describe('private expected page during an owned trial', () => {
     (suffix) => {
       const url = 'https://gemini.google.com/app/' + suffix;
       vi.stubGlobal('location', { href: url });
-      current.api.Aa = false;
+      current.api.Aa.ha = false;
       current.api.Kd = false;
       const capture = vi.fn();
       expect(readGeminiClientCapability(capture, url)).toEqual({
@@ -1965,16 +1987,16 @@ describe('current profile excludes historical mixed owners', () => {
     'rejects a historical mB declaration mixed into current registry with serialized=%s',
     (serialized) => {
       const node = current.declarationNodes[2];
-      node.mB = node.zB;
-      delete node.zB;
+      node.mB = node.DB;
+      delete node.DB;
       check('owner-declaration-3-template', serialized);
     },
   );
   it.each([false, true])(
     'rejects an old conversation export mixed into current registry with serialized=%s',
     (serialized) => {
-      current.namespace.nN = current.namespace.GN;
-      delete current.namespace.GN;
+      current.namespace.nN = current.namespace.wN;
+      delete current.namespace.wN;
       check('runtime-shape', serialized);
     },
   );

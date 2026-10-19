@@ -4,14 +4,24 @@ import type { Platform } from '../../application/ports';
 import {
   GEMINI_FIXED_TEXT_TRIAL_PROMPT,
   GEMINI_NATIVE_CONFIGURATION_DIAGNOSTICS,
+  GEMINI_NATIVE_PHYSICAL_DIAGNOSTICS,
+  type GeminiNativePhysicalDiagnostic,
   type GeminiNativeConfigurationDiagnostic,
   GeminiFixedTextTrialRecord,
   GeminiFixedTextTrialResult,
   type GeminiFixedTextTrialReason,
+  readGeminiNativeReceiveErrorDiagnostic,
+  formatGeminiNativeReceiveDiagnostic,
 } from '../../application/gemini-fixed-text-trial';
 
 const uncertainty = '요청의 완료 여부는 확인하지 못했으며 자동으로 다시 보내지 않습니다.';
 const explanations = {
+  ...(Object.fromEntries(
+    GEMINI_NATIVE_PHYSICAL_DIAGNOSTICS.map((reason, index) => [
+      reason,
+      `응답 요청의 전송 상태를 확인하지 못했습니다. 확인 코드 N20-${index + 1}.`,
+    ]),
+  ) as Record<GeminiNativePhysicalDiagnostic, string>),
   ...(Object.fromEntries(
     GEMINI_NATIVE_CONFIGURATION_DIAGNOSTICS.map((reason, index) => [
       reason,
@@ -318,7 +328,10 @@ export function GeminiSdkTrial({
             typeof cause === 'string' && Object.hasOwn(explanations, cause)
               ? explanations[cause as GeminiFixedTextTrialReason]
               : 'Gemini 응답 시험을 완료하지 못했습니다.';
-          setError(`${explanation} ${uncertainty}`);
+          const diagnostic = formatGeminiNativeReceiveDiagnostic(
+            readGeminiNativeReceiveErrorDiagnostic(failure),
+          );
+          setError(`${explanation}${diagnostic ? ` ${diagnostic}.` : ''} ${uncertainty}`);
         }
       }
     } finally {

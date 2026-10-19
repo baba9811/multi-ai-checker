@@ -7,6 +7,7 @@ import {
   GeminiFixedTextTrialRecord,
   GeminiFixedTextTrialResult,
 } from '../../../src/application/gemini-fixed-text-trial';
+import * as receiveContract from '../../../src/application/gemini-fixed-text-trial';
 import { LIMITS } from '../../../src/domains/crosscheck/model';
 import { createGeminiTrialControl } from '../../../src/infrastructure/providers/gemini/trial-control';
 
@@ -193,14 +194,20 @@ describe('fixed public trial contracts', () => {
     value.registry.lease(value.bootstrap.capability);
     await settle();
     expect(value.registry.lease(value.bootstrap.capability)).toEqual(progress);
-    expect(value.registry.terminalError(value.bootstrap.capability)).toBe(reason);
+    expect(value.registry.terminalError(value.bootstrap.capability)).toEqual({
+      status: 'error',
+      reason,
+    });
     expect(value.registry.terminalError('wrong')).toBeNull();
     value.registry.stop(value.bootstrap.capability);
     const now = vi.spyOn(performance, 'now');
     const set = vi.spyOn(globalThis, 'setTimeout');
     const clear = vi.spyOn(globalThis, 'clearTimeout');
     for (let query = 0; query < 3; query++)
-      expect(value.registry.terminalError(value.bootstrap.capability)).toBe(reason);
+      expect(value.registry.terminalError(value.bootstrap.capability)).toEqual({
+        status: 'error',
+        reason,
+      });
     expect(now).not.toHaveBeenCalled();
     expect(set).not.toHaveBeenCalled();
     expect(clear).not.toHaveBeenCalled();
@@ -637,7 +644,10 @@ describe('inert terminal-error query', () => {
     now.mockRestore();
     await vi.advanceTimersByTimeAsync(1000);
     expect(start.mock.calls[0]![0].aborted).toBe(true);
-    expect(value.registry.terminalError(value.bootstrap.capability)).toBe('interrupted');
+    expect(value.registry.terminalError(value.bootstrap.capability)).toEqual({
+      status: 'error',
+      reason: 'interrupted',
+    });
     expect(start).toHaveBeenCalledTimes(1);
   });
   it('returns no completed result and does not change timers or terminal progress', async () => {
@@ -666,12 +676,288 @@ describe('inert terminal-error query', () => {
       wait.reject(new Error('SYNTHETIC_PRIVATE_MARKER', { cause: 'response-error' }));
       await settle();
       if (!stopFirst) value.registry.stop(value.bootstrap.capability);
-      expect(value.registry.terminalError(value.bootstrap.capability)).toBe(
-        stopFirst ? 'interrupted' : 'response-error',
-      );
+      expect(value.registry.terminalError(value.bootstrap.capability)).toEqual({
+        status: 'error',
+        reason: stopFirst ? 'interrupted' : 'response-error',
+      });
       expect(value.registry.terminalError('wrong')).toBeNull();
       expect(vi.getTimerCount()).toBe(0);
       expect(start).toHaveBeenCalledTimes(1);
     },
   );
+});
+
+describe('Native66 closed receive progress', () => {
+  const diagnostic = { origin: 'capture', predicate: 'dispatch-native-n15-wire-06' };
+  it('preserves an immutable detached P18 snapshot through both existing channels', async () => {
+    const error = Object.defineProperty(
+      new Error('SYNTHETIC_PRIVATE', { cause: 'dispatch-observation' }),
+      'geminiNativeReceiveDiagnostic',
+      { value: diagnostic },
+    );
+    const value = control(async () => {
+      throw error;
+    });
+    value.registry.lease(value.bootstrap.capability);
+    await settle();
+    const expected = {
+      status: 'error',
+      reason: 'dispatch-observation',
+      diagnostic: { ...diagnostic },
+    };
+    const ordinary = value.registry.lease(value.bootstrap.capability);
+    expect(ordinary).toEqual(expected);
+    expect(value.registry.terminalError(value.bootstrap.capability)).toBe(ordinary);
+    expect(Object.isFrozen(ordinary)).toBe(true);
+    expect(Object.isFrozen((ordinary as any).diagnostic)).toBe(true);
+    diagnostic.origin = 'decode';
+    expect(value.registry.terminalError(value.bootstrap.capability)).toEqual(expected);
+    diagnostic.origin = 'capture';
+  });
+  it('enumerates every explicit codebook and rejects malformed/accessor/extra/non-P18 metadata', () => {
+    const api = receiveContract as any;
+    expect(api.GEMINI_NATIVE_RECEIVE_ORIGIN_CODES).toBeDefined();
+    expect(api.GEMINI_NATIVE_RECEIVE_PREDICATE_CODES).toBeDefined();
+    for (const predicate of ['dispatch-native-n25', 'dispatch-native-n26', 'dispatch-native-n27'])
+      expect(
+        GeminiFixedTextTrialProgress.safeParse({
+          status: 'error',
+          reason: 'dispatch-observation',
+          diagnostic: { origin: 'prior-guard', predicate },
+        }).success,
+      ).toBe(false);
+    expect(
+      api.formatGeminiNativeReceiveDiagnostic({
+        origin: 'capture',
+        predicate: 'dispatch-native-n15-wire-06',
+      }),
+    ).toBe('P18-R3-P38');
+    for (const [origin, ordinal] of Object.entries(api.GEMINI_NATIVE_RECEIVE_ORIGIN_CODES)) {
+      const d = { origin, predicate: 'unknown' };
+      expect(api.formatGeminiNativeReceiveDiagnostic(d)).toBe(`P18-R${ordinal}-P1`);
+      expect(
+        GeminiFixedTextTrialProgress.safeParse({
+          status: 'error',
+          reason: 'dispatch-observation',
+          diagnostic: d,
+        }).success,
+      ).toBe(true);
+    }
+    for (const [predicate, ordinal] of Object.entries(api.GEMINI_NATIVE_RECEIVE_PREDICATE_CODES))
+      expect(api.formatGeminiNativeReceiveDiagnostic({ origin: 'capture', predicate })).toBe(
+        `P18-R3-P${ordinal}`,
+      );
+    const getter = vi.fn(() => 'capture');
+    for (const malformed of [
+      { ...diagnostic, extra: 'SYNTHETIC_PRIVATE' },
+      { ...diagnostic, origin: 'private' },
+      { ...diagnostic, predicate: 'private' },
+      Object.defineProperty({ predicate: 'unknown' }, 'origin', { get: getter }),
+      null,
+      'capture',
+    ])
+      expect(
+        GeminiFixedTextTrialProgress.safeParse({
+          status: 'error',
+          reason: 'dispatch-observation',
+          diagnostic: malformed,
+        }).success,
+      ).toBe(false);
+    expect(getter).not.toHaveBeenCalled();
+    for (const status of [
+      { status: 'error', reason: 'cleanup' },
+      { status: 'pending' },
+      { status: 'done', result },
+    ])
+      expect(GeminiFixedTextTrialProgress.safeParse({ ...status, diagnostic }).success).toBe(false);
+    expect(
+      GeminiFixedTextTrialRecord.safeParse({ id: 'synthetic', status: 'uncertain', diagnostic })
+        .success,
+    ).toBe(false);
+  });
+});
+
+it('Native66 ignores forged/accessor P18 metadata and never retains it on another reason', async () => {
+  const getter = vi.fn(() => ({ origin: 'decode', predicate: 'unknown' }));
+  const values = [
+    Object.defineProperty(
+      new Error('', { cause: 'dispatch-observation' }),
+      'geminiNativeReceiveDiagnostic',
+      { get: getter },
+    ),
+    Object.assign(new Error('', { cause: 'dispatch-observation' }), {
+      geminiNativeReceiveDiagnostic: { origin: 'decode', predicate: 'unknown' },
+    }),
+    Object.defineProperty(new Error('', { cause: 'cleanup' }), 'geminiNativeReceiveDiagnostic', {
+      value: { origin: 'decode', predicate: 'unknown' },
+    }),
+    Object.defineProperty(
+      new Error('', { cause: 'dispatch-observation' }),
+      'geminiNativeReceiveDiagnostic',
+      { value: { origin: 'decode', predicate: 'unknown', private: 'SYNTHETIC' } },
+    ),
+  ];
+  for (const error of values) {
+    const value = control(async () => {
+      throw error;
+    });
+    value.registry.lease(value.bootstrap.capability);
+    await settle();
+    expect(value.registry.terminalError(value.bootstrap.capability)).toEqual({
+      status: 'error',
+      reason: error.cause,
+    });
+  }
+  expect(getter).not.toHaveBeenCalled();
+});
+
+it('Native66 rejects a diagnostic accessor on an error snapshot without invoking it', () => {
+  const getter = vi.fn(() => ({ origin: 'capture', predicate: 'unknown' }));
+  const payload = Object.defineProperty(
+    { status: 'error', reason: 'dispatch-observation' },
+    'diagnostic',
+    { get: getter, enumerable: true },
+  );
+  expect(GeminiFixedTextTrialProgress.safeParse(payload).success).toBe(false);
+  expect(getter).not.toHaveBeenCalled();
+});
+
+it('Native66 keeps prototype-named and symbol extras visible to strict error snapshot validation', () => {
+  const payload = { status: 'error', reason: 'dispatch-observation' };
+  Object.defineProperty(payload, '__proto__', { value: Object.create(null), enumerable: true });
+  expect(GeminiFixedTextTrialProgress.safeParse(payload).success).toBe(false);
+  expect(
+    GeminiFixedTextTrialProgress.safeParse({ ...payload, [Symbol('private')]: 'SYNTHETIC_PRIVATE' })
+      .success,
+  ).toBe(false);
+});
+
+it.each([
+  ['ordinary progress', GeminiFixedTextTrialProgress],
+  ['terminal error', receiveContract.GeminiFixedTextTrialErrorProgress],
+] as const)(
+  'Native66 review rejects result accessors on error snapshots before parsing another %s branch',
+  (_name, schema) => {
+    const throwing = vi.fn(() => {
+      throw Error('SYNTHETIC_GETTER');
+    });
+    const payload = { status: 'error', reason: 'dispatch-observation' };
+    const extraResult = Object.defineProperty({ ...payload }, 'result', {
+      get: throwing,
+      enumerable: true,
+    });
+    let parsed: ReturnType<typeof schema.safeParse> | undefined;
+    expect(() => {
+      parsed = schema.safeParse(extraResult);
+    }).not.toThrow();
+    expect(parsed).toMatchObject({ success: false });
+    expect(throwing).not.toHaveBeenCalled();
+  },
+);
+
+it.each(['status', 'diagnostic'] as const)(
+  'Native66 review rejects a top-level %s accessor without invoking it in either channel',
+  (key) => {
+    const getter = vi.fn(() =>
+      key === 'status' ? 'error' : { origin: 'capture', predicate: 'unknown' },
+    );
+    const payload = Object.defineProperty(
+      { status: 'error', reason: 'dispatch-observation' },
+      key,
+      { get: getter, enumerable: true },
+    );
+    for (const schema of [
+      GeminiFixedTextTrialProgress,
+      receiveContract.GeminiFixedTextTrialErrorProgress,
+    ]) {
+      let parsed: ReturnType<typeof schema.safeParse> | undefined;
+      expect(() => {
+        parsed = schema.safeParse(payload);
+      }).not.toThrow();
+      expect(parsed).toMatchObject({ success: false });
+      expect(getter).not.toHaveBeenCalled();
+    }
+  },
+);
+
+it.each([
+  ['ordinary progress', GeminiFixedTextTrialProgress],
+  ['terminal error', receiveContract.GeminiFixedTextTrialErrorProgress],
+] as const)(
+  'Native66 review does not parse nested result getters on a malformed error through %s',
+  (_name, schema) => {
+    const nested = vi.fn(() => {
+      throw Error('SYNTHETIC_NESTED_GETTER');
+    });
+    const result = Object.defineProperties(
+      {},
+      { model: { get: nested, enumerable: true }, answer: { get: nested, enumerable: true } },
+    );
+    let parsed: ReturnType<typeof schema.safeParse> | undefined;
+    expect(() => {
+      parsed = schema.safeParse({ status: 'error', reason: 'dispatch-observation', result });
+    }).not.toThrow();
+    expect(parsed).toMatchObject({ success: false });
+    expect(nested).not.toHaveBeenCalled();
+  },
+);
+
+it('Native67 appends only fixed field-boundary codes and keeps both strict P18 channels', async () => {
+  const labels = [
+    'fields-envelope-ignored-branch',
+    'fields-envelope-other',
+    'fields-hjd-ignored-branch',
+    'fields-hjd-other',
+    'fields-bjd-ignored-branch',
+    'fields-bjd-other',
+    'fields-ajd-ignored-branch',
+    'fields-ajd-other',
+    'fields-prior-aa-identity',
+    'fields-native-holder',
+    'fields-raw-identity',
+    'fields-raw-location',
+    'fields-raw-routing',
+    'fields-raw-client',
+    'fields-raw-fallback',
+    'fields-raw-candidate',
+    'fields-raw-candidate-extra',
+    'fields-raw-status',
+    'fields-raw-text',
+    'fields-raw-structured',
+    'fields-raw-node',
+    'fields-raw-plain',
+  ];
+  expect(receiveContract.GEMINI_NATIVE_RECEIVE_PREDICATE_CODES['dispatch-native-n15-wire-16']).toBe(
+    48,
+  );
+  expect(receiveContract.GEMINI_NATIVE_RECEIVE_PREDICATE_CODES['response-transition']).toBe(211);
+  for (const [index, predicate] of labels.entries()) {
+    const diagnostic = { origin: 'capture', predicate };
+    expect(receiveContract.formatGeminiNativeReceiveDiagnostic(diagnostic)).toBe(
+      `P18-R3-P${212 + index}`,
+    );
+    const value = control(async () => {
+      throw Object.defineProperty(
+        new Error('SYNTHETIC_PRIVATE', { cause: 'dispatch-observation' }),
+        'geminiNativeReceiveDiagnostic',
+        { value: diagnostic },
+      );
+    });
+    value.registry.lease(value.bootstrap.capability);
+    await settle();
+    const expected = { status: 'error', reason: 'dispatch-observation', diagnostic };
+    expect(value.registry.lease(value.bootstrap.capability)).toEqual(expected);
+    expect(value.registry.terminalError(value.bootstrap.capability)).toEqual(expected);
+    expect(GeminiFixedTextTrialProgress.safeParse(expected).success).toBe(true);
+    expect(
+      GeminiFixedTextTrialRecord.safeParse({ id: 'synthetic', status: 'uncertain', diagnostic })
+        .success,
+    ).toBe(false);
+  }
+  expect(
+    receiveContract.formatGeminiNativeReceiveDiagnostic({
+      origin: 'capture',
+      predicate: 'fields-envelope-private-value',
+    }),
+  ).toBeUndefined();
 });

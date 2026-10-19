@@ -96,6 +96,7 @@ it('refuses a pending SDK reservation when the separate observer reserves before
     runtime: {
       id: 'fixture',
       getURL: (name: string) => `chrome-extension://fixture/${name}`,
+      onConnect: { addListener: vi.fn() },
       onMessage: {
         addListener: (listener: typeof handler) => {
           handler = listener;

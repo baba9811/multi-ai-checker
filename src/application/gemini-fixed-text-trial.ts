@@ -129,6 +129,26 @@ export const GEMINI_NATIVE_CONFIGURATION_DIAGNOSTICS = [
 ] as const;
 export type GeminiNativeConfigurationDiagnostic =
   (typeof GEMINI_NATIVE_CONFIGURATION_DIAGNOSTICS)[number];
+export const GEMINI_NATIVE_PHYSICAL_DIAGNOSTICS = [
+  'dispatch-native-n20-entry-owner',
+  'dispatch-native-n20-entry-data',
+  'dispatch-native-n20-request-owner',
+  'dispatch-native-n20-batch-owner',
+  'dispatch-native-n20-batch-content',
+  'dispatch-native-n20-session-id',
+  'dispatch-native-n20-map-count',
+  'dispatch-native-n20-active-request',
+  'dispatch-native-n20-transport-state',
+  'dispatch-native-n20-wrapper-state',
+  'dispatch-native-n20-queue-owner',
+  'dispatch-native-n20-connect-before',
+  'dispatch-native-n20-connect-original',
+  'dispatch-native-n20-connect-after',
+  'dispatch-native-n20-forward-before',
+  'dispatch-native-n20-forward-original',
+  'dispatch-native-n20-forward-after',
+] as const;
+export type GeminiNativePhysicalDiagnostic = (typeof GEMINI_NATIVE_PHYSICAL_DIAGNOSTICS)[number];
 export const GEMINI_NATIVE_DISPATCH_REASONS = [
   'dispatch-native-n01',
   'dispatch-native-n02',
@@ -158,6 +178,7 @@ export const GEMINI_NATIVE_DISPATCH_REASONS = [
   'dispatch-native-n26',
   'dispatch-native-n27',
   ...GEMINI_NATIVE_CONFIGURATION_DIAGNOSTICS,
+  ...GEMINI_NATIVE_PHYSICAL_DIAGNOSTICS,
 ] as const;
 // Original-call fallbacks N25–N27 are never accepted as guard Error metadata.
 export const GEMINI_NATIVE_GUARD_DIAGNOSTICS = [
@@ -186,6 +207,7 @@ export const GEMINI_NATIVE_GUARD_DIAGNOSTICS = [
   'dispatch-native-n23',
   'dispatch-native-n24',
   ...GEMINI_NATIVE_CONFIGURATION_DIAGNOSTICS,
+  ...GEMINI_NATIVE_PHYSICAL_DIAGNOSTICS,
 ] as const;
 export const GeminiFixedTextTrialReason = z.enum([
   ...GEMINI_NATIVE_DISPATCH_REASONS,
@@ -380,11 +402,383 @@ export const GeminiFixedTextTrialReason = z.enum([
   'interrupted',
 ]);
 export type GeminiFixedTextTrialReason = z.infer<typeof GeminiFixedTextTrialReason>;
-export const GeminiFixedTextTrialProgress = z.discriminatedUnion('status', [
-  z.object({ status: z.literal('pending') }).strict(),
-  z.object({ status: z.literal('done'), result: GeminiFixedTextTrialResult }).strict(),
-  z.object({ status: z.literal('error'), reason: GeminiFixedTextTrialReason }).strict(),
-]);
+
+// Append-only display ordinals; reason and outbound diagnostic ordering stay unchanged.
+export const GEMINI_NATIVE_RECEIVE_ORIGIN_CODES = {
+  'prior-guard': 1,
+  decode: 2,
+  capture: 3,
+  correlation: 4,
+  'lifecycle-admission': 5,
+  normalize: 6,
+  'receipt-currentness': 7,
+  'owner-currentness': 8,
+  'original-callback': 9,
+  'extension-callback': 10,
+  'provider-terminal': 11,
+  'finish-envelope': 12,
+} as const;
+export const GEMINI_NATIVE_RECEIVE_PREDICATE_CODES = {
+  unknown: 1,
+  'dispatch-native-n01': 2,
+  'dispatch-native-n02': 3,
+  'dispatch-native-n03': 4,
+  'dispatch-native-n04': 5,
+  'dispatch-native-n05': 6,
+  'dispatch-native-n06': 7,
+  'dispatch-native-n07': 8,
+  'dispatch-native-n08': 9,
+  'dispatch-native-n09': 10,
+  'dispatch-native-n10': 11,
+  'dispatch-native-n11': 12,
+  'dispatch-native-n12': 13,
+  'dispatch-native-n13': 14,
+  'dispatch-native-n14': 15,
+  'dispatch-native-n15': 16,
+  'dispatch-native-n16': 17,
+  'dispatch-native-n17': 18,
+  'dispatch-native-n18': 19,
+  'dispatch-native-n19': 20,
+  'dispatch-native-n20': 21,
+  'dispatch-native-n21': 22,
+  'dispatch-native-n22': 23,
+  'dispatch-native-n23': 24,
+  'dispatch-native-n24': 25,
+  'dispatch-native-n15-own-object': 26,
+  'dispatch-native-n15-own-data': 27,
+  'dispatch-native-n15-object-01': 28,
+  'dispatch-native-n15-object-02': 29,
+  'dispatch-native-n15-object-03': 30,
+  'dispatch-native-n15-object-04': 31,
+  'dispatch-native-n15-object-05': 32,
+  'dispatch-native-n15-wire-01': 33,
+  'dispatch-native-n15-wire-02': 34,
+  'dispatch-native-n15-wire-03': 35,
+  'dispatch-native-n15-wire-04': 36,
+  'dispatch-native-n15-wire-05': 37,
+  'dispatch-native-n15-wire-06': 38,
+  'dispatch-native-n15-wire-07': 39,
+  'dispatch-native-n15-wire-forbidden-flags': 40,
+  'dispatch-native-n15-wire-09': 41,
+  'dispatch-native-n15-wire-10': 42,
+  'dispatch-native-n15-wire-11': 43,
+  'dispatch-native-n15-wire-12': 44,
+  'dispatch-native-n15-wire-13': 45,
+  'dispatch-native-n15-wire-14': 46,
+  'dispatch-native-n15-wire-15': 47,
+  'dispatch-native-n15-wire-16': 48,
+  'dispatch-native-n15-wire-23': 49,
+  'dispatch-native-n15-wire-24': 50,
+  'dispatch-native-n15-wire-25': 51,
+  'dispatch-native-n15-wire-26': 52,
+  'dispatch-native-n15-wire-27': 53,
+  'dispatch-native-n15-wire-28': 54,
+  'dispatch-native-n15-wire-29': 55,
+  'dispatch-native-n15-wire-30': 56,
+  'dispatch-native-n15-wire-31': 57,
+  'dispatch-native-n15-wire-32': 58,
+  'dispatch-native-n15-source-01': 59,
+  'dispatch-native-n15-private-01': 60,
+  'dispatch-native-n15-private-02': 61,
+  'dispatch-native-n15-oneof-01': 62,
+  'dispatch-native-n15-wrapper-01': 63,
+  'dispatch-native-n15-content-01': 64,
+  'dispatch-native-n15-content-02': 65,
+  'dispatch-native-n15-content-03': 66,
+  'dispatch-native-n15-content-equality': 67,
+  'dispatch-native-n15-configuration-zero': 68,
+  'dispatch-native-n15-configuration-02': 69,
+  'dispatch-native-n15-configuration-03': 70,
+  'dispatch-native-n15-configuration-04': 71,
+  'dispatch-native-n15-configuration-05': 72,
+  'dispatch-native-n15-configuration-assert-01': 73,
+  'dispatch-native-n15-configuration-assert-02': 74,
+  'dispatch-native-n15-configuration-assert-03': 75,
+  'dispatch-native-n15-configuration-assert-04': 76,
+  'dispatch-native-n15-configuration-assert-05': 77,
+  'dispatch-native-n15-kind-01': 78,
+  'dispatch-native-n15-kind-02': 79,
+  'dispatch-native-n15-kind-03': 80,
+  'dispatch-native-n15-kind-04': 81,
+  'dispatch-native-n15-kind-05': 82,
+  'dispatch-native-n15-kind-06': 83,
+  'dispatch-native-n15-unknown-gjd': 84,
+  'dispatch-native-n15-unknown-push': 85,
+  'dispatch-native-n15-unknown-content': 86,
+  'dispatch-native-n15-unknown-kind': 87,
+  'dispatch-native-n15-unknown-configuration': 88,
+  'dispatch-native-n15-unknown-guard': 89,
+  'dispatch-native-n15-object-shape': 90,
+  'dispatch-native-n15-fn-shape': 91,
+  'dispatch-native-n15-exact-shape': 92,
+  'dispatch-native-n15-constructor-shape': 93,
+  'dispatch-native-n15-evidence-01': 94,
+  'dispatch-native-n15-evidence-02': 95,
+  'dispatch-native-n15-evidence-03': 96,
+  'dispatch-native-n15-evidence-04': 97,
+  'dispatch-native-n15-evidence-05': 98,
+  'dispatch-native-n15-evidence-06': 99,
+  'dispatch-native-n15-evidence-07': 100,
+  'dispatch-native-n15-evidence-08': 101,
+  'dispatch-native-n15-evidence-09': 102,
+  'dispatch-native-n15-evidence-10': 103,
+  'dispatch-native-n15-evidence-11': 104,
+  'dispatch-native-n15-evidence-12': 105,
+  'dispatch-native-n15-evidence-13': 106,
+  'dispatch-native-n15-evidence-14': 107,
+  'dispatch-native-n15-evidence-15': 108,
+  'dispatch-native-n15-evidence-16': 109,
+  'dispatch-native-n15-evidence-17': 110,
+  'dispatch-native-n15-evidence-18': 111,
+  'dispatch-native-n15-evidence-19': 112,
+  'dispatch-native-n15-evidence-20': 113,
+  'dispatch-native-n15-evidence-21': 114,
+  'dispatch-native-n15-evidence-22': 115,
+  'dispatch-native-n15-evidence-23': 116,
+  'dispatch-native-n15-evidence-24': 117,
+  'dispatch-native-n15-evidence-25': 118,
+  'dispatch-native-n15-evidence-seed-immutable': 119,
+  'dispatch-native-n15-config-state': 120,
+  'dispatch-native-n15-config-receiver': 121,
+  'dispatch-native-n15-config-arity': 122,
+  'dispatch-native-n15-argument-instance': 123,
+  'dispatch-native-n15-argument-ok': 124,
+  'dispatch-native-n15-argument-source': 125,
+  'dispatch-native-n15-argument-mode': 126,
+  'dispatch-native-n15-argument-turn': 127,
+  'dispatch-native-n15-config-01': 128,
+  'dispatch-native-n15-events-01': 129,
+  'dispatch-native-n15-events-02': 130,
+  'dispatch-native-n15-events-03': 131,
+  'dispatch-native-n15-events-04': 132,
+  'dispatch-native-n15-events-05': 133,
+  'dispatch-native-n15-events-06': 134,
+  'dispatch-native-n15-queue-state': 135,
+  'dispatch-native-n15-queue-receiver': 136,
+  'dispatch-native-n15-queue-arity': 137,
+  'dispatch-native-n15-queue-order': 138,
+  'dispatch-native-n15-queue-02': 139,
+  'dispatch-native-n15-queue-03': 140,
+  'response-raw-fields': 141,
+  'response-raw-field-1': 142,
+  'response-raw-field-3': 143,
+  'response-raw-field-4': 144,
+  'response-raw-field-14': 145,
+  'response-raw-field-17': 146,
+  'response-raw-field-18': 147,
+  'response-raw-field-19': 148,
+  'response-raw-field-22': 149,
+  'response-raw-field-29': 150,
+  'response-raw-field-31': 151,
+  'response-raw-field-38': 152,
+  'response-raw-field-39': 153,
+  'response-raw-field-42': 154,
+  'response-raw-field-44': 155,
+  'response-raw-field-45': 156,
+  'response-raw-field-51': 157,
+  'response-raw-field-54': 158,
+  'response-raw-field-6': 159,
+  'response-raw-field-7': 160,
+  'response-raw-field-8': 161,
+  'response-raw-field-10': 162,
+  'response-raw-field-25': 163,
+  'response-raw-field-30': 164,
+  'response-raw-field-33': 165,
+  'response-raw-field-35': 166,
+  'response-raw-field-36': 167,
+  'response-raw-field-41': 168,
+  'response-raw-field-47': 169,
+  'response-raw-field-49': 170,
+  'response-raw-field-53': 171,
+  'response-raw-field-57': 172,
+  'response-raw-continuation': 173,
+  'response-raw-disconnect': 174,
+  'response-raw-title': 175,
+  'response-raw-routing': 176,
+  'response-raw-attribution': 177,
+  'response-raw-history': 178,
+  'response-raw-quota': 179,
+  'response-raw-heartbeat': 180,
+  'response-raw-string': 181,
+  'response-raw-enum': 182,
+  'response-raw-client': 183,
+  'response-raw-supplement': 184,
+  'response-flags': 185,
+  'response-lists': 186,
+  'response-metadata': 187,
+  'response-identity': 188,
+  'response-candidate-lists': 189,
+  'response-answer': 190,
+  'response-candidate-extra': 191,
+  'response-final-metadata': 192,
+  'response-content': 193,
+  'response-completion': 194,
+  'cache-shape': 195,
+  'cache-intrinsic': 196,
+  'cache-selection': 197,
+  'envelope-shape': 198,
+  'lifecycle-feature': 199,
+  'receipt-state': 200,
+  'receipt-source': 201,
+  'receipt-frozen-identity': 202,
+  'receipt-backing': 203,
+  'receipt-content': 204,
+  'normalization-view': 205,
+  'normalization-clone': 206,
+  'normalization-identity': 207,
+  'event-binding': 208,
+  'provider-error': 209,
+  'provider-control': 210,
+  'response-transition': 211,
+  'fields-envelope-ignored-branch': 212,
+  'fields-envelope-other': 213,
+  'fields-hjd-ignored-branch': 214,
+  'fields-hjd-other': 215,
+  'fields-bjd-ignored-branch': 216,
+  'fields-bjd-other': 217,
+  'fields-ajd-ignored-branch': 218,
+  'fields-ajd-other': 219,
+  'fields-prior-aa-identity': 220,
+  'fields-native-holder': 221,
+  'fields-raw-identity': 222,
+  'fields-raw-location': 223,
+  'fields-raw-routing': 224,
+  'fields-raw-client': 225,
+  'fields-raw-fallback': 226,
+  'fields-raw-candidate': 227,
+  'fields-raw-candidate-extra': 228,
+  'fields-raw-status': 229,
+  'fields-raw-text': 230,
+  'fields-raw-structured': 231,
+  'fields-raw-node': 232,
+  'fields-raw-plain': 233,
+  'dispatch-native-n20-entry-owner': 234,
+  'dispatch-native-n20-entry-data': 235,
+  'dispatch-native-n20-request-owner': 236,
+  'dispatch-native-n20-batch-owner': 237,
+  'dispatch-native-n20-batch-content': 238,
+  'dispatch-native-n20-session-id': 239,
+  'dispatch-native-n20-map-count': 240,
+  'dispatch-native-n20-active-request': 241,
+  'dispatch-native-n20-transport-state': 242,
+  'dispatch-native-n20-wrapper-state': 243,
+  'dispatch-native-n20-queue-owner': 244,
+  'dispatch-native-n20-connect-before': 245,
+  'dispatch-native-n20-connect-original': 246,
+  'dispatch-native-n20-connect-after': 247,
+  'dispatch-native-n20-forward-before': 248,
+  'dispatch-native-n20-forward-original': 249,
+  'dispatch-native-n20-forward-after': 250,
+} as const;
+
+function receiveDiagnosticData(value: unknown): unknown {
+  try {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+    const fields = Object.getOwnPropertyDescriptors(value);
+    if (
+      Reflect.ownKeys(fields).length !== 2 ||
+      !fields.origin ||
+      !('value' in fields.origin) ||
+      !fields.predicate ||
+      !('value' in fields.predicate)
+    )
+      return undefined;
+    return { origin: fields.origin.value, predicate: fields.predicate.value };
+  } catch {
+    return undefined;
+  }
+}
+export const GeminiNativeReceiveDiagnostic = z.preprocess(
+  receiveDiagnosticData,
+  z
+    .object({
+      origin: z.enum(
+        Object.keys(GEMINI_NATIVE_RECEIVE_ORIGIN_CODES) as [
+          keyof typeof GEMINI_NATIVE_RECEIVE_ORIGIN_CODES,
+          ...(keyof typeof GEMINI_NATIVE_RECEIVE_ORIGIN_CODES)[],
+        ],
+      ),
+      predicate: z.enum(
+        Object.keys(GEMINI_NATIVE_RECEIVE_PREDICATE_CODES) as [
+          keyof typeof GEMINI_NATIVE_RECEIVE_PREDICATE_CODES,
+          ...(keyof typeof GEMINI_NATIVE_RECEIVE_PREDICATE_CODES)[],
+        ],
+      ),
+    })
+    .strict()
+    .transform((value) => Object.freeze(value)),
+);
+export type GeminiNativeReceiveDiagnostic = z.infer<typeof GeminiNativeReceiveDiagnostic>;
+export function readGeminiNativeReceiveErrorDiagnostic(
+  error: unknown,
+): GeminiNativeReceiveDiagnostic | undefined {
+  try {
+    if (!error || (typeof error !== 'object' && typeof error !== 'function')) return;
+    const cause = Object.getOwnPropertyDescriptor(error, 'cause');
+    if (!cause || !('value' in cause) || cause.value !== 'dispatch-observation') return;
+    const field = Object.getOwnPropertyDescriptor(error, 'geminiNativeReceiveDiagnostic');
+    if (!field || !('value' in field) || field.writable || field.configurable) return;
+    const parsed = GeminiNativeReceiveDiagnostic.safeParse(field.value);
+    return parsed.success ? parsed.data : undefined;
+  } catch {
+    return;
+  }
+}
+export function attachGeminiNativeReceiveDiagnostic(error: Error, diagnostic: unknown): Error {
+  if (Object.getOwnPropertyDescriptor(error, 'cause')?.value === 'dispatch-observation') {
+    const parsed = GeminiNativeReceiveDiagnostic.safeParse(diagnostic);
+    if (parsed.success)
+      Object.defineProperty(error, 'geminiNativeReceiveDiagnostic', { value: parsed.data });
+  }
+  return error;
+}
+export function formatGeminiNativeReceiveDiagnostic(value: unknown): string | undefined {
+  const parsed = GeminiNativeReceiveDiagnostic.safeParse(value);
+  return parsed.success
+    ? `P18-R${GEMINI_NATIVE_RECEIVE_ORIGIN_CODES[parsed.data.origin]}-P${GEMINI_NATIVE_RECEIVE_PREDICATE_CODES[parsed.data.predicate]}`
+    : undefined;
+}
+function trialProgressData(value: unknown): unknown {
+  try {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+    const fields = Object.getOwnPropertyDescriptors(value);
+    const result: Record<string, unknown> = Object.create(null);
+    for (const key of Reflect.ownKeys(fields)) {
+      if (typeof key !== 'string' || !('value' in fields[key]!)) return undefined;
+      result[key] = fields[key]!.value;
+    }
+    return result;
+  } catch {
+    return undefined;
+  }
+}
+const errorProgress = z
+  .discriminatedUnion('reason', [
+    z
+      .object({
+        status: z.literal('error'),
+        reason: z.literal('dispatch-observation'),
+        diagnostic: GeminiNativeReceiveDiagnostic.optional(),
+      })
+      .strict(),
+    z
+      .object({
+        status: z.literal('error'),
+        reason: GeminiFixedTextTrialReason.exclude(['dispatch-observation']),
+      })
+      .strict(),
+  ])
+  .transform((value) => Object.freeze(value));
+export const GeminiFixedTextTrialErrorProgress = z.preprocess(trialProgressData, errorProgress);
+export type GeminiFixedTextTrialErrorProgress = z.infer<typeof GeminiFixedTextTrialErrorProgress>;
+export const GeminiFixedTextTrialProgress = z.preprocess(
+  trialProgressData,
+  z.discriminatedUnion('status', [
+    z.object({ status: z.literal('pending') }).strict(),
+    z.object({ status: z.literal('done'), result: GeminiFixedTextTrialResult }).strict(),
+    errorProgress,
+  ]),
+);
 export type GeminiFixedTextTrialProgress = z.infer<typeof GeminiFixedTextTrialProgress>;
 export const GeminiFixedTextTrialBootstrap = z
   .object({

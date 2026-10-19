@@ -1,3 +1,4 @@
+import { installCollectorFixture } from '../fixtures/chrome/collector';
 import { expect, test, type Page } from '@playwright/test';
 import path from 'node:path';
 import { providerPage } from '../fixtures/providers/pages';
@@ -6,6 +7,8 @@ async function command(page: Page, message: object) {
   return page.evaluate(
     (message) =>
       new Promise<{ ok: boolean; data?: any; error?: string }>((resolve) => {
+        if ((message as any).type === 'send')
+          (window as any).__fixtureConnectCollector((message as any).id);
         (window as any).__bridgeHandler(
           message,
           { id: 'fixture', url: 'chrome-extension://fixture/sidepanel.html' },
@@ -99,6 +102,7 @@ async function setupEditor(
       },
     };
   }, options);
+  await page.evaluate(installCollectorFixture);
   await page.addScriptTag({ path: path.resolve('.output/chrome-mv3/bridge.js') });
   const snapshot = await command(page, { type: 'snapshot' });
   return snapshot.data as { documentId: string; url: string };

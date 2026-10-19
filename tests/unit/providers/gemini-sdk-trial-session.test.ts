@@ -365,7 +365,13 @@ it('preserves an existing terminal MAIN refusal when a later reservation detects
     if (options.args?.[2] === 'terminal-error') {
       diagnostics++;
       order.push('diagnostic');
-      return [{ frameId: 0, documentId: 'native-doc', result: 'response-error' }];
+      return [
+        {
+          frameId: 0,
+          documentId: 'native-doc',
+          result: { status: 'error', reason: 'response-error' },
+        },
+      ];
     }
     if (options.args?.[2] === true) {
       order.push('stop');
@@ -401,13 +407,39 @@ it.each([
   ],
   ['missing method', [{ frameId: 0, documentId: 'native-doc', result: false }]],
   ['missing injection', []],
-  ['foreign document', [{ frameId: 0, documentId: 'foreign-doc', result: 'response-error' }]],
-  ['foreign frame', [{ frameId: 1, documentId: 'native-doc', result: 'response-error' }]],
+  [
+    'foreign document',
+    [
+      {
+        frameId: 0,
+        documentId: 'foreign-doc',
+        result: { status: 'error', reason: 'response-error' },
+      },
+    ],
+  ],
+  [
+    'foreign frame',
+    [
+      {
+        frameId: 1,
+        documentId: 'native-doc',
+        result: { status: 'error', reason: 'response-error' },
+      },
+    ],
+  ],
   [
     'duplicate frame',
     [
-      { frameId: 0, documentId: 'native-doc', result: 'response-error' },
-      { frameId: 0, documentId: 'native-doc', result: 'response-error' },
+      {
+        frameId: 0,
+        documentId: 'native-doc',
+        result: { status: 'error', reason: 'response-error' },
+      },
+      {
+        frameId: 0,
+        documentId: 'native-doc',
+        result: { status: 'error', reason: 'response-error' },
+      },
     ],
   ],
   [
@@ -416,7 +448,7 @@ it.each([
       {
         frameId: 0,
         documentId: 'native-doc',
-        result: 'response-error',
+        result: { status: 'error', reason: 'response-error' },
         detail: 'SYNTHETIC_PRIVATE_MARKER',
       },
     ],
@@ -510,7 +542,13 @@ it.each([
             resolve();
           });
         });
-      const response = [{ frameId: 0, documentId: 'native-doc', result: 'response-error' }];
+      const response = [
+        {
+          frameId: 0,
+          documentId: 'native-doc',
+          result: { status: 'error', reason: 'response-error' },
+        },
+      ];
       if (race.endsWith('after')) queueMicrotask(change);
       return response;
     }
@@ -569,7 +607,13 @@ it.each(['initial', 'before-first-lease', 'reservation-throws', 'malformed-reser
     browser.scripting.executeScript.mockImplementation(async (options) => {
       if (options.args?.[2] === 'terminal-error') {
         queries++;
-        return [{ frameId: 0, documentId: 'native-doc', result: 'response-error' }];
+        return [
+          {
+            frameId: 0,
+            documentId: 'native-doc',
+            result: { status: 'error', reason: 'response-error' },
+          },
+        ];
       }
       if (options.args?.[2] === true)
         return [{ frameId: 0, documentId: 'native-doc', result: false }];
@@ -600,7 +644,7 @@ it('serialized MAIN diagnostic delegates only to the frozen terminal-error metho
   const read = (
     invocation as unknown as { func: (handle: string, capability: string, mode: string) => unknown }
   ).func;
-  const terminalError = vi.fn(() => 'response-error');
+  const terminalError = vi.fn(() => ({ status: 'error', reason: 'response-error' }));
   const lease = vi.fn(() => {
     throw Error('Must not lease');
   });
@@ -619,9 +663,10 @@ it('serialized MAIN diagnostic delegates only to the frozen terminal-error metho
   vi.stubGlobal('location', { origin: 'https://gemini.google.com' });
   vi.stubGlobal('globalThis', page);
   try {
-    expect(read('synthetic-inert-registry', 'synthetic-capability', 'terminal-error')).toBe(
-      'response-error',
-    );
+    expect(read('synthetic-inert-registry', 'synthetic-capability', 'terminal-error')).toEqual({
+      status: 'error',
+      reason: 'response-error',
+    });
     expect(terminalError).toHaveBeenCalledExactlyOnceWith('synthetic-capability');
     expect(lease).not.toHaveBeenCalled();
     expect(stop).not.toHaveBeenCalled();
@@ -631,3 +676,74 @@ it('serialized MAIN diagnostic delegates only to the frozen terminal-error metho
     vi.unstubAllGlobals();
   }
 });
+
+it('Native66 preserves ordinary lease P18 diagnostic without adding persisted fields', async () => {
+  const diagnostic = { origin: 'capture', predicate: 'dispatch-native-n15-wire-06' };
+  frames = [
+    {
+      frameId: 0,
+      documentId: 'native-doc',
+      result: { status: 'error', reason: 'dispatch-observation', diagnostic },
+    },
+  ];
+  await expect(start()).rejects.toMatchObject({
+    cause: 'dispatch-observation',
+    geminiNativeReceiveDiagnostic: diagnostic,
+  });
+  expect(Object.keys(stored[key] as object).sort()).toEqual(['id', 'status']);
+  expect(stored[key]).toMatchObject({ status: 'uncertain' });
+  expect(browser.tabs.create).toHaveBeenCalledTimes(1);
+});
+
+it.each([false, true])(
+  'Native66 terminal fallback preserves P18 snapshot (abort during read=%s)',
+  async (aborted) => {
+    const diagnostic = { origin: 'original-callback', predicate: 'unknown' };
+    const send = browser.tabs.sendMessage.getMockImplementation()!;
+    const execute = browser.scripting.executeScript.getMockImplementation()!;
+    const controller = new AbortController();
+    let leases = 0,
+      queries = 0;
+    safe = false;
+    browser.tabs.sendMessage.mockImplementation(async (id, command) =>
+      command.type === 'checkGeminiSdkTrial'
+        ? { ok: true, data: { ready: leases === 0, safeToRetire: false } }
+        : send(id, command),
+    );
+    browser.scripting.executeScript.mockImplementation(async (options) => {
+      if (options.args?.[2] === 'terminal-error') {
+        queries++;
+        if (aborted) controller.abort();
+        return [
+          {
+            frameId: 0,
+            documentId: 'native-doc',
+            result: { status: 'error', reason: 'dispatch-observation', diagnostic },
+          },
+        ];
+      }
+      if (options.args?.[2] === true)
+        return [{ frameId: 0, documentId: 'native-doc', result: false }];
+      if (!options.files && options.world === 'MAIN') {
+        leases++;
+        return [{ frameId: 0, documentId: 'native-doc', result: { status: 'pending' } }];
+      }
+      return execute(options);
+    });
+    try {
+      const error = await startGeminiSdkTrial(controller.signal).catch((error) => error);
+      expect(error.cause).toBe(aborted ? 'interrupted' : 'dispatch-observation');
+      if (aborted) expect(Object.hasOwn(error, 'geminiNativeReceiveDiagnostic')).toBe(false);
+      else
+        expect(
+          Object.getOwnPropertyDescriptor(error, 'geminiNativeReceiveDiagnostic'),
+        ).toMatchObject({ value: diagnostic, writable: false, configurable: false });
+      expect({ leases, queries }).toEqual({ leases: 1, queries: 1 });
+      expect(browser.tabs.remove).not.toHaveBeenCalled();
+      expect(Object.keys(stored[key] as object).sort()).toEqual(['id', 'status']);
+    } finally {
+      browser.tabs.sendMessage.mockImplementation(send);
+      browser.scripting.executeScript.mockImplementation(execute);
+    }
+  },
+);

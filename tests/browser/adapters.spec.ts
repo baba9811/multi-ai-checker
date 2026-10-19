@@ -1,3 +1,4 @@
+import { installCollectorFixture } from '../fixtures/chrome/collector';
 import { test, expect, type Page } from '@playwright/test';
 import path from 'node:path';
 import { providerPage, redesignedChatgptPage } from '../fixtures/providers/pages';
@@ -8,16 +9,19 @@ async function command(
   page: Page,
   message: object,
   senderUrl = 'chrome-extension://fixture/sidepanel.html',
+  connectCollector = true,
 ) {
   return page.evaluate(
-    ({ message, senderUrl }) =>
+    ({ message, senderUrl, connectCollector }) =>
       new Promise<{ ok: boolean; data?: any; error?: string }>((resolve) => {
+        if (connectCollector && (message as any).type === 'send')
+          (window as any).__fixtureConnectCollector((message as any).id);
         const handler = (window as any).__bridgeHandler;
         handler(message, { id: 'fixture', url: senderUrl }, resolve);
         if (senderUrl !== 'chrome-extension://fixture/sidepanel.html')
           setTimeout(() => resolve({ ok: false, error: 'no response' }), 50);
       }),
-    { message, senderUrl },
+    { message, senderUrl, connectCollector },
   );
 }
 async function setup(page: Page, provider: ProviderId, html = providerPage(provider)) {
@@ -38,6 +42,7 @@ async function setup(page: Page, provider: ProviderId, html = providerPage(provi
       },
     };
   });
+  await page.evaluate(installCollectorFixture);
   await page.addScriptTag({ path: path.resolve('.output/chrome-mv3/bridge.js') });
   const response = await command(page, { type: 'snapshot' });
   expect(response.ok).toBe(true);
@@ -172,6 +177,99 @@ for (const inlineBreak of [false, true]) {
   });
 }
 
+const orderedListPrompt =
+  'Review all candidates.\n\n2. Check pressure and temperature.\n\n3. Check the stated conditions.\n\n4. Keep every uncertainty.\n\nReturn the critique.';
+
+async function claudeOrderedListEcho(page: Page, variant = 'matching') {
+  const target = await setup(page, 'claude');
+  await page.evaluate(
+    ({ prompt, variant }) => {
+      const state = window as any;
+      const user = state.user;
+      state.user = (text: string) => {
+        user(text);
+        const message = [...document.querySelectorAll('[data-testid="user-message"]')].at(-1)!;
+        // The observed echo renders three separate decimal lists; markers are absent from innerText.
+        const parts = prompt.split('\n\n');
+        message.replaceChildren();
+        for (const [index, part] of parts.entries()) {
+          if (index > 0 && index < parts.length - 1) {
+            const list = document.createElement('ol');
+            list.start = index + 1;
+            const item = document.createElement('li');
+            item.textContent = part.replace(/^\d+\. /, '');
+            list.append(item);
+            message.append(list);
+          } else {
+            const paragraph = document.createElement('p');
+            paragraph.textContent = part;
+            message.append(paragraph);
+          }
+        }
+        const list = message.querySelector('ol')!;
+        const item = list.querySelector('li')!;
+        if (variant === 'changed-marker') list.start = 9;
+        if (variant === 'literal-marker') {
+          message.querySelectorAll('li').forEach((item, index) => item.prepend(`${index + 2}. `));
+          list.start = 9;
+        }
+        if (variant === 'changed-text') item.append(' changed');
+        if (variant === 'nested-list') {
+          const nested = list.cloneNode(true);
+          item.append(nested);
+        }
+        if (variant === 'reversed-list') list.reversed = true;
+        if (variant === 'nondecimal-list') list.type = 'A';
+        if (variant === 'list-item-value') item.value = 9;
+        if (variant === 'extra-user') user(text);
+        if (variant === 'remounted-history') {
+          const previous = document.querySelector('.font-claude-response')!;
+          previous.replaceWith(previous.cloneNode(true));
+        }
+      };
+    },
+    { prompt: orderedListPrompt, variant },
+  );
+  await command(page, {
+    type: 'send',
+    id: 'ordered-list-echo',
+    ...target,
+    prompt: orderedListPrompt,
+  });
+  await expect
+    .poll(async () => (await command(page, { type: 'poll', id: 'ordered-list-echo' })).data?.status)
+    .toMatch(/^(done|error)$/);
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([orderedListPrompt]);
+  return (await command(page, { type: 'poll', id: 'ordered-list-echo' })).data;
+}
+
+test('Claude matches its own decimal ordered-list echo without changing collected answers', async ({
+  page,
+}) => {
+  const progress = await claudeOrderedListEcho(page);
+  expect(progress.status).toBe('done');
+  expect(progress.answer).toBe('새로운 claude 검증 답변');
+});
+
+for (const variant of [
+  'changed-marker',
+  'literal-marker',
+  'changed-text',
+  'extra-user',
+  'remounted-history',
+  'nested-list',
+  'reversed-list',
+  'nondecimal-list',
+  'list-item-value',
+]) {
+  test(`Claude refuses an unsafe ordered-list echo: ${variant}`, async ({ page }) => {
+    const progress = await claudeOrderedListEcho(page, variant);
+    expect(progress.status).toBe('error');
+    expect(progress.error).toContain('대화 내용이 바뀌어');
+    expect(progress.answer).toBe('');
+  });
+}
+
 test('Claude waits for a delayed enabled send control, sends once and collects completion', async ({
   page,
 }) => {
@@ -241,6 +339,7 @@ for (const unsafe of [
   'busy',
   'files',
   'cancel',
+  'disconnect',
   'changed-url',
 ]) {
   test(`send readiness refuses ${unsafe} without clicking`, async ({ page }) => {
@@ -273,6 +372,10 @@ for (const unsafe of [
     await command(page, { type: 'send', id: 'unsafe-ready', ...target, prompt: 'Readiness guard' });
     await page.clock.runFor(450);
     if (unsafe === 'cancel') await command(page, { type: 'cancel', id: 'unsafe-ready' });
+    if (unsafe === 'disconnect')
+      await page.evaluate(() =>
+        (window as any).__fixtureCollectors.get('unsafe-ready').disconnect(),
+      );
     await page.clock.runFor(3000);
     expect((await command(page, { type: 'poll', id: 'unsafe-ready' })).data.status).toBe('error');
     expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
@@ -303,6 +406,80 @@ for (const provider of providerIds) {
     ]);
   });
 }
+test('a connected collector survives a 26 second polling gap and completes without another send', async ({
+  page,
+}) => {
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  const target = await setup(page, 'chatgpt');
+  await page.evaluate(() => {
+    (window as any).fixtureMode = 'limit';
+  });
+  await command(page, {
+    type: 'send',
+    id: 'live-collector',
+    ...target,
+    prompt: 'Synthetic slow answer',
+  });
+  await page.clock.runFor(26000);
+  expect((await command(page, { type: 'poll', id: 'live-collector' })).data.status).toBe('pending');
+  await page.evaluate(() => (window as any).assistant('Completed synthetic answer'));
+  await page.clock.runFor(3600);
+  expect((await command(page, { type: 'poll', id: 'live-collector' })).data).toMatchObject({
+    status: 'done',
+    answer: 'Completed synthetic answer',
+  });
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual(['Synthetic slow answer']);
+});
+
+test('a disconnected collector cannot send after a pending upload finishes', async ({ page }) => {
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  const target = await setupUpload(page, 'chatgpt', 'hold');
+  await command(page, {
+    type: 'send',
+    id: 'closed-upload',
+    ...target,
+    prompt: 'Must remain unsent',
+    attachments: uploadOriginals,
+  });
+  await expect(page.getByRole('progressbar')).toBeVisible();
+  await page.evaluate(() => {
+    (window as any).__fixtureCollectors.get('closed-upload').disconnect();
+    (window as any).fixtureFinishUploads();
+  });
+  await page.clock.runFor(6000);
+  expect((await command(page, { type: 'poll', id: 'closed-upload' })).data).toMatchObject({
+    status: 'error',
+    error: expect.stringContaining('패널 연결이 끊겨'),
+  });
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual([]);
+});
+
+test('ordinary Send requires its own live collector and never reconnects a used request', async ({
+  page,
+}) => {
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  const target = await setup(page, 'chatgpt');
+  const send = { type: 'send', id: 'bound-collector', ...target, prompt: 'Send exactly once' };
+  expect((await command(page, send, undefined, false)).ok).toBe(false);
+  await page.evaluate(() => {
+    (window as any).__fixtureConnectCollector('untrusted', {
+      id: 'other-extension',
+      url: 'chrome-extension://fixture/sidepanel.html',
+    });
+  });
+  expect((await command(page, { ...send, id: 'untrusted' }, undefined, false)).ok).toBe(false);
+  expect((await command(page, send)).ok).toBe(true);
+  await page.clock.runFor(2600);
+  await page.evaluate(() =>
+    (window as any).__fixtureCollectors.get('bound-collector').disconnect(),
+  );
+  expect((await command(page, { type: 'poll', id: 'bound-collector' })).data.status).toBe('error');
+  expect((await command(page, send)).ok).toBe(false);
+  expect(await page.evaluate(() => (window as any).fixtureSent)).toEqual(['Send exactly once']);
+});
 test('adapter refuses existing draft, untrusted sender and changed conversation', async ({
   page,
 }) => {
